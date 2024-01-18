@@ -32,8 +32,6 @@
 # * Libraries of different AM are not hot-swappable in a Psi4 build, but they only require a relinking.
 # [Jan 2024]
 # * As of v1.9, Psi4 can use an upstream v2.8 Libint2. This is a libtool+cmake build, so `find_package(Libint2 ... COMPONENTS ...)` has no components to check.
-# [Apr 2024]
-# * As of now, Psi4 needs v2.8.1 or higher for relativistic integral support.
 
 find_package(
   Libint2
