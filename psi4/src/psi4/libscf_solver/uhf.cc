@@ -95,7 +95,7 @@ UHF::~UHF() {}
 
 void UHF::common_init() {
     name_ = "UHF";
-
+    std::cout << "uhf init\n";
     mix_performed_ = false;
 
     // TODO: Move that to the base object
@@ -128,11 +128,12 @@ void UHF::common_init() {
 
     same_a_b_dens_ = false;
     same_a_b_orbs_ = false;
-
+    
     subclass_init();
 }
 
 void UHF::finalize() {
+    std::cout << "uhf finalize\n";
     // Form lagrangian
     for (int h = 0; h < nirrep_; ++h) {
         for (int m = 0; m < Lagrangian_->rowdim(h); ++m) {
@@ -156,14 +157,18 @@ void UHF::finalize() {
 
     compute_nos();
 
+    std::cout << "hf finalize\n";
     HF::finalize();
+
 }
 
 void UHF::save_density_and_energy() {
+    std::cout << "save_density\n";
     Da_old_->copy(Da_);
     Db_old_->copy(Db_);
 }
 void UHF::form_V() {
+    std::cout << "form_V\n";
     // // Push the C matrix on
     // std::vector<SharedMatrix> & C = potential_->C();
     // C.clear();
@@ -182,6 +187,7 @@ void UHF::form_V() {
     // Vb_ = Va_;
 }
 void UHF::form_G() {
+    std::cout << "form_G\n";
     if (functional_->needs_xc()) {
         form_V();
         Ga_->copy(Va_);
@@ -249,6 +255,7 @@ void UHF::form_G() {
 }
 
 void UHF::form_F() {
+    std::cout << "form_F\n";
     Fa_->copy(H_);
     Fa_->add(Ga_);
     for (const auto& Vext : external_potentials_) {
@@ -268,6 +275,7 @@ void UHF::form_F() {
 }
 
 void UHF::form_C(double shift) {
+    std::cout << "form_C\n";
     if (shift == 0.0) {
         diagonalize_F(Fa_, Ca_, epsilon_a_);
         diagonalize_F(Fb_, Cb_, epsilon_b_);
@@ -323,6 +331,7 @@ void UHF::form_C(double shift) {
 }
 
 void UHF::form_D() {
+    std::cout << "form_D\n";
     Da_->zero();
     Db_->zero();
 
@@ -357,12 +366,14 @@ void UHF::damping_update(double damping_percentage) {
 }
 
 double UHF::compute_initial_E() {
+    std::cout << "compute_initial_E\n";
     auto Dt = Da_->clone();
     Dt->add(Db_);
     return nuclearrep_ + 0.5 * (Dt->vector_dot(H_));
 }
 
 double UHF::compute_E() {
+    std::cout << "compute_E\n";
     // E_DFT = 2.0 D*H + D*J - \alpha D*K + E_xc
     double kinetic_E = Da_->vector_dot(T_);
     kinetic_E += Db_->vector_dot(T_);
@@ -427,6 +438,7 @@ double UHF::compute_E() {
     return Etotal;
 }
 std::vector<SharedMatrix> UHF::onel_Hx(std::vector<SharedMatrix> x_vec) {
+    std::cout << "onel_Hx\n";
     if ((x_vec.size() % 2) != 0) {
         throw PSIEXCEPTION("UHF::onel_Hx expect incoming vector to alternate A/B");
     }
@@ -516,6 +528,7 @@ std::vector<SharedMatrix> UHF::onel_Hx(std::vector<SharedMatrix> x_vec) {
     return ret;
 }
 std::vector<SharedMatrix> UHF::twoel_Hx(std::vector<SharedMatrix> x_vec, bool combine, std::string return_basis) {
+    std::cout << "twoel_Hx\n";
     if ((x_vec.size() % 2) != 0) {
         throw PSIEXCEPTION("UHF::twoel_Hx expect incoming vector to alternate A/B");
     }
@@ -1061,6 +1074,7 @@ std::vector<SharedMatrix> UHF::cphf_solve(std::vector<SharedMatrix> x_vec, doubl
     return ret_vec;
 }
 int UHF::soscf_update(double soscf_conv, int soscf_min_iter, int soscf_max_iter, int soscf_print) {
+    std::cout << "soscf_update\n";
     std::time_t start, stop;
     start = std::time(nullptr);
 
@@ -1093,6 +1107,7 @@ int UHF::soscf_update(double soscf_conv, int soscf_min_iter, int soscf_max_iter,
 }
 
 void UHF::compute_nos() {
+    std::cout << "compute_nos\n";
     // Compute UHF NOs and NOONs [J. Chem. Phys. 88, 4926 (1988)] -- TDC, 8/15
 
     // Build S^1/2
@@ -1239,6 +1254,7 @@ std::shared_ptr<UHF> UHF::c1_deep_copy(std::shared_ptr<BasisSet> basis) {
 }
 
 void UHF::setup_potential() {
+    std::cout << "setup_potential\n";
     if (functional_->needs_xc()) {
         potential_ = std::make_shared<UV>(functional_, basisset_, options_);
         potential_->initialize();

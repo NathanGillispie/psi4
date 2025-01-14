@@ -1294,10 +1294,12 @@ void HF::compute_SAD_guess(bool natorb) {
         epsilon_b_->copy(*epsilon_a_);
 
     } else {
+	std::cout << "copying\n";
         SharedMatrix Ca_sad = guess->Ca();
         SharedMatrix Cb_sad = guess->Cb();
         Da_->copy(guess->Da());
         Db_->copy(guess->Db());
+	std::cout << "copied\n";
         Dimension sad_dim(Da_->nirrep(), "SAD Dimensions");
 
         for (int h = 0; h < Da_->nirrep(); h++) {
