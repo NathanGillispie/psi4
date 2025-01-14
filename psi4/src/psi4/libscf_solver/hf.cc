@@ -103,7 +103,6 @@ void HF::common_init() {
 
     // This quantity is needed fairly soon
     nirrep_ = factory_->nirrep();
-
     integral_threshold_ = options_.get_double("INTS_TOLERANCE");
 
     scf_type_ = options_.get_str("SCF_TYPE");
@@ -181,7 +180,7 @@ void HF::common_init() {
     if (input_socc_ || input_docc_) {
         nalphapi_ = docc + socc;
         nbetapi_ = docc;
-        int alphacount = nalphapi_.sum();
+	int alphacount = nalphapi_.sum();
         int betacount = nbetapi_.sum();
         if (alphacount != nalpha_) {
             std::ostringstream oss;
@@ -684,7 +683,6 @@ void HF::form_H() {
 
     H_->copy(T_);
     H_->add(V_);
-
     if (print_ > 3) H_->print("outfile");
 }
 
@@ -702,7 +700,6 @@ void HF::form_Shalf() {
         throw PSIEXCEPTION("Unrecognized S_ORTHOGONALIZATION method\n");
 
     bool used_brian = false;
-
 #if USING_BrianQC
     if (brianEnable) {
         double S_cutoff = options_.get_double("S_TOLERANCE");
@@ -732,7 +729,6 @@ void HF::form_Shalf() {
         used_brian = true;
     }
 #endif
-
     if (!used_brian) {
         double lindep_tolerance = options_.get_double("S_TOLERANCE");
         double cholesky_tolerance = options_.get_double("S_CHOLESKY_TOLERANCE");
@@ -746,7 +742,6 @@ void HF::form_Shalf() {
         nmopi_ = X_->colspi();
         nmo_ = nmopi_.sum();
     }
-
     // Double check occupation vectors
     for (int h = 0; h < X_->nirrep(); ++h) {
         if (std::max(nalphapi_[h], nbetapi_[h]) > nmopi_[h]) {
@@ -760,10 +755,8 @@ void HF::form_Shalf() {
     if (!same_a_b_orbs_) {
         Cb_->init(nirrep_, nsopi_, nmopi_, "Beta MO coefficients");
     }
-
     // Extra matrix dimension changes for specific derived classes
     prepare_canonical_orthogonalization();
-
     if (print_ > 3) {
         S_->print("outfile");
         X_->print("outfile");
@@ -931,6 +924,9 @@ void HF::print_orbitals() {
         print_orbital_pairs("Doubly Occupied:", docc);
         print_orbital_pairs("Singly Occupied:", socc);
         print_orbital_pairs("Virtual:", vir);
+    
+    } else if (reference == "CGHF") {
+       std::cout << "Print your orbitals here!\n";
 
     } else {
         throw PSIEXCEPTION("Unknown reference in HF::print_orbitals");
@@ -1027,7 +1023,6 @@ void HF::guess() {
         if ((guess_Ca_->rowspi() != nsopi_) || (guess_Cb_->rowspi() != nsopi_)) {
             throw PSIEXCEPTION("Nso of the guess orbitals do not match Nso of the wavefunction.");
         }
-
         for (int h = 0; h < nirrep_; h++) {
             for (int i = 0; i < guess_Ca_->colspi()[h]; i++) {
                 C_DCOPY(nsopi_[h], &guess_Ca_->pointer(h)[0][i], guess_Ca_->colspi()[h], &Ca_->pointer(h)[0][i],
@@ -1049,6 +1044,7 @@ void HF::guess() {
         // Figure out occupations from given input
         if (!(input_socc_ || input_docc_)) {
             nalphapi_ = guess_Ca_->colspi();
+
             nbetapi_ = guess_Cb_->colspi();
             nalpha_ = nalphapi_.sum();
             nbeta_ = nbetapi_.sum();
@@ -1076,7 +1072,6 @@ void HF::guess() {
 
         // Build non-idempotent, spin-restricted SAD density matrix
         compute_SAD_guess(false);
-
         // This is a guess iteration: orbital occupations must be
         // reset in SCF.
         iteration_ = -1;
@@ -1346,6 +1341,7 @@ void HF::diagonalize_F(const SharedMatrix& Fm, SharedMatrix& Cm, std::shared_ptr
 void HF::reset_occupation() {
     // RHF style for now
     nalphapi_ = original_nalphapi_;
+
     nbetapi_ = original_nbetapi_;
 
     // These may not match the per irrep. Will remap correctly next find_occupation call
@@ -1436,5 +1432,5 @@ bool HF::stability_analysis() {
     throw PSIEXCEPTION("Stability analysis hasn't been implemented yet for this wfn type.");
     return false;
 }
-}  // namespace scf
-}  // namespace psi
+}}  // namespace scf
+  // namespace psi
