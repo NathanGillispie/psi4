@@ -102,7 +102,6 @@ void CGHF::common_init(){
     //we can't access it for some reason
     nalphapi_ = nbocc_ + multiplicity_ - 1;
     
-    std::cout << "starting nalphapi_ is " << nalphapi_ << "\n";
     REvecs_ = einsums::BlockTensor<std::complex<double>, 2>("R Eigenvectors", irrep_sizes_);
     LEvecs_ = einsums::BlockTensor<std::complex<double>, 2>("L Eigenvectors", irrep_sizes_);
 
@@ -119,6 +118,14 @@ void CGHF::common_init(){
     Cocc_ = einsums::BlockTensor<std::complex<double>, 2>("Cocc", irrep_sizes_);
     J_ = einsums::BlockTensor<std::complex<double>, 2>("J", irrep_sizes_);
     K_ = einsums::BlockTensor<std::complex<double>, 2>("K", irrep_sizes_);
+
+    Jaa_ = einsums::Tensor<std::complex<double>, 2>("Jaa", nsopi_[i], nsopi_[i]);
+    Jbb_ = einsums::Tensor<std::complex<double>, 2>("Jbb", nsopi_[i], nsopi_[i]);
+
+    Kaa_ = einsums::Tensor<std::complex<double>, 2>("Kaa", nsopi_[i], nsopi_[i]);
+    Kab_ = einsums::Tensor<std::complex<double>, 2>("Kab", nsopi_[i], nsopi_[i]);
+    Kba_ = einsums::Tensor<std::complex<double>, 2>("Kba", nsopi_[i], nsopi_[i]);
+    Kbb_ = einsums::Tensor<std::complex<double>, 2>("Kbb", nsopi_[i], nsopi_[i]);
 
     C_.zero();
     F1 = einsums::BlockTensor<std::complex<double>, 2>("Temp Fock Matrix", irrep_sizes_);
@@ -155,16 +162,22 @@ void CGHF::common_init(){
     //Fb_ = SharedMatrix(factory_->create_matrix("F beta"));
 
     G_mat = mintshelper()->ao_eri();
-    T_ = mintshelper()->so_kinetic();
-    V_ = mintshelper()->so_potential();
+    //T_ = mintshelper()->so_kinetic();
+    //V_ = mintshelper()->so_potential();
     //T_->print("outfile");
     //V_->print("outfile");
     //auto molecule_ = basisset_->molecule();
-
+    form_H();
     form_X();
     form_init_F();
     subclass_init();
     //SCF(options(), mints);
+}
+
+void CGHF::form_H() {
+    T_ = mintshelper()->so_kinetic();
+    V_ = mintshelper()->so_potential();
+
 }
 
 
@@ -189,7 +202,6 @@ void CGHF::form_S() {
 
 
 void CGHF::form_X() {
-    //std::cout << "Forming X\n";
     //auto X_mat = einsums::linear_algebra::pow(S_, -0.5);
     //X_mat->print();
     //X_mat->power(-0.5, 1e-14);
@@ -213,10 +225,8 @@ void CGHF::form_V() {
 }
 
 void CGHF::form_init_F() {
-    //std::cout << "Forming F\n";
     //F_mat->add(V_mat);
     //F_.zero();
-    std::cout << "Can we form F?\n";
     for (int i = 0; i < nirrep_; i++) {
         auto F_block = einsums::Tensor<std::complex<double>, 2>(
                       "F block", irrep_sizes_[i], irrep_sizes_[i]);
@@ -235,25 +245,19 @@ void CGHF::form_init_F() {
     //F_ += F0_;
     //F_ += J_;
     //F_ -= K_;
-
-    std::cout << "init F formed\n";
-    println(F0_);
 }
 
 void CGHF::form_F() {
    F_.zero();
    F_ += F0_;
-   F_ += J_;
-   F_ -= K_;
+   F_ += JK_;
 }
 
 void CGHF::orthogonalize_fock() {
-   std::cout << "Can we orthogonalize?\n";
    F1.zero();
    einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, F_, X_, std::complex<double>{0.0},  &F1);
 
    einsums::linear_algebra::gemm<true, false>(std::complex<double>{1.0}, X_, F1, std::complex<double>{0.0}, &Fp_);
-   std::cout << "Orthogonalized\n";
 }
 
 auto GetRealVector(auto A, auto dim) {
@@ -268,7 +272,6 @@ auto GetRealVector(auto A, auto dim) {
 }
 
 void CGHF::diagonalize_fock() {
-   std::cout << "Can we diagonalize?\n";
    auto Fp_blocks = Fp_.vector_data();
    for (int i = 0; i < nirrep_; i++) {
        auto Fp_irrep = Fp_[i];
@@ -288,13 +291,10 @@ void CGHF::diagonalize_fock() {
         auto real_eval_irrep = GetRealVector(eval_irrep, irrep_sizes_[i]);
         RealEvals_[i] = real_eval_irrep;
     }
-    std::cout << "Diagonalized\n";
 }
 
 void CGHF::back_transform() {
-    std::cout << "Can we back transform?\n";
     einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, X_, REvecs_, std::complex<double>{0.0},  &C_);
-    std::cout << "back transformed\n";
 }
 
 // Comparator to sort pairs based on the second element (value)
@@ -352,7 +352,6 @@ void CGHF::sort_real_evals(){
                 }
               }
             }
-    std::cout << "nocc = " << nocc_[0] << "\n";
 }
 
 void CGHF::form_C(double shift) {
@@ -364,7 +363,6 @@ void CGHF::form_C(double shift) {
 }
 
 void CGHF::form_D() {
-    std::cout << "D formed\n";
     auto C_block = C_.vector_data();
     D_.zero();
     Cocc_.zero();
@@ -464,28 +462,15 @@ auto GetImag(auto A, auto dimA, auto dimB) {
 }
 
 void CGHF::form_G() {
-    std::cout << "computing jk\n";
     for (int i = 0; i < nirrep_; i++) {
-        auto Jaa = einsums::Tensor<std::complex<double>, 2>("Jaa", nsopi_[i], nsopi_[i]);
-
-        auto Jbb = einsums::Tensor<std::complex<double>, 2>("Jbb", nsopi_[i], nsopi_[i]);
-        auto Kaa = einsums::Tensor<std::complex<double>, 2>("Kaa", nsopi_[i], nsopi_[i]);
-        auto Kab = einsums::Tensor<std::complex<double>, 2>("Kab", nsopi_[i], nsopi_[i]);
-        auto Kba = einsums::Tensor<std::complex<double>, 2>("Kba", nsopi_[i], nsopi_[i]);
-        auto Kbb = einsums::Tensor<std::complex<double>, 2>("Kbb", nsopi_[i], nsopi_[i]);
-
-        auto J_block = einsums::Tensor<std::complex<double>, 2>("J block", 2*nsopi_[i], 2*nsopi_[i]);
-        auto K_block = einsums::Tensor<std::complex<double>, 2>("K block", 2*nsopi_[i], 2*nsopi_[i]);
-
-        Jaa.zero();
-        Jbb.zero();
-        Kaa.zero();
-        Kab.zero();
-        Kba.zero();
-        Kbb.zero();
-        J_block.zero();
-        K_block.zero();
-        //Jaa and Jbb
+        Jaa_.zero();
+        Jbb_.zero();
+        Kaa_.zero();
+        Kab_.zero();
+        Kba_.zero();
+        Kbb_.zero();
+        
+	//Jaa and Jbb
 	auto nsopim = irrep_sizes_[i]/2;
         for (int p = 0; p < irrep_sizes_[i]/2; p++) {
             for (int q = 0; q < irrep_sizes_[i]/2; q++) {
@@ -500,40 +485,41 @@ void CGHF::form_G() {
                         //Jaa gaaaa Daa
                         auto D_aa  = D_[i](s, r);
                         auto J_contract_aa = pqrs*D_aa;
-                        Jaa(p, q) += J_contract_aa;
+                        Jaa_(p, q) += J_contract_aa;
                         //Jaa gaabb Dbb
                         auto D_bb = D_[i](s+nsopi_[i], r+nsopi_[i]);
                         auto J_contract_bb = pqrs*D_bb;
-                        Jaa(p, q) += J_contract_bb;
+                        Jaa_(p, q) += J_contract_bb;
 
                         //Jbb gbbbb Dbb
-                        Jbb(p, q) += J_contract_bb;
+                        Jbb_(p, q) += J_contract_bb;
 
                         //Jbb gbbaa Daa
-                        Jbb(p, q) += J_contract_aa;
+                        Jbb_(p, q) += J_contract_aa;
 
                         //Kaa gaaaa Daa
                         auto K_contract_aa = psrq*D_aa;
-                        Kaa(p, q) += K_contract_aa;
+                        Kaa_(p, q) += K_contract_aa;
 
                         //Kab gaabb Dab
                         auto D_ab = D_[i](s, r+nsopi_[i]);
                         auto K_contract_ab = psrq*D_ab;
-                        Kab(p, q) += K_contract_ab;
+                        Kab_(p, q) += K_contract_ab;
 
                         //Kba gbbaa Dba
                         auto D_ba = D_[i](s+nsopi_[i], r);
                         auto K_contract_ba = psrq*D_ba;
-                        Kba(p, q) += K_contract_ba;
+                        Kba_(p, q) += K_contract_ba;
 
                         //Kbb gbbbb Dbb
                         auto K_contract_bb = psrq*D_bb;
-                        Kbb(p, q) += K_contract_bb;
+                        Kbb_(p, q) += K_contract_bb;
                     }
                 }
             }
         }
 
+	/*
         //Fill blocks
         for (int j = 0; j < nsopi_[i]; j++) {
             for (int k = 0; k < nsopi_[i]; k++) {
@@ -545,9 +531,11 @@ void CGHF::form_G() {
                 K_block(j+nsopi_[i], k+nsopi_[i]) = Kbb(j, k);
             }
         }
+        */
 
         J_[i] = J_block;
         K_[i] = K_block;
+
     }
     //println(J_);
     //F_ += J_;
@@ -556,7 +544,6 @@ void CGHF::form_G() {
 
 void CGHF::finalize() {
     /*
-    std::cout << "FINALIZING\n";
     F_.zero();
     F_ += F0_;
     F_ += J_;
@@ -727,7 +714,7 @@ double CGHF::compute_E() {
     return E+nuclearrep_;
 }
 
-
+/*
 void CGHF::SCF(Options& options, MintsHelper mints) {
     form_S();
     form_X();
@@ -751,7 +738,6 @@ void CGHF::SCF(Options& options, MintsHelper mints) {
 
         form_D();
         build_JK(options, mints);
-        /*
 	double newE = compute_energy(options, mints);
 	double diffE = std::abs(E-newE);
 	std::cout << E << " " << newE << "\n";
@@ -763,10 +749,10 @@ void CGHF::SCF(Options& options, MintsHelper mints) {
 
 	    break;
 	    }
-	*/
 	}
 	
 }
+*/
 
 
 
