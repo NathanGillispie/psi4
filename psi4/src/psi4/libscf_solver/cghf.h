@@ -40,6 +40,7 @@ class CGHF: public HF {
 	void finalize() override;
 	void form_S();
 	void form_T();
+	void form_H() override;
         void form_F() override;
 	void form_init_F();
 	void form_X();
@@ -142,7 +143,12 @@ class CGHF: public HF {
         einsums::BlockTensor<double, 1> RealEvals_;
 	einsums::BlockTensor<std::complex<double>, 2> F0_;
         einsums::BlockTensor<std::complex<double>, 2> Fp_;
-
+        einsums::Tensor<std::complex<double>, 2> Jaa_;
+        einsums::Tensor<std::complex<double>, 2> Jbb_;
+        einsums::Tensor<std::complex<double>, 2> Kaa_;
+        einsums::Tensor<std::complex<double>, 2> Kab_;
+        einsums::Tensor<std::complex<double>, 2> Kba_;
+        einsums::Tensor<std::complex<double>, 2> Kbb_;
 
 	/*
         einsums::BlockTensor<std::complex<double>, 2> J1;
