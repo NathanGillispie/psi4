@@ -1,0 +1,24 @@
+
+# PYTHONPATH must include directory above plugin directory.
+#     Define either externally or here, then import plugin.
+sys.path.insert(0, './..')
+import tdghf
+
+molecule {
+H      0.00000    0.00000    0.00000
+H      0.74000    0.00000    0.00000
+
+Symmetry C1
+}
+
+set {
+  reference uhf
+  basis 6-31g**
+}
+
+set tdghf {
+}
+
+energy('tdghf')
+
+tdghf.exampleFN()
