@@ -19,15 +19,19 @@ endif ()
                                               # 3.2: continue()
                                               # 3.1: CMAKE_CXX_STANDARD, BUILD_ALWAYS
 
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build.")  # foil Ninja Debug on Windows
 
-project(psi4
-        LANGUAGES C CXX)
+### MY OWN CUSTOM CHANGES
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build.")  # foil Ninja Debug on Windows
+#set(Einsums_DIR STRING "/home/machdev/miniconda3/envs/p4dev/share/cmake/Einsums")
+set(ENABLE_OPENMP OFF)
+
+project(psi4 LANGUAGES C CXX)
 set(psi4_URL "http://www.psicode.org/")
 set(psi4_EMAIL "psi4aiqc+cmake@gmail.com")
 set(psi4_LICENSE "GNU Lesser General Public License, version 3 (LGPL-3.0)")
 set(psi4_DESCRIPTION "Open-Source Quantum Chemistry")
 
+#link_libraries(PUBLIC Einsums::einsums)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 message(STATUS "Building using CMake ${CMAKE_VERSION} Generator ${CMAKE_GENERATOR}")
@@ -118,7 +122,8 @@ option(ENABLE_ddx "Enables ddx for domain-decomposition contiuum solvation model
 option(ENABLE_dkh "Enables DKH integrals (requires Fortran)" OFF)
 option(ENABLE_ecpint "Enables libecpint for effective core potentials (ECP)" OFF)
 option(ENABLE_libefp "Enables LIBEFP and PylibEFP for fragments" OFF)
-option(ENABLE_Einsums "Enables the Einsums tensor library" OFF)
+option(ENABLE_Einsums "Enables the Einsums tensor library" ON)
+option(ENABLE_erd "Enables use of ERD instead of Libint (requires Fortran)" OFF)
 option(ENABLE_simint "Enables use of SIMINT two-electron integral library" OFF)
 option(ENABLE_gauxc "Enables use of GauXC density functional library" OFF)
 option(ENABLE_gdma "Enables Stone's GDMA multipole code (requires Fortran; can also be added at runtime)" OFF)
@@ -154,10 +159,10 @@ endif()
 ############################  Options: Build How?  #############################
 include(psi4OptionsTools)
 option_with_print(BUILD_SHARED_LIBS "Build internally built Psi4 add-on libraries as shared, not static" OFF)
-option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
+option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Debug)
 include(xhost)  # defines: option(ENABLE_XHOST "Enable processor-specific optimization" ON)
 # below are uncommon to adjust
-option_with_print(ENABLE_OPENMP "Enables OpenMP parallelization" ON)
+option_with_print(ENABLE_OPENMP "Enables OpenMP parallelization" OFF)
 option_with_print(ENABLE_AUTO_BLAS "Enables CMake to auto-detect BLAS" ON)
 option_with_print(ENABLE_AUTO_LAPACK "Enables CMake to auto-detect LAPACK" ON)
 option_with_print(ENABLE_PLUGIN_TESTING "Test the plugin templates build and run" OFF)
