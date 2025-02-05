@@ -93,6 +93,36 @@ void CGHF::common_init(){
     Fa_ = SharedMatrix(factory_->create_matrix("F alpha"));
     Fb_ = SharedMatrix(factory_->create_matrix("F beta"));
 
+    Gaa_ = SharedMatrix(factory_->create_matrix("F alpha"));
+    Gab_ = SharedMatrix(factory_->create_matrix("F alpha"));
+    Gba_ = SharedMatrix(factory_->create_matrix("F alpha"));
+    Gbb_ = SharedMatrix(factory_->create_matrix("F alpha"));
+    Va_ = SharedMatrix(factory_->create_matrix("V alpha"));
+    Vb_ = SharedMatrix(factory_->create_matrix("V beta"));
+    Jaai_ = SharedMatrix(factory_->create_matrix("K alpha"));
+    Jabi_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Jbai_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Jbbi_ = SharedMatrix(factory_->create_matrix("K beta"));
+    
+    Kaai_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kabi_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kbai_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kbbi_ = SharedMatrix(factory_->create_matrix("K beta"));
+
+    Jaar_ = SharedMatrix(factory_->create_matrix("K alpha"));
+    Jabr_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Jbar_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Jbbr_ = SharedMatrix(factory_->create_matrix("K beta"));
+
+    Kaar_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kabr_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kbar_ = SharedMatrix(factory_->create_matrix("K beta"));
+    Kbbr_ = SharedMatrix(factory_->create_matrix("K beta"));
+
+    wKa_ = SharedMatrix(factory_->create_matrix("wK alpha"));
+    wKb_ = SharedMatrix(factory_->create_matrix("wK beta"));
+    //J_ = SharedMatrix(factory_->create_matrix("J total"));
+
     form_S();
 
     nelectron_ -= charge_;
@@ -101,7 +131,19 @@ void CGHF::common_init(){
     //This is a bandage to the overarching problem that
     //we can't access it for some reason
     nalphapi_ = nbocc_ + multiplicity_ - 1;
+    //auto nelpi_ = &nalphapi_;
     
+    /*
+    if (nirrep_ > 1) {
+        for (int i = 0; i < nirrep_; i ++) {
+            nelpi_[i] += nbetapi_[i];
+        }
+    }
+    else {
+         nelpi_ += nbetapi_; 
+    }
+    */
+
     REvecs_ = einsums::BlockTensor<std::complex<double>, 2>("R Eigenvectors", irrep_sizes_);
     LEvecs_ = einsums::BlockTensor<std::complex<double>, 2>("L Eigenvectors", irrep_sizes_);
 
@@ -112,13 +154,14 @@ void CGHF::common_init(){
     F_ = einsums::BlockTensor<std::complex<double>, 2>("AO Fock", irrep_sizes_);
     EINT_ = einsums::BlockTensor<std::complex<double>, 2>("Kinetic Matrix", irrep_sizes_);
     Fp_ = einsums::BlockTensor<std::complex<double>, 2>("AO Fock Ortho", irrep_sizes_);
+    JKwK_ = einsums::BlockTensor<std::complex<double>, 2>("JKwK_", irrep_sizes_);
 
     D_ = einsums::BlockTensor<std::complex<double>, 2>("AO Density", irrep_sizes_);
     C_ = einsums::BlockTensor<std::complex<double>, 2>("C", irrep_sizes_);
     Cocc_ = einsums::BlockTensor<std::complex<double>, 2>("Cocc", irrep_sizes_);
-    J_ = einsums::BlockTensor<std::complex<double>, 2>("J", irrep_sizes_);
-    K_ = einsums::BlockTensor<std::complex<double>, 2>("K", irrep_sizes_);
-
+    //J_ = einsums::BlockTensor<std::complex<double>, 2>("J", irrep_sizes_);
+    //K_ = einsums::BlockTensor<std::complex<double>, 2>("K", irrep_sizes_);
+    /*
     Jaa_ = einsums::Tensor<std::complex<double>, 2>("Jaa", nsopi_[i], nsopi_[i]);
     Jbb_ = einsums::Tensor<std::complex<double>, 2>("Jbb", nsopi_[i], nsopi_[i]);
 
@@ -126,7 +169,8 @@ void CGHF::common_init(){
     Kab_ = einsums::Tensor<std::complex<double>, 2>("Kab", nsopi_[i], nsopi_[i]);
     Kba_ = einsums::Tensor<std::complex<double>, 2>("Kba", nsopi_[i], nsopi_[i]);
     Kbb_ = einsums::Tensor<std::complex<double>, 2>("Kbb", nsopi_[i], nsopi_[i]);
-
+    */
+    JKwK_.zero();
     C_.zero();
     F1 = einsums::BlockTensor<std::complex<double>, 2>("Temp Fock Matrix", irrep_sizes_);
     F1.zero();
@@ -139,8 +183,8 @@ void CGHF::common_init(){
     D_.zero();
     C_.zero();
     Cocc_.zero();
-    J_.zero();
-    K_.zero();
+    //J_.zero();
+    //K_.zero();
     twoe_.zero();
    // Empty orthogonalized Fock Matrix
     F0_ = einsums::BlockTensor<std::complex<double>, 2>("Orthogonalized Fock Matrix", irrep_sizes_);
@@ -250,7 +294,7 @@ void CGHF::form_init_F() {
 void CGHF::form_F() {
    F_.zero();
    F_ += F0_;
-   F_ += JK_;
+   F_ += JKwK_;
 }
 
 void CGHF::orthogonalize_fock() {
@@ -360,19 +404,21 @@ void CGHF::form_C(double shift) {
     back_transform();
     sort_real_evals();
 
+
 }
 
 void CGHF::form_D() {
     auto C_block = C_.vector_data();
     D_.zero();
     Cocc_.zero();
+
+    auto nelec_ = nalphapi_ + nbetapi_;
     for (int i = 0; i < nirrep_; i++) {
-        auto Cocc = einsums::Tensor<std::complex<double>, 2>("Cocc", irrep_sizes_[i], 2*nalphapi_);
+        auto Cocc = einsums::Tensor<std::complex<double>, 2>("Cocc", irrep_sizes_[i], nelec_[i]);
         Cocc.zero();
         for (int j = 0; j < irrep_sizes_[i]; j++) {
-                for (int k = 0; k < 2*nalphapi_; k++) {
+                for (int k = 0; k < 2*nalphapi_[i]; k++) {
                         Cocc(j,k) = C_block[i](j, k);
-
                 }
         }
         auto D_block = einsums::Tensor<std::complex<double>, 2>("Temp D", irrep_sizes_[i], irrep_sizes_[i]);
@@ -462,93 +508,233 @@ auto GetImag(auto A, auto dimA, auto dimB) {
 }
 
 void CGHF::form_G() {
-    for (int i = 0; i < nirrep_; i++) {
-        Jaa_.zero();
-        Jbb_.zero();
-        Kaa_.zero();
-        Kab_.zero();
-        Kba_.zero();
-        Kbb_.zero();
-        
-	//Jaa and Jbb
-	auto nsopim = irrep_sizes_[i]/2;
-        for (int p = 0; p < irrep_sizes_[i]/2; p++) {
-            for (int q = 0; q < irrep_sizes_[i]/2; q++) {
-                for (int r = 0; r < irrep_sizes_[i]/2; r++) {
-                    for (int s = 0; s < irrep_sizes_[i]/2; s++) {
-                        int pq = p*nsopi_[i] + q;
-                        int rs = r*nsopi_[i] + s;
-                        int ps = p*nsopi_[i] + s;
-                        int rq = r*nsopi_[i] + q;
-                        std::complex<double> pqrs = {G_mat->get(i, pq, rs)};
-                        std::complex<double> psrq = {G_mat->get(i, ps, rq)};
-                        //Jaa gaaaa Daa
-                        auto D_aa  = D_[i](s, r);
-                        auto J_contract_aa = pqrs*D_aa;
-                        Jaa_(p, q) += J_contract_aa;
-                        //Jaa gaabb Dbb
-                        auto D_bb = D_[i](s+nsopi_[i], r+nsopi_[i]);
-                        auto J_contract_bb = pqrs*D_bb;
-                        Jaa_(p, q) += J_contract_bb;
-
-                        //Jbb gbbbb Dbb
-                        Jbb_(p, q) += J_contract_bb;
-
-                        //Jbb gbbaa Daa
-                        Jbb_(p, q) += J_contract_aa;
-
-                        //Kaa gaaaa Daa
-                        auto K_contract_aa = psrq*D_aa;
-                        Kaa_(p, q) += K_contract_aa;
-
-                        //Kab gaabb Dab
-                        auto D_ab = D_[i](s, r+nsopi_[i]);
-                        auto K_contract_ab = psrq*D_ab;
-                        Kab_(p, q) += K_contract_ab;
-
-                        //Kba gbbaa Dba
-                        auto D_ba = D_[i](s+nsopi_[i], r);
-                        auto K_contract_ba = psrq*D_ba;
-                        Kba_(p, q) += K_contract_ba;
-
-                        //Kbb gbbbb Dbb
-                        auto K_contract_bb = psrq*D_bb;
-                        Kbb_(p, q) += K_contract_bb;
-                    }
-                }
-            }
-        }
-
-	/*
-        //Fill blocks
-        for (int j = 0; j < nsopi_[i]; j++) {
-            for (int k = 0; k < nsopi_[i]; k++) {
-                J_block(j, k) = Jaa(j, k);
-                J_block(j+nsopi_[i], k+nsopi_[i]) = Jbb(j, k);
-                K_block(j, k) = Kaa(j, k);
-                K_block(j, k+nsopi_[i]) = Kab(j, k);
-                K_block(j+nsopi_[i], k) = Kba(j, k);
-                K_block(j+nsopi_[i], k+nsopi_[i]) = Kbb(j, k);
-            }
-        }
-        */
-
-        J_[i] = J_block;
-        K_[i] = K_block;
+    timer_on("CGHF form_G");
+    std::cout << "form_G\n";
+    if (functional_->needs_xc()) {
+        form_V();
+        Gaa_->copy(Va_);
+        Gbb_->copy(Vb_);
+    } else {
+	Gaa_->zero();
+	Gbb_->zero();
+        Gab_->zero();
+        Gba_->zero();
 
     }
-    //println(J_);
-    //F_ += J_;
-    //F_ -= K_;
+
+    JKwK_.zero();
+
+    auto nelecpi_ = nalphapi_ + nbetapi_;
+    //nelecpi_.n()
+
+    // Push the C matrix on
+    std::vector<SharedMatrix>& Cl = jk_->C_left();
+    std::vector<SharedMatrix>& Cr = jk_->C_right();
+
+    auto Cai_subset = std::make_shared<Matrix>(nirrep_, nsopi_, nelecpi_);
+    auto Car_subset = std::make_shared<Matrix>(nirrep_, nsopi_, nelecpi_);
+
+    auto Cbi_subset = std::make_shared<Matrix>(nirrep_, nsopi_, nelecpi_);
+    auto Cbr_subset = std::make_shared<Matrix>(nirrep_, nsopi_, nelecpi_);
+   
+    Cr.clear();
+    Cl.clear();
+    
+    /*
+    #############################################################################
+
+    The J and K objects are as follows:  -> assume Einstein Summation
+
+    J_uv = g_uvsl * D_sl
+    K_uv = g_ulsv * D_sl
+
+    where our Density matrix is the contraction,
+
+    D_sl = C_si * C_li
+
+    Since we're doing cGHF, the coefficient matrices will have real and imag parts,
+
+    C_si * C_li = (C_si + iC_si^)(C_li + iC_li^)
+
+    where the ^ indicates the 'real' part of the imaginary component.
+
+    Foiling this out gives,
+
+    C_si * C_li = (C_si * C_li) + i(C_si * C_li^) + i(C_si^ * C_li) - (C_si^ * C_li^)
+
+    It is important to note that the first and last terms are completely REAL
+    since i^2 = -1, and the second and third terms are completely IMAG
+
+
+    #############################################################################
+
+    Here are the keys to navigate this for the future confused Matt,
+
+    Greek:
+    u - mu
+    v - nu
+    s - sigma
+    l - lambda
+
+    Psi4 terms:
+             g - 2D two-electron matrix
+	    jk_ - JK object
+             J - coulomb term from jk_
+             K - exchange term from jk_
+    Car_subset - REAL alpha components of the occupied coefficients matrix
+    Cai_subset - IMAG alpha components of the occupied coefficients matrix
+    Cbr_subset - REAL beta components of the occupied coefficients matrix
+    Cbi_subset - IMAG beta components of the occupied coefficients matrix
+            Cl -  LEFT component in density matrix contraction
+	    Cr - RIGHT component in density matrix contraction
+            
+          Jaai - IMAG alpha/alpha components of J
+          Jabi - IMAG alpha/beta  components of J
+          Jbai - IMAG beta/alpha  components of J
+          Jbbi - IMAG beta/beta   components of J
+
+          Kaai - IMAG alpha/alpha components of K
+          Kabi - IMAG alpha/beta  components of K
+          Kbai - IMAG beta/alpha  components of K
+          Kbbi - IMAG beta/beta   components of K
+
+          Jaar - REAL alpha/alpha components of J
+          Jabr - REAL alpha/beta  components of J
+          Jbar - REAL beta/alpha  components of J
+          Jbbr - REAL beta/beta   components of J
+
+          Kaar - REAL alpha/alpha components of K
+          Kabr - REAL alpha/beta  components of K
+          Kbar - REAL beta/alpha  components of K
+          Kbbr - REAL beta/beta   components of K
+
+
+    Einsums terms (mycode):
+             D - density matrix from Einsums
+	  Cocc - occupied coefficient matrix
+	 JKwK_ - BlockTensor with the combined J and K terms (and optional w percentage with DFT)
+
+    #############################################################################
+
+    */
+
+    for (int i = 0; i < nirrep_; i++) {
+        for (int j = 0; j < nsopi_[i]; j++) {
+	    for (int k = 0; k < nelectron_; k++) {
+		Car_subset->set(i, j, k, Cocc_[i](j, k).real());
+                Cai_subset->set(i, j, k, Cocc_[i](j, k).imag());
+                Cbr_subset->set(i, j, k, Cocc_[i](j+nsopi_[i], k).real());
+                Cbi_subset->set(i, j, k, Cocc_[i](j+nsopi_[i], k).imag());
+	        }
+	    }
+        }
+
+    timer_on("Jaa/Kaa");
+    Cl.push_back(Car_subset);
+    Cl.push_back(Car_subset);
+    Cl.push_back(Cai_subset);
+    Cl.push_back(Cai_subset);
+
+    Cr.push_back(Car_subset);
+    Cr.push_back(Cai_subset);
+    Cr.push_back(Car_subset);
+    Cr.push_back(Cai_subset);
+
+    jk_->set_do_wK(false);
+    jk_->compute();
+    auto J = jk_->J();
+    auto K = jk_->K();
+
+    Jaar_->copy(J[0]);
+    Jaar_->add(J[3]);
+
+    Jaai_->copy(J[2]);
+    Jaai_->subtract(J[1]);
+
+    Kaar_->copy(K[0]);
+    Kaar_->add(K[3]);
+
+    Kaai_->copy(K[2]);
+    Kaai_->subtract(K[1]);
+
+    //Cl.clear();
+
+    Cr.clear();
+    timer_off("Jaa/Kaa");
+    /*
+      Ca Cb
+      Ca Cb^
+      Ca^ Cb
+      Ca^ Cb^
+    */
+
+    timer_on("Kab");
+    Cr.push_back(Cbr_subset);
+    Cr.push_back(Cbi_subset);
+    Cr.push_back(Cbr_subset);
+    Cr.push_back(Cbi_subset);
+
+    jk_->set_do_wK(false);
+    jk_->compute();
+    J = jk_->J();
+    K = jk_->K();
+
+    //Jabr_->copy(J[0]);
+    //Jabr_->add(J[3]);
+
+    //Jabi_->copy(J[1]);
+    //Jabi_->add(J[2]);
+
+    Kabr_->copy(K[0]);
+    Kabr_->add(K[3]);
+
+    Kabi_->copy(K[2]);
+    Kabi_->subtract(K[1]);
+
+    Cl.clear();
+    Cr.clear();
+
+    timer_off("Kab");
+    /*
+      Cb Ca
+      Cb Ca^
+      Cb^ Ca
+      Cb^ Ca^
+    */
+
+    for (int i = 0; i < nirrep_; i++) {
+        for (int p = 0; p < nsopi_[i]; p++) {
+            for (int q = 0; q < nsopi_[i]; q++) {
+                //Jaa
+                JKwK_[i](p, q) += std::complex<double>(Jaar_->get(i, p, q), Jaai_->get(i, p, q));
+                JKwK_[i](p, q) += std::complex<double>(Jaar_->get(i, p, q), Jaai_->get(i, p, q));
+
+                //Jbb
+                JKwK_[i](p+nsopi_[i], q+nsopi_[i]) += std::complex<double>(Jaar_->get(i, p, q), Jaai_->get(i, p, q));
+                JKwK_[i](p+nsopi_[i], q+nsopi_[i]) += std::complex<double>(Jaar_->get(i, p, q), Jaai_->get(i, p, q));
+
+                //Kaa
+                JKwK_[i](p, q) -= std::complex<double>(Kaar_->get(i, p, q), Kaai_->get(i, p, q));
+
+                //Kbb
+                JKwK_[i](p+nsopi_[i], q+nsopi_[i]) -= std::complex<double>(Kaar_->get(i, p, q), Kaai_->get(i, p, q));
+
+                //Kab
+                JKwK_[i](p, q+nsopi_[i]) -= std::complex<double>(Kabr_->get(i, p, q), Kabi_->get(i, p, q));
+
+                //Kba
+                JKwK_[i](p+nsopi_[i], q) -= std::complex<double>(Kabr_->get(i, p, q), Kabi_->get(i, p, q));
+            }
+        }
+    }
+    timer_off("CGHF form_G");
+ 
 }
 
 void CGHF::finalize() {
-    /*
     F_.zero();
     F_ += F0_;
-    F_ += J_;
-    F_ -= K_;
-    */
+    //F_ += JKwK_;
     HF::finalize();
 }
 
@@ -666,9 +852,11 @@ double CGHF::compute_kinetic_E() {
 }
 
 double CGHF::compute_1e_E() {
+	return 0.0;
 }
 
 double CGHF::compute_coulomb_E() {
+	return 0.0;
 }
 
 //double CGHF::compute_energy(Options& options, MintsHelper mints) {
@@ -679,16 +867,12 @@ double CGHF::compute_E() {
     auto temp = einsums::BlockTensor<std::complex<double>, 2>("temp", irrep_sizes_);
     temp = F0_;
     for (int i = 0; i < nirrep_; i++) {
-        auto J_block = J_[i];
-	auto K_block = K_[i];
-        auto temp_J_block = J_block;
-	auto temp_K_block = K_block;
+        auto JK_block = JKwK_[i];
+        auto temp_JK_block = JK_block;
 	
-	temp_J_block *= 0.5;
-	temp_K_block *= 0.5;
+	temp_JK_block *= 0.5;
 
-        temp[i] += temp_J_block;
-	temp[i] -= temp_K_block;
+        temp[i] += temp_JK_block;
     }
     einsums::tensor_algebra::einsum(
         0.0, einsums::tensor_algebra::Indices{}, &TensorE, 1.0,

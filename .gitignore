@@ -96,6 +96,7 @@ metadata.out.cmake
 # Compilation directories that people use
 obj*
 *objdir
+matts_psi4
 build*
 debug
 debug_latest

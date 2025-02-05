@@ -570,7 +570,7 @@ void DirectJK::build_JK_matrices(std::vector<std::shared_ptr<TwoBodyAOInt>>& int
 
         int thread = 0;
 #ifdef _OPENMP
-        thread = omp_get_thread_num();
+        thread = omp_get_thread_nuSharedMatrixm();
 #endif
 
         // => Master shell quartet loops <= //

@@ -1,0 +1,3 @@
+/dnfs/mward/dev/psi4/plugins/cghf/CMakeFiles/cghf.dir
+/dnfs/mward/dev/psi4/plugins/cghf/CMakeFiles/edit_cache.dir
+/dnfs/mward/dev/psi4/plugins/cghf/CMakeFiles/rebuild_cache.dir

@@ -77,6 +77,8 @@ def select_scf_gradient(name, **kwargs):
 
     """
     reference = core.get_option('SCF', 'REFERENCE')
+    ref_str = f'REFERENCE {reference}\n'
+    core.print_out(ref_str)
     type_var, _, mtd_type = method_algorithm_type("scf")  # `"scf"` instead of `name` avoids adding every functional to governing dict in proc_data.py
     module = core.get_global_option('QC_MODULE')
 
@@ -1442,6 +1444,8 @@ def scf_wavefunction_factory(name, ref_wfn, reference, **kwargs):
         wfn = core.UHF(ref_wfn, superfunc)
     elif reference == "CUHF":
         wfn = core.CUHF(ref_wfn, superfunc)
+    elif reference in ["CGHF", "GKS"]:
+        wfn = core.CGHF(ref_wfn, superfunc)
     else:
         raise ValidationError("SCF: Unknown reference (%s) when building the Wavefunction." % reference)
 
@@ -2669,6 +2673,7 @@ def run_scf(name, **kwargs):
 
     optstash_scf.restore()
     optstash_mp2.restore()
+    
     return scf_wfn
 
 

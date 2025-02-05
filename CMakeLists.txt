@@ -28,6 +28,17 @@ set(psi4_EMAIL "psi4aiqc+cmake@gmail.com")
 set(psi4_LICENSE "GNU Lesser General Public License, version 3 (LGPL-3.0)")
 set(psi4_DESCRIPTION "Open-Source Quantum Chemistry")
 
+#target_include_directories(${CMAKE_INSTALL_PREFIX}/bin/psi4 PRIVATE ${CONDA_PREFIX}/include)
+#add_library(einsums SHARED ${CONDA_PREFIX}/include/einsums.hpp)
+#target_include_directories(einsums PUBLIC ${CONDA_PREFIX}/include/einsums)
+#target_link_libraries(${CMAKE_INSTALL_PREFIX}/bin/psi4 PUBLIC Einsums::einsums)
+
+
+#find_package(psi4 REQUIRED)
+#include_directories(PRIVATE ${CONDA_PREFIX}/include)
+link_libraries(PUBLIC Einsums::einsums)
+
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 message(STATUS "Building using CMake ${CMAKE_VERSION} Generator ${CMAKE_GENERATOR}")
@@ -120,7 +131,7 @@ option(ENABLE_ddx "Enables ddx for domain-decomposition contiuum solvation model
 option(ENABLE_dkh "Enables DKH integrals (requires Fortran)" OFF)
 option(ENABLE_ecpint "Enables libecpint for effective core potentials (ECP)" OFF)
 option(ENABLE_libefp "Enables LIBEFP and PylibEFP for fragments" OFF)
-option(ENABLE_Einsums "Enables the Einsums tensor library" OFF)
+option(ENABLE_Einsums "Enables the Einsums tensor library" ON)
 option(ENABLE_simint "Enables use of SIMINT two-electron integral library" OFF)
 option(ENABLE_gauxc "Enables use of GauXC density functional library" OFF)
 option(ENABLE_gdma "Enables Stone's GDMA multipole code (requires Fortran; can also be added at runtime)" OFF)
@@ -157,11 +168,11 @@ endif()
 
 ############################  Options: Build How?  #############################
 include(psi4OptionsTools)
-option_with_print(BUILD_SHARED_LIBS "Build internally built Psi4 add-on libraries as shared, not static" OFF)
+option_with_print(BUILD_SHARED_LIBS "Build internally built Psi4 add-on libraries as shared, not static" ON)
 option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
 include(xhost)  # defines: option(ENABLE_XHOST "Enable processor-specific optimization" ON)
 # below are uncommon to adjust
-option_with_print(ENABLE_OPENMP "Enables OpenMP parallelization" ON)
+option_with_print(ENABLE_OPENMP "Enables OpenMP parallelization" OFF)
 option_with_print(ENABLE_AUTO_BLAS "Enables CMake to auto-detect BLAS" ON)
 option_with_print(ENABLE_AUTO_LAPACK "Enables CMake to auto-detect LAPACK" ON)
 option_with_print(ENABLE_PLUGIN_TESTING "Test the plugin templates build and run" OFF)
@@ -374,3 +385,4 @@ install(DIRECTORY samples
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/psi4
         USE_SOURCE_PERMISSIONS
         PATTERN "example_psi4rc_file" EXCLUDE)
+

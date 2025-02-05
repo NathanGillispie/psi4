@@ -478,7 +478,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF", "RHF ROHF");
 
-        /*- Convergence criterion for CI residual vector in the Davidson
+	/*- Convergence criterion for CI residual vector in the Davidson
         algorithm (RMS error).
         The default is 1e-4 for energies and 1e-7 for gradients. -*/
         options.add_double("R_CONVERGENCE", 1e-4);
@@ -1443,7 +1443,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "SCF", "SCF");
         /*- Reference wavefunction type.
         **Cfour Interface:** Keyword translates into |cfour__cfour_reference|. -*/
-        options.add_str("REFERENCE", "RHF", "RHF ROHF UHF CUHF RKS UKS");
+        options.add_str("REFERENCE", "RHF", "RHF ROHF UHF CUHF RKS UKS CGHF");
         /*- Primary basis set -*/
         options.add_str("BASIS", "");
         /*- Auxiliary basis set for SCF density fitting computations.
@@ -1997,6 +1997,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "");
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF");
+
         /*- The algorithm to use for the $\left\langle VV||VV \right\rangle$ terms -*/
         options.add_str("AO_BASIS", "NONE", "NONE DISK DIRECT");
         /*- Delete the SO two-electron integrals after the transformation? -*/
@@ -2015,6 +2016,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "SCF");
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF");
+
         /*- Number of threads -*/
         options.add_int("CC_NUM_THREADS", 1);
         /*- Convert ROHF MOs to semicanonical MOs -*/
@@ -2027,6 +2029,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "SCF");
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF");
+
         /*- Schwarz screening threshold. Mininum absolute value below which TEI are neglected. -*/
         options.add_double("INTS_TOLERANCE", 1e-14);
         /*- The amount of caching of data to perform -*/
@@ -2129,6 +2132,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
            states. -*/
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF", "RHF UHF");
+
         /*- The number of poles / excited states to obtain per irrep vector -*/
         options.add("ROOTS_PER_IRREP", new ArrayType());
         /*- Tolerance for extracted or printed amplitudes. This option is only available for the adcc backend. -*/
@@ -2159,6 +2163,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "SCF");
         /*- Reference wavefunction type for EOM computations -*/
         options.add_str("EOM_REFERENCE", "RHF");
+
         /*- Do compute the T amplitude equation matrix elements? -*/
         options.add_bool("T_AMPS", false);
         /*- Caching level for libdpd governing the storage of amplitudes,
@@ -2178,8 +2183,10 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
         options.add_str("WFN", "EOM_CCSD", "EOM_CCSD EOM_CC2 EOM_CC3");
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF", "RHF ROHF UHF");
+
         /*- Reference wavefunction type for EOM computations -*/
         options.add_str("EOM_REFERENCE", "RHF", "RHF ROHF UHF");
+
         /*- Do use full effective Hamiltonian matrix? -*/
         options.add_bool("FULL_MATRIX", false);
         /*- Caching level for libdpd governing the storage of amplitudes,
@@ -2450,6 +2457,7 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
                         "CCSD CCSD_T CCSD_AT EOM_CCSD BCCD BCCD_T CC2 CC3 EOM_CC2 EOM_CC3 CCSD_MVD");
         /*- Reference wavefunction type -*/
         options.add_str("REFERENCE", "RHF", "RHF ROHF UHF");
+
         /*- Do use new triples? -*/
         options.add_bool("NEW_TRIPLES", 1);
         /*- Do analyze T2 amplitudes -*/

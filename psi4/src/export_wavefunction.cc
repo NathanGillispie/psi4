@@ -58,6 +58,8 @@
 #include "psi4/libscf_solver/uhf.h"
 #include "psi4/libscf_solver/rohf.h"
 #include "psi4/libscf_solver/cuhf.h"
+#include "psi4/libscf_solver/ghf.h"
+#include "psi4/libscf_solver/cghf.h"
 #include "psi4/libfunctional/superfunctional.h"
 #include "psi4/libfock/v.h"
 
@@ -434,7 +436,19 @@ void export_wavefunction(py::module& m) {
              "BasisSet *basis*",
              "basis"_a)
         .def("mintshelper", &Wavefunction::mintshelper, "The MintsHelper object");
-
+    /*
+    py::class_<scf::GHF, std::shared_ptr<scf::GHF>, Wavefunction>(
+        m, "GHF", "General Hartree-Fock class");
+    */
+    py::class_<scf::CGHF, std::shared_ptr<scf::CGHF>, scf::HF>(
+        m, "CGHF", "Custom General Hartree-Fock class")
+        .def(py::init<std::shared_ptr<Wavefunction>, std::shared_ptr<SuperFunctional>>())
+        .def("c1_deep_copy", &scf::CGHF::c1_deep_copy,
+             "Returns a new wavefunction with internal data converted to C_1 symmetry, using pre-c1-constructed "
+             "BasisSet *basis*",
+             "basis"_a)
+        .def("mintshelper", &Wavefunction::mintshelper, "The MintsHelper object");
+    
     py::class_<scf::CUHF, std::shared_ptr<scf::CUHF>, scf::HF>(m, "CUHF", "docstring")
         .def(py::init<std::shared_ptr<Wavefunction>, std::shared_ptr<SuperFunctional>>())
         .def("c1_deep_copy", &scf::CUHF::c1_deep_copy,

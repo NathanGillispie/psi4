@@ -1,0 +1,32 @@
+
+# PYTHONPATH must include directory above plugin directory.
+#     Define either externally or here, then import plugin.
+sys.path.insert(0, './..')
+import cghf
+
+molecule {
+C      0.00000    0.00000    0.00000
+H      0.00000    0.00000    1.08900
+H      1.02672    0.00000   -0.36300
+H     -0.51336   -0.88916   -0.36300
+H     -0.51336    0.88916   -0.36300
+
+Symmetry C1
+}
+
+set {
+  reference uhf
+  basis cc-pvtz
+  E_CONVERGENCE 1e-10
+ 
+  #guess core
+  #diis false
+  #scf_initial_accelerator None
+}
+
+set cghf {
+}
+
+energy('cghf')
+
+cghf.exampleFN()

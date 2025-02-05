@@ -496,6 +496,8 @@ def scf_iterate(self, e_conv=None, d_conv=None):
                 add_to_diis_subspace = self.diis_enabled_ and self.iteration_ >= self.diis_start_
 
                 Dnorm = self.compute_orbital_gradient(add_to_diis_subspace, core.get_option('SCF', 'DIIS_MAX_VECS'))
+                print('Dnorm', Dnorm)
+                print('diis_subspace', add_to_diis_subspace)
 
                 if add_to_diis_subspace:
                     for engine_used in self.diis(Dnorm):
