@@ -27,7 +27,7 @@ if(${ENABLE_Einsums})
             set(_a_only  ON)
         endif()
 
-        set(_einsums_dir "share/cmake/Einsums")
+	set(_einsums_dir "share/cmake/Einsums")
 
         ExternalProject_Add(einsums_external
             DEPENDS lapack_external

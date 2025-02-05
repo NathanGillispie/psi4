@@ -34,6 +34,7 @@
 #include "psi4/libciomr/libciomr.h"
 #include "psi4/libscf_solver/rhf.h"
 #include "psi4/libscf_solver/uhf.h"
+#include "psi4/libscf_solver/cghf.h"
 
 namespace psi{
 namespace scfgrad {

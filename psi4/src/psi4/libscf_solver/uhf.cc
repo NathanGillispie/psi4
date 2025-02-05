@@ -181,6 +181,7 @@ void UHF::form_V() {
     // Vb_ = Va_;
 }
 void UHF::form_G() {
+    timer_on("UHF form_G");
     std::cout << "form_G\n";
     if (functional_->needs_xc()) {
         form_V();
@@ -246,6 +247,9 @@ void UHF::form_G() {
         wKa_->zero();
         wKb_->zero();
     }
+
+    timer_off("UHF form_G");
+
 }
 
 void UHF::form_F() {

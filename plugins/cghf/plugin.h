@@ -1,5 +1,3 @@
-#pragma once
-
 #include "einsums.hpp"
 
 #include "psi4/libfock/v.h"
@@ -15,99 +13,91 @@
 #include "psi4/libmints/pointgrp.h"
 #include "psi4/libmints/sobasis.h"
 #include "psi4/libmints/vector.h"
-#include "hf.h"
+#include "psi4/libscf_solver/hf.h"
 
 namespace psi {
-namespace scf {
+namespace cghf {
 
-class CGHF: public HF {
+class GHF {
     public:
 	//GHF(SharedWavefunction ref_wfn, std::shared_ptr<SuperFunctional> functional, Options& options);
 	SharedWavefunction ref_wfn;
-        CGHF(SharedWavefunction ref_wfn, std::shared_ptr<SuperFunctional> functional);
-        CGHF(SharedWavefunction ref_wfn, std::shared_ptr<SuperFunctional> functional, Options& options,
-            std::shared_ptr<PSIO> psio);
-        ~CGHF() override;
-        //std::shared_ptr<VBase> V_potential() const override { return potential_; };
-
-    	double get_energies() { return E; }
-
-        std::shared_ptr<VBase> V_potential() const override { return potential_; };
-
-
-        //void common_init(SharedWavefunction ref_wfn, Options& options);
-	void form_V() override;
-	void finalize() override;
+	std::shared_ptr<SuperFunctional> functional;
+        void common_init(SharedWavefunction ref_wfn, Options& options);
+	void form_H();
+	void form_V();
 	void form_S();
 	void form_T();
-	void form_H() override;
-        void form_F() override;
-	void form_init_F();
+        void form_F();
 	void form_X();
-	void form_G() override;
-	void form_2e();
+	void form_G();
         void form_Sp();
 	void form_Fp();
-	void compute_potential();
+	void init_td();
         void diag_eigens();
 	void declare_eigens();
 	void orthogonalize_fock();
 	void diagonalize_fock();
+	void diagonalize_A();
 	void make_real_evals();
 	void sort_real_evals();
 	void evals_sanity_check();
 	void back_transform();
 	auto get_transpose(auto Tensor, int dimA, int dimB);
-
-        //Placeholders
-	void save_density_and_energy();
-
 	auto MakeComplexBlock(auto A);
 	void SCF(Options& options, MintsHelper mints);
+	auto do_diis();
 	void test_jk(Options& options, MintsHelper mints);
-	void form_C(double shift=0.0) override;
-	void form_D() override;
+	void form_Cocc();
+	void form_D();
 	auto get_Cocc_block(int i);
-        void init_JK(Options& options, MintsHelper mints);
         void build_JK(Options& options, MintsHelper mints);
-        double compute_E();
-        //double compute_energy(Options& options, MintsHelper mints);
-	void clear_tensors();
+	void init_JK(Options& options, MintsHelper mints);
+        //auto build_JK(Options& options, MintsHelper mints, auto JKwK_, auto D_);
+        double compute_energy(Options& options, MintsHelper mints, auto JKwK_);
+        void clear_tensors();
         void clear_JK_tensors();
-        void form_initial_C() { form_C(); }
-
-        double compute_kinetic_E();
-	double compute_1e_E();
-	double compute_coulomb_E();
+	SharedMatrix G_mat;
+        Dimension nsopi_;
+	Dimension nbetapi_;
+	Dimension nelecpi_;
+	//std::vector<int> nelec_;
+	int nelec;
+        std::shared_ptr<psi::BasisSet> basisset_;
+        size_t nirrep_;
+        std::vector<int> irrep_sizes_;
+        std::vector<std::shared_ptr<TwoBodyAOInt>> ints;
 
     private:
 	SharedMatrix H_mat;
-	SharedMatrix V_;
-	//SharedMatrix S_;
-	SharedMatrix T_;
+	SharedMatrix V_mat;
+	SharedMatrix S_mat;
+	SharedMatrix T_mat;
 	SharedMatrix F_mat;
 	SharedMatrix I_mat;
-        SharedMatrix G_mat;
+	SharedMatrix Dipole_mat;
+	SharedMatrix Angular_mat;
+        //SharedMatrix G_mat;
 	SharedMatrix X_mat;
         SharedMatrix Sp_mat;
         SharedMatrix Fp_mat;
         
+        int nocc_;	
 	double nso_;
 	double Enuc;
 	double E0; // Initial energy
 	double E;  // Final energy
-	//Dimension nsopi_;
-	//int nalphapi_;
-	//double nalpha_;
+	Dimension nalphapi_;
+	double nbeta_;
+	double nalpha_;
 	std::vector<int> occ_per_irrep_;
-	std::shared_ptr<psi::BasisSet> basisset_;
+	//std::shared_ptr<psi::BasisSet> basisset_;
 	std::shared_ptr<psi::SOBasisSet> sobasisset_;
-	//size_t nirrep_;
 	std::shared_ptr<psi::Molecule> molecule_;
         std::vector<int> occ_per_irrep;
 	std::shared_ptr<Matrix> evecs_;
 	std::shared_ptr<Vector> evals_;
-        std::vector<double> nocc_;
+
 	std::shared_ptr<Matrix> C_mat;
 
 	SharedMatrix Cocc_mat;
@@ -117,20 +107,11 @@ class CGHF: public HF {
         SharedMatrix Jaar_, Jaai_,  Jabr_, Jabi_,  Jbar_, Jbai_,  Jbbr_, Jbbi_, J_, K_;
         SharedMatrix Kaar_, Kaai_,  Kabr_, Kabi_,  Kbar_, Kbai_,  Kbbr_, Kbbi_;
 
-        std::shared_ptr<UV> potential_;
-        //Options& options;
-	void common_init();
-        void setup_potential() override;
-        int iteration_;
-        bool converged_;
-        double nuclearrep_;
-
         /// Sizes of each irrep
-        std::vector<int> irrep_sizes_;
 	/// The one electron integrals
-        //einsums::BlockTensor<std::complex<double>, 2> EINH_;
+        einsums::BlockTensor<std::complex<double>, 2> H_;
         /// The overlap matrix
-        einsums::BlockTensor<double, 2> EINS_;
+        einsums::BlockTensor<double, 2> S_;
 
         /// The inverse square root of the overlap matrix
         einsums::BlockTensor<std::complex<double>, 2> X_;
@@ -139,34 +120,40 @@ class CGHF: public HF {
         /// The Fock Matrix
         einsums::BlockTensor<std::complex<double>, 2> F_;
         einsums::BlockTensor<std::complex<double>, 2> EINT_;
-	einsums::BlockTensor<std::complex<double>, 2> twoe_;
+
+	einsums::BlockTensor<std::complex<double>, 4> G_;
         einsums::BlockTensor<std::complex<double>, 2> F1;
 	einsums::BlockTensor<std::complex<double>, 2> LEvecs_;
         einsums::BlockTensor<std::complex<double>, 2> REvecs_;
         einsums::BlockTensor<std::complex<double>, 1> Evals_;
-        einsums::BlockTensor<double, 1> RealEvals_;
+	einsums::BlockTensor<double, 1> RealEvals_;
 	einsums::BlockTensor<std::complex<double>, 2> F0_;
         einsums::BlockTensor<std::complex<double>, 2> Fp_;
-        einsums::Tensor<std::complex<double>, 2> Jaa_;
-        einsums::Tensor<std::complex<double>, 2> Jbb_;
-        einsums::Tensor<std::complex<double>, 2> Kaa_;
-        einsums::Tensor<std::complex<double>, 2> Kab_;
-        einsums::Tensor<std::complex<double>, 2> Kba_;
-        einsums::Tensor<std::complex<double>, 2> Kbb_;
-        einsums::BlockTensor<std::complex<double>, 2> JKwK_;
 
-        std::vector<int> nelpi_;
-	/*
-        einsums::BlockTensor<std::complex<double>, 2> J1;
-        einsums::BlockTensor<std::complex<double>, 2> K1;
-        einsums::BlockTensor<std::complex<double>, 2> J2;
-        einsums::BlockTensor<std::complex<double>, 2> K2;
-        einsums::BlockTensor<std::complex<double>, 2> J3;
-        einsums::BlockTensor<std::complex<double>, 2> K3;
-        einsums::BlockTensor<std::complex<double>, 2> J4;
-        einsums::BlockTensor<std::complex<double>, 2> K4;
-	*/
-	//einsums::BlockTensor<std::complex<double>, 2> J_;
+
+        einsums::BlockTensor<std::complex<double>, 2> to_complex_block;
+
+
+        // TD-GHF ABBA matrix
+	einsums::BlockTensor<std::complex<double>, 2> M_;
+
+	// TD-GHF A matrix
+	// TODO do this on the fly in M_ rather than separate MA_ matrix. Same with MB_
+	einsums::BlockTensor<std::complex<double>, 2> MA_;
+        einsums::BlockTensor<std::complex<double>, 2> MB_;
+
+	//TD-GHF eigenvectors/eigenvalues and other matrices to solve the TDA
+	einsums::BlockTensor<std::complex<double>, 2> A1;
+        
+	einsums::Tensor<std::complex<double>, 2> JK_;
+
+        //Initialize blocks
+	einsums::Tensor<std::complex<double>, 2> D_block;
+        einsums::Tensor<std::complex<double>, 2> subblock;
+        einsums::Tensor<std::complex<double>, 2> Cocc;
+
+
+	einsums::BlockTensor<std::complex<double>, 2> JKwK_;
         //einsums::BlockTensor<std::complex<double>, 2> K_;
 
         /// The transformed Fock matrix
@@ -179,6 +166,8 @@ class CGHF: public HF {
         /// The density matrix
         einsums::BlockTensor<std::complex<double>, 2> D_;
         /// The ubiquitous JK object
+        std::shared_ptr<JK> jk_;
+
         //std::shared_ptr<psi::JK> jk_;
         /// The functional.
         std::shared_ptr<psi::SuperFunctional> func_;
@@ -186,6 +175,18 @@ class CGHF: public HF {
         std::shared_ptr<psi::VBase> v_;
 
 };
+class GJK: public GHF {
+    public:
+        GJK() = default;
 
+        // Declare G_mat as SharedMatrix
+        SharedMatrix G_mat;
+        einsums::BlockTensor<std::complex<double>, 2> G_;
+
+        // The correct signature for the function
+        void initialize_gjk(auto mints);
+        //auto build_JK(auto D_, auto nsopi_, auto nirrep_, auto irrep_sizes_);
+        //auto build_JK(auto D_);
+};
 }
 }
