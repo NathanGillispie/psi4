@@ -33,6 +33,7 @@
 #include <memory>
 
 #include "psi4/libpsi4util/exception.h"
+#include <Einsums/Tensor.hpp>
 
 #include "dimension.h"
 
@@ -66,9 +67,11 @@ using SharedVector = std::shared_ptr<Vector>;
 class Dimension;
 class Molecule;
 class Vector3;
-class Matrix;
+template <typename T = double>
+class TemplatedMatrix;
 
-using SharedMatrix = std::shared_ptr<Matrix>;
+template <typename T = double>
+using SharedMatrix = std::shared_ptr<TemplatedMatrix>;
 
 enum diagonalize_order { evals_only_ascending = 0, ascending = 1, evals_only_descending = 2, descending = 3 };
 
@@ -134,10 +137,11 @@ void free(double** Block);
  *
  * Using a matrix factory makes creating these a breeze.
  */
-class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
+template <typename T>
+class PSI_API TemplatedMatrix: public std::enable_shared_from_this<TemplatedMatrix<T>> {
    protected:
     /// Matrix data
-    double*** matrix_;
+    T*** matrix_;
     /// Number of irreps
     int nirrep_;
     /// Rows per irrep array. Element "h" is associated with matrix block h.
@@ -155,29 +159,29 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     void release();
 
     /// Copies data from the passed matrix to this matrix_
-    void copy_from(double***);
+    void copy_from(T***);
 
-    void print_mat(const double* const* const a, int m, int n, std::string out) const;
+    void print_mat(const T* const* const a, int m, int n, std::string out) const;
 
     /// Numpy Shape
     std::vector<int> numpy_shape_;
 
    public:
     /// Default constructor, zeros everything out
-    Matrix();
+    TemplatedMatrix();
     /**
      * Constructor, zeros everything out, sets name_
      *
      * @param name Name of the matrix, used in saving and printing.
      */
-    Matrix(const std::string& name, int symmetry = 0);
+    TemplatedMatrix(const std::string& name, int symmetry = 0);
     /// copy reference constructor
-    Matrix(const Matrix& copy);
-    Matrix& operator=(const Matrix& copy);
+    TemplatedMatrix(const TemplatedMatrix& copy);
+    TemplatedMatrix& operator=(const TemplatedMatrix& copy);
     /// Explicit shared point copy constructor
-    explicit Matrix(const SharedMatrix& copy);
+    explicit TemplatedMatrix(const SharedMatrix& copy);
     /// copy pointer constructor
-    explicit Matrix(const Matrix* copy);
+    explicit TemplatedMatrix(const TemplatedMatrix* copy);
     /**
      * Constructor, sets up the matrix
      *
@@ -185,7 +189,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param rowspi Array of length nirreps giving row dimensionality.
      * @param colspi Array of length nirreps giving column dimensionality.
      */
-    Matrix(int nirrep, const int* rowspi, const int* colspi, int symmetry = 0);
+    TemplatedMatrix(int nirrep, const int* rowspi, const int* colspi, int symmetry = 0);
     /**
      * Constructor, sets name_, and sets up the matrix
      *
@@ -194,14 +198,14 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param rowspi Array of length nirreps giving row dimensionality.
      * @param colspi Array of length nirreps giving column dimensionality.
      */
-    Matrix(const std::string& name, int nirrep, const int* rowspi, const int* colspi, int symmetry = 0);
+    TemplatedMatrix(const std::string& name, int nirrep, const int* rowspi, const int* colspi, int symmetry = 0);
     /**
      * Constructor, forms non-standard matrix.
      * @param nirrep Number of blocks.
      * @param rows Singular value. All blocks have same number of rows.
      * @param colspi Array of length nirreps. Defines blocking scheme for columns.
      */
-    Matrix(int nirrep, int rows, const int* colspi);
+    TemplatedMatrix(int nirrep, int rows, const int* colspi);
 
     /**
      * Constructor, forms non-standard matrix.
@@ -209,7 +213,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param rowspi Array of length nirreps. Defines blocking scheme for rows.
      * @param cols Singular value. All blocks have same number of columns.
      */
-    Matrix(int nirrep, const int* rowspi, int cols);
+    TemplatedMatrix(int nirrep, const int* rowspi, int cols);
 
     /**
      * Constructor, sets up the matrix
@@ -227,21 +231,21 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param rows Row dimensionality.
      * @param cols Column dimensionality.
      */
-    Matrix(const std::string& name, int rows, int cols);
+    TemplatedMatrix(const std::string& name, int rows, int cols);
 
     /**
      * Contructs a Matrix from a dpdfile2
      *
      * @param inFile dpdfile2 object to replicate (must already be initialized).
      */
-    Matrix(dpdfile2* inFile);
+    TemplatedMatrix(dpdfile2* inFile);
 
     /**
      * Contructs a Matrix from a dpdbuf4
      *
      * @param inBuf dpdbuf4 object to replicate (must already be initialized).
      */
-    Matrix(dpdbuf4* inBuf);
+    TemplatedMatrix(dpdbuf4* inBuf);
 
     /**
      * Constructor using Dimension objects to define order and dimensionality.
@@ -251,7 +255,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param cols Dimension object providing column information.
      * @param symmetry overall symmetry of the data.
      */
-    Matrix(const std::string& name, const Dimension& rows, const Dimension& cols, int symmetry = 0);
+    TemplatedMatrix(const std::string& name, const Dimension& rows, const Dimension& cols, int symmetry = 0);
 
     /**
      * Constructor using Dimension objects to define order and dimensionality.
@@ -260,10 +264,10 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param cols Dimension object providing column information.
      * @param symmetry overall symmetry of the data.
      */
-    Matrix(const Dimension& rows, const Dimension& cols, int symmetry = 0);
+    TemplatedMatrix(const Dimension& rows, const Dimension& cols, int symmetry = 0);
 
     /// Destructor, frees memory
-    virtual ~Matrix();
+    virtual ~TemplatedMatrix();
 
     /**
      * Initializes a matrix
@@ -287,8 +291,8 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param cp Object to copy from.
      */
     void copy(const SharedMatrix& cp);
-    void copy(const Matrix& cp);
-    void copy(const Matrix* cp);
+    void copy(const TemplatedMatrix& cp);
+    void copy(const TemplatedMatrix* cp);
     /** @} */
 
     /// returns an Eigen::Map object to the underlying matrix data buffer
@@ -312,7 +316,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     SharedMatrix matrix_3d_rotation(Vector3 axis, double phi, bool Sn);
 
     /// Copies data to the row specified. Assumes data is of correct length.
-    void copy_to_row(int h, int row, double const* const data);
+    void copy_to_row(int h, int row, T const* const data);
 
     enum SaveType { SubBlocks, LowerTriangle, ThreeIndexLowerTriangle };
 
@@ -389,14 +393,14 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *
      * @param val Value to apply to entire matrix.
      */
-    void set(double val);
+    void set(T val);
 
     /**
      * Copies lower triangle tri to matrix_, calls tri_to_sq
      *
      * @param tri Lower triangle matrix to set to.
      */
-    void set(const double* const tri);
+    void set(const T* const tri);
 
     /**
      * @{
@@ -404,7 +408,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *
      * @param sq Double matrix to copy over.
      */
-    void set(const double* const* const sq);
+    void set(const T* const* const sq);
     /** @} */
 
     /**
@@ -414,7 +418,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param sq Double matrix to copy
      * @param irrep irrep block into which we copy
      */
-    void set(const double* const* const sq, int irrep);
+    void set(const T* const* const sq, int irrep);
     /** @} */
 
     /**
@@ -425,7 +429,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param n Column
      * @param val Value
      */
-    void set(int h, int m, int n, double val) { matrix_[h][m][n] = val; }
+    void set(int h, int m, int n, T val) { matrix_[h][m][n] = val; }
 
     /**
      * Set a single element of matrix_
@@ -434,7 +438,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param n Column
      * @param val Value
      */
-    void set(int m, int n, double val) { matrix_[0][m][n] = val; }
+    void set(int m, int n, T val) { matrix_[0][m][n] = val; }
 
     /**
      * @{
@@ -455,7 +459,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param n Column
      * @return value at position (h, m, n)
      */
-    double get(const int& h, const int& m, const int& n) const { return matrix_[h][m][n]; }
+    T get(const int& h, const int& m, const int& n) const { return matrix_[h][m][n]; }
 
     /**
      * Returns a single element of matrix_
@@ -464,7 +468,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param n Column
      * @return value at position (m, n)
      */
-    double get(const int& m, const int& n) const { return matrix_[0][m][n]; }
+    T get(const int& m, const int& n) const { return matrix_[0][m][n]; }
 
     /**
      * Returns a single row of matrix_
@@ -519,9 +523,9 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param cols Columns slice
      * @param block the SharedMatrix object block to set
      */
-    void set_block(const Slice& rows, const Slice& cols, const Matrix& block);
+    void set_block(const Slice& rows, const Slice& cols, const TemplatedMatrix& block);
     void set_block(const Slice& rows, const Slice& cols, SharedMatrix block);
-    void set_block(const Slice& slice, const Matrix& block);
+    void set_block(const Slice& slice, const TemplatedMatrix& block);
 
     /**
      * Returns the double** pointer to the h-th irrep block matrix
@@ -535,8 +539,8 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param h Subblock
      * @return pointer to h-th subblock in block-matrix form
      */
-    double** pointer(const int& h = 0) const { return matrix_[h]; }
-    const double** const_pointer(const int& h = 0) const { return const_cast<const double**>(matrix_[h]); }
+    T** pointer(const int& h = 0) const { return matrix_[h]; }
+    const T** const_pointer(const int& h = 0) const { return const_cast<const T**>(matrix_[h]); }
 
     /**
      * Returns the double* pointer to the h-th irrep block matrix
@@ -550,15 +554,15 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * @param h Subblock
      * @return pointer to h-th subblock in block-matrix form
      */
-    double* get_pointer(const int& h = 0) const {
+    T* get_pointer(const int& h = 0) const {
         if (rowspi_[h] * (size_t)colspi_[h] > 0)
             return &(matrix_[h][0][0]);
         else
             return nullptr;
     }
-    const double* get_const_pointer(const int& h = 0) const {
+    const T* get_const_pointer(const int& h = 0) const {
         if (rowspi_[h] * (size_t)colspi_[h] > 0)
-            return const_cast<const double*>(&(matrix_[h][0][0]));
+            return const_cast<const T*>(&(matrix_[h][0][0]));
         else
             return nullptr;
     }
@@ -566,9 +570,9 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     size_t size(const int& h = 0) const { return colspi_[h] * (size_t)rowspi_[h]; }
 
     /// apply_denominators a matrix to this
-    void apply_denominator(const Matrix* const);
+    void apply_denominator(const TemplatedMatrix* const);
     /// apply_denominators a matrix to this
-    void apply_denominator(const Matrix&);
+    void apply_denominator(const TemplatedMatrix&);
     /// apply_denominators a matrix to this
     void apply_denominator(const SharedMatrix&);
 
@@ -577,7 +581,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *
      * @returns the matrix
      */
-    double** to_block_matrix() const;
+    T** to_block_matrix() const;
     /**
      * Returns a copy of the current matrix.
      *
@@ -589,7 +593,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *
      * @returns the matrix
      */
-    double* to_lower_triangle() const;
+    T* to_lower_triangle() const;
 
     /**
      * Sets the name of the matrix, used in print(...) and save(...)
@@ -708,7 +712,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
 
     // Math routines
     /// Returns the trace of this
-    double trace();
+    T trace();
     /// Creates a new matrix which is the transpose of this
     SharedMatrix transpose() const;
 
@@ -719,32 +723,32 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     void reshape(const uint64_t nrow, const uint64_t ncol);
 
     /// Adds a matrix to this
-    void add(const Matrix* const);
+    void add(const TemplatedMatrix* const);
     /// Adds a matrix to this
-    void add(const Matrix&);
+    void add(const TemplatedMatrix&);
     /// Adds a matrix to this
     void add(const SharedMatrix&);
 
     /// Subtracts a matrix from this
-    void subtract(const Matrix* const);
+    void subtract(const TemplatedMatrix* const);
     /// Subtracts a matrix from this
     void subtract(const SharedMatrix&);
-    void subtract(const Matrix&);
+    void subtract(const TemplatedMatrix&);
     /// Multiplies the two arguments and adds their result to this
-    void accumulate_product(const Matrix* const, const Matrix* const);
+    void accumulate_product(const TemplatedMatrix* const, const TemplatedMatrix* const);
     void accumulate_product(const SharedMatrix&, const SharedMatrix&);
     /// Scales this matrix
-    void scale(double);
+    void scale(T);
     /// Takes the square root of this matrix (element-wise)
     void sqrt_this();
     /// Returns the sum of the squares of this
-    double sum_of_squares();
+    T sum_of_squares();
     /// Returns the rms of this
-    double rms();
+    T rms();
     /// Returns the absolute maximum value
-    double absmax();
+    T absmax();
     /// Add val to an element of this
-    void add(int h, int m, int n, double val) {
+    void add(int h, int m, int n, T val) {
 #ifdef PSIDEBUG
         if (m > rowspi_[h] || n > colspi_[h ^ symmetry_]) {
             outfile->Printf("out of bounds: symmetry_ = %d, h = %d, m = %d, n = %d\n", symmetry_, h, m, n);
@@ -755,7 +759,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
         matrix_[h][m][n] += val;
     }
     /// Add val to an element of this
-    void add(int m, int n, double val) {
+    void add(int m, int n, T val) {
 #ifdef PSIDEBUG
         if (m > rowspi_[0] || n > colspi_[0 ^ symmetry_]) {
             outfile->Printf("out of bounds: symmetry_ = %d, h = %d, m = %d, n = %d\n", symmetry_, 0, m, n);
@@ -777,9 +781,9 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     }
 
     /// Scale row m of irrep h by a
-    void scale_row(int h, int m, double a);
+    void scale_row(int h, int m, T a);
     /// Scale column n of irrep h by a
-    void scale_column(int h, int n, double a);
+    void scale_column(int h, int n, T a);
 
     /** Special function to add symmetry to a Matrix .
      *
@@ -801,36 +805,36 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * \param R right transformation matrix (will not be transposed)
      */
     void transform(const SharedMatrix& L, const SharedMatrix& F, const SharedMatrix& R);
-    void transform(const Matrix& L, const Matrix& F, const Matrix& R);
+    void transform(const TemplatedMatrix& L, const TemplatedMatrix& F, const TemplatedMatrix& R);
 
     /// @{
     /// Transform a by transformer save result to this
-    void transform(const Matrix* const a, const Matrix* const transformer);
+    void transform(const TemplatedMatrix* const a, const TemplatedMatrix* const transformer);
     void transform(const SharedMatrix& a, const SharedMatrix& transformer);
     /// @}
 
     /// @{
     /// Transform this by transformer
-    void transform(const Matrix* const transformer);
+    void transform(const TemplatedMatrix* const transformer);
     void transform(const SharedMatrix& transformer);
     /// @}
 
     /// @{
     /// Back transform a by transformer save result to this
-    void back_transform(const Matrix* const a, const Matrix* const transformer);
+    void back_transform(const TemplatedMatrix* const a, const TemplatedMatrix* const transformer);
     void back_transform(const SharedMatrix& a, const SharedMatrix& transformer);
     /// @}
 
     /// @{
     /// Back transform this by transformer
-    void back_transform(const Matrix* const transformer);
+    void back_transform(const TemplatedMatrix* const transformer);
     void back_transform(const SharedMatrix& transformer);
     /// @}
 
     /// Returns the vector dot product of this by rhs
-    double vector_dot(const Matrix* const rhs);
-    double vector_dot(const SharedMatrix& rhs);
-    double vector_dot(const Matrix& rhs);
+    T vector_dot(const TemplatedMatrix* const rhs);
+    T vector_dot(const SharedMatrix& rhs);
+    T vector_dot(const TemplatedMatrix& rhs);
 
     /// @{
     /** General matrix multiply, saves result to this
@@ -841,10 +845,10 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * \param b Right matrix
      * \param beta Prefactor for the resulting matrix
      */
-    void gemm(bool transa, bool transb, double alpha, const Matrix* const a, const Matrix* const b, double beta);
+    void gemm(bool transa, bool transb, double alpha, const TemplatedMatrix* const a, const TemplatedMatrix* const b, double beta);
     void gemm(bool transa, bool transb, double alpha, const SharedMatrix& a, const SharedMatrix& b, double beta);
-    void gemm(bool transa, bool transb, double alpha, const SharedMatrix& a, const Matrix& b, double beta);
-    void gemm(bool transa, bool transb, double alpha, const Matrix& a, const SharedMatrix& b, double beta);
+    void gemm(bool transa, bool transb, double alpha, const SharedMatrix& a, const TemplatedMatrix& b, double beta);
+    void gemm(bool transa, bool transb, double alpha, const TemplatedMatrix& a, const SharedMatrix& b, double beta);
     /// @}
 
     /// @{
@@ -890,7 +894,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
 
     /// @{
     /// Diagonalizes this, eigvectors and eigvalues must be created by caller.  Only for symmetric matrices.
-    void diagonalize(Matrix& eigvectors, Vector& eigvalues, diagonalize_order nMatz = ascending);
+    void diagonalize(TemplatedMatrix& eigvectors, Vector& eigvalues, diagonalize_order nMatz = ascending);
     void diagonalize(SharedMatrix& eigvectors, std::shared_ptr<Vector>& eigvalues, diagonalize_order nMatz = ascending);
     /// @}
 
@@ -1021,7 +1025,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *   contribute in the formation of a negative power of A
      *   \returns a Dimension object with the remaining sizes. Can be used in a View.
      */
-    Dimension power(double alpha, double cutoff = 1.0E-12);
+    Dimension power(T alpha, double cutoff = 1.0E-12);
 
     /*!
      * Computes the approximate
@@ -1056,13 +1060,13 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
 
     // Reference versions of the above functions
     /// Transform a by transformer save result to this
-    void transform(const Matrix& a, const Matrix& transformer);
+    void transform(const TemplatedMatrix& a, const TemplatedMatrix& transformer);
     /// Transform this by transformer
-    void transform(const Matrix& transformer);
+    void transform(const TemplatedMatrix& transformer);
     /// Back transform a by transformer save result to this
-    void back_transform(const Matrix& a, const Matrix& transformer);
+    void back_transform(const TemplatedMatrix& a, const TemplatedMatrix& transformer);
     /// Back transform this by transformer
-    void back_transform(const Matrix& transformer);
+    void back_transform(const TemplatedMatrix& transformer);
 
     /**
      * Expands the row dimension by one, and then orthogonalizes vector v against
@@ -1086,7 +1090,7 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      * \returns true if a vector is added, false otherwise
      */
     bool schmidt_add_row(int h, int rows, Vector& v);
-    bool schmidt_add_row(int h, int rows, double* v) noexcept;
+    bool schmidt_add_row(int h, int rows, T* v) noexcept;
     /// @}
 
     /*! Calls libqt schmidt function */
@@ -1111,18 +1115,18 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
      *
      * \param v Matrix to project out
      */
-    void project_out(Matrix& v);
+    void project_out(TemplatedMatrix& v);
 
     /// General matrix multiply, saves result to this
-    void gemm(bool transa, bool transb, double alpha, const Matrix& a, const Matrix& b, double beta);
+    void gemm(bool transa, bool transb, double alpha, const TemplatedMatrix& a, const TemplatedMatrix& b, double beta);
 
     /// @{
     /// Retrieves the i'th irrep
-    double** operator[](int i) { return matrix_[i]; }
-    double& operator()(int i, int j) { return matrix_[0][i][j]; }
-    const double& operator()(int i, int j) const { return matrix_[0][i][j]; }
-    double& operator()(int h, int i, int j) { return matrix_[h][i][j]; }
-    const double& operator()(int h, int i, int j) const { return matrix_[h][i][j]; }
+    T** operator[](int i) { return matrix_[i]; }
+    T& operator()(int i, int j) { return matrix_[0][i][j]; }
+    const T& operator()(int i, int j) const { return matrix_[0][i][j]; }
+    T& operator()(int h, int i, int j) { return matrix_[h][i][j]; }
+    const T& operator()(int h, int i, int j) const { return matrix_[h][i][j]; }
     /// @}
 
     /// Writes this to the dpdfile2 given
@@ -1135,18 +1139,18 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     /// Checks matrix equality.
     /// @param rhs Matrix to compare to.
     /// @returns true if equal, otherwise false.
-    bool equal(const Matrix& rhs, double TOL = 1.0e-10);
+    bool equal(const TemplatedMatrix& rhs, double TOL = 1.0e-10);
     bool equal(const SharedMatrix& rhs, double TOL = 1.0e-10);
-    bool equal(const Matrix* rhs, double TOL = 1.0e-10);
+    bool equal(const TemplatedMatrix* rhs, double TOL = 1.0e-10);
     /// @}
 
     /// @{
     /// Checks matrix equality, but allows rows to be in a different order.
     /// @param rhs Matrix to compare to.
     /// @returns true if equal, otherwise false.
-    bool equal_but_for_row_order(const Matrix& rhs, double TOL = 1.0e-10);
+    bool equal_but_for_row_order(const TemplatedMatrix& rhs, double TOL = 1.0e-10);
     bool equal_but_for_row_order(const SharedMatrix& rhs, double TOL = 1.0e-10);
-    bool equal_but_for_row_order(const Matrix* rhs, double TOL = 1.0e-10);
+    bool equal_but_for_row_order(const TemplatedMatrix* rhs, double TOL = 1.0e-10);
     /// @}
 
     /**
@@ -1166,5 +1170,9 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
 };
 
 bool test_matrix_dpd_interface();
+
+#include "psi4/libmints/matrix.tcc"
+
+using Matrix = TemplatedMatrix;
 
 }  // namespace psi

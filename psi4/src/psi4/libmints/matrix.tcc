@@ -70,16 +70,19 @@ extern int str_to_int(const std::string &s);
 
 extern double str_to_double(const std::string &s);
 
-Matrix::Matrix() {
+template <typename T>
+TemplatedMatrix<T>::TemplatedMatrix() {
     matrix_ = nullptr;
     nirrep_ = 0;
     symmetry_ = 0;
 }
 
-Matrix::Matrix(const std::string &name, int symmetry)
+template <typename T>
+TemplatedMatrix<T>::TemplatedMatrix(const std::string &name, int symmetry)
     : matrix_(nullptr), nirrep_(0), name_(name), symmetry_(symmetry) {}
 
-Matrix::Matrix(const Matrix &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
+template <typename T>
+TemplatedMatrix<T>::TemplatedMatrix(const TemplatedMatrix<T> &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
     matrix_ = nullptr;
     nirrep_ = c.nirrep_;
     symmetry_ = c.symmetry_;
@@ -88,7 +91,7 @@ Matrix::Matrix(const Matrix &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
     copy_from(c.matrix_);
 }
 
-Matrix &Matrix::operator=(const Matrix &c) {
+TemplatedMatrix<T> &TemplatedMatrix::operator=(const TemplatedMatrix &c) {
     release();
     nirrep_ = c.nirrep_;
     symmetry_ = c.symmetry_;
@@ -101,7 +104,7 @@ Matrix &Matrix::operator=(const Matrix &c) {
     return *this;
 }
 
-Matrix::Matrix(const SharedMatrix &c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
+TemplatedMatrix<T>::TemplatedMatrix(const SharedMatrix &c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
     matrix_ = nullptr;
     nirrep_ = c->nirrep_;
     symmetry_ = c->symmetry_;
