@@ -91,27 +91,27 @@ class DLPNO : public Wavefunction {
 
     /// auxiliary basis
     std::shared_ptr<BasisSet> ribasis_;
-    SharedMatrix full_metric_;
+    SharedMatrix<double> full_metric_;
     std::vector<double> J_metric_shell_diag_; ///< used in AO ERI screening
 
     /// localized molecular orbitals (LMOs)
-    SharedMatrix C_lmo_;
-    SharedMatrix F_lmo_;
+    SharedMatrix<double> C_lmo_;
+    SharedMatrix<double> F_lmo_;
 
     /// projected atomic orbitals (PAOs)
-    SharedMatrix C_pao_;
-    SharedMatrix F_pao_;
-    SharedMatrix S_pao_;
+    SharedMatrix<double> C_pao_;
+    SharedMatrix<double> F_pao_;
+    SharedMatrix<double> S_pao_;
 
     /// differential overlap integrals (EQ 4)
-    SharedMatrix DOI_ij_; // LMO/LMO
-    SharedMatrix DOI_iu_; // LMO/PAO
-    SharedMatrix DOI_uv_; // PAO/PAO
+    SharedMatrix<double> DOI_ij_; // LMO/LMO
+    SharedMatrix<double> DOI_iu_; // LMO/PAO
+    SharedMatrix<double> DOI_uv_; // PAO/PAO
 
     // approximate LMO/LMO pair energies from dipole integrals (EQ 17)
     // used to screen out and estimate weakly interacting LMO/LMO pairs
-    SharedMatrix dipole_pair_e_; ///< actual approximate pair energy (used in final energy calculation)
-    SharedMatrix dipole_pair_e_bound_; ///< upper bound to approximate pair energies (used for screening)
+    SharedMatrix<double> dipole_pair_e_; ///< actual approximate pair energy (used in final energy calculation)
+    SharedMatrix<double> dipole_pair_e_bound_; ///< upper bound to approximate pair energies (used for screening)
 
     /// How much memory is used by storing each of the DF integral types
     size_t qij_memory_;
@@ -119,17 +119,17 @@ class DLPNO : public Wavefunction {
     size_t qab_memory_;
 
     /// LMO/LMO three-index integrals
-    std::vector<SharedMatrix> qij_;
+    std::vector<SharedMatrix<double>> qij_;
     /// LMO/PAO three-index integrals
-    std::vector<SharedMatrix> qia_;
+    std::vector<SharedMatrix<double>> qia_;
     /// PAO/PAO three-index integrals
-    std::vector<SharedMatrix> qab_;
+    std::vector<SharedMatrix<double>> qab_;
 
     /// pair natural orbitals (PNOs)
-    std::vector<SharedMatrix> K_iajb_;  ///< exchange operators (i.e. (ia|jb) integrals)
-    std::vector<SharedMatrix> T_iajb_;  ///< amplitudes
-    std::vector<SharedMatrix> Tt_iajb_; ///< antisymmetrized amplitudes
-    std::vector<SharedMatrix> X_pno_;   ///< global PAO -> canonical PNO transforms
+    std::vector<SharedMatrix<double>> K_iajb_;  ///< exchange operators (i.e. (ia|jb) integrals)
+    std::vector<SharedMatrix<double>> T_iajb_;  ///< amplitudes
+    std::vector<SharedMatrix<double>> Tt_iajb_; ///< antisymmetrized amplitudes
+    std::vector<SharedMatrix<double>> X_pno_;   ///< global PAO -> canonical PNO transforms
     std::vector<SharedVector> e_pno_;   ///< PNO orbital energies
     std::vector<int> n_pno_;       ///< number of pnos
     std::vector<double> occ_pno_;       ///< lowest PNO occupation number per PNO
@@ -217,14 +217,14 @@ class DLPNO : public Wavefunction {
     void common_init();
 
     // Helper functions
-    void C_DGESV_wrapper(SharedMatrix A, SharedMatrix B);
+    void C_DGESV_wrapper(SharedMatrix<double> A, SharedMatrix<double> B);
 
-    std::pair<SharedMatrix, SharedVector> canonicalizer(SharedMatrix C, SharedMatrix F);
-    std::pair<SharedMatrix, SharedVector> orthocanonicalizer(SharedMatrix S, SharedMatrix F);
+    std::pair<SharedMatrix<double>, SharedVector> canonicalizer(SharedMatrix<double> C, SharedMatrix<double> F);
+    std::pair<SharedMatrix<double>, SharedVector> orthocanonicalizer(SharedMatrix<double> S, SharedMatrix<double> F);
 
-    SharedVector flatten_mats(const std::vector<SharedMatrix>& mat_list);
+    SharedVector flatten_mats(const std::vector<SharedMatrix<double>>& mat_list);
 
-    void copy_flat_mats(SharedVector flat, std::vector<SharedMatrix>& mat_list);
+    void copy_flat_mats(SharedVector flat, std::vector<SharedMatrix<double>>& mat_list);
 
     /// Form LMOs, PAOs, etc.
     void setup_orbitals();
@@ -273,8 +273,8 @@ class DLPNO : public Wavefunction {
 class DLPNOMP2 : public DLPNO {
    protected:
     // PNO overlap matrices
-    std::vector<std::vector<SharedMatrix>> S_pno_ij_kj_; ///< pno overlaps
-    std::vector<std::vector<SharedMatrix>> S_pno_ij_ik_; ///< pnooverlaps
+    std::vector<std::vector<SharedMatrix<double>>> S_pno_ij_kj_; ///< pno overlaps
+    std::vector<std::vector<SharedMatrix<double>>> S_pno_ij_ik_; ///< pnooverlaps
     
     // final energies
     double e_lmp2_; ///< raw (uncorrected) local MP2 correlation energy
@@ -285,7 +285,7 @@ class DLPNOMP2 : public DLPNO {
     void compute_pno_overlaps();
     
     /// compute MP2 correlation energy w/ current amplitudes (EQ 14)
-    double compute_iteration_energy(const std::vector<SharedMatrix> &R_iajb);
+    double compute_iteration_energy(const std::vector<SharedMatrix<double>> &R_iajb);
 
     /// iteratively solve local MP2 equations  (EQ 13)
     void lmp2_iterations();
@@ -312,13 +312,13 @@ class PSI_API DLPNOCCSD : public DLPNO {
     bool write_qab_pno_;
 
     /// PNO overlap integrals
-    std::vector<std::vector<SharedMatrix>> S_pno_ij_kj_; ///< pno overlaps
-    std::vector<std::vector<SharedMatrix>> S_pno_ij_nn_; ///< pno overlaps
-    std::vector<std::vector<SharedMatrix>> S_pno_ij_mn_; ///< pno overlaps
+    std::vector<std::vector<SharedMatrix<double>>> S_pno_ij_kj_; ///< pno overlaps
+    std::vector<std::vector<SharedMatrix<double>>> S_pno_ij_nn_; ///< pno overlaps
+    std::vector<std::vector<SharedMatrix<double>>> S_pno_ij_mn_; ///< pno overlaps
 
     /// Coupled-cluster amplitudes
-    std::vector<SharedMatrix> T_ia_; ///< singles amplitudes [naocc x (npno_ii, 1)]
-    std::vector<SharedMatrix> T_n_ij_; ///< projected singles amplitudes [n_lmo_pairs x (nlmo_ij, npno_ij)] (Jiang Eq. 70)
+    std::vector<SharedMatrix<double>> T_ia_; ///< singles amplitudes [naocc x (npno_ii, 1)]
+    std::vector<SharedMatrix<double>> T_n_ij_; ///< projected singles amplitudes [n_lmo_pairs x (nlmo_ij, npno_ij)] (Jiang Eq. 70)
 
     // => Strong and Weak Pair Info <=//
 
@@ -339,44 +339,44 @@ class PSI_API DLPNOCCSD : public DLPNO {
     // L_prqs_ => L_{pq}^{rs} = 2(pr|qs) - (ps|qr), M_{pq}^{rs} = 2(pr|qs) - (pq|rs)
     
     /// 1-external integrals
-    std::vector<SharedMatrix> K_mibj_; /// (m_{ij} i | b_{ij} j)
-    std::vector<SharedMatrix> J_ijmb_; /// (i j | m_{ij} b_{ij})
-    std::vector<SharedMatrix> L_mibj_; /// 2.0 (m_{ij} i | b_{ij} j) - (m_{ij} j | b_{ij} i)
+    std::vector<SharedM<double>atrix> K_mibj_; /// (m_{ij} i | b_{ij} j)
+    std::vector<SharedMatrix<double>> J_ijmb_; /// (i j | m_{ij} b_{ij})
+    std::vector<SharedMatrix<double>> L_mibj_; /// 2.0 (m_{ij} i | b_{ij} j) - (m_{ij} j | b_{ij} i)
 
     /// 2-external integrals
-    std::vector<SharedMatrix> L_iajb_; /// 2.0 * (i a_{ij} | j b_{ij}) - (i b_{ij} | j a_{ij})
+    std::vector<SharedMatrix<double>> L_iajb_; /// 2.0 * (i a_{ij} | j b_{ij}) - (i b_{ij} | j a_{ij})
 
     /// 2-external non-projected integrals
-    std::vector<std::vector<SharedMatrix>> J_ikac_non_proj_; /// (i k | a_{ij} c_{kj})
-    std::vector<std::vector<SharedMatrix>> K_iakc_non_proj_; /// (i a_{ij} | k c_{kj})
+    std::vector<std::vector<SharedMatrix<double>>> J_ikac_non_proj_; /// (i k | a_{ij} c_{kj})
+    std::vector<std::vector<SharedMatrix<double>>> K_iakc_non_proj_; /// (i a_{ij} | k c_{kj})
 
     /// 3-external integrals
-    std::vector<SharedMatrix> K_ivvv_; /// (i e_{ij} | a_{ij} f_{ij}) (stored as (e, a * f))
+    std::vector<SharedMatrix<double>> K_ivvv_; /// (i e_{ij} | a_{ij} f_{ij}) (stored as (e, a * f))
 
     // Density-fitted integrals (only computed over strong pairs)
-    std::vector<std::vector<SharedMatrix>> Qma_ij_; // (Q_{ij} | m_{ij} a_{ij})
-    std::vector<std::vector<SharedMatrix>> Qab_ij_; // (Q_{ij} | a_{ij} b_{ij})
+    std::vector<std::vector<SharedMatrix<double>>> Qma_ij_; // (Q_{ij} | m_{ij} a_{ij})
+    std::vector<std::vector<SharedMatrix<double>>> Qab_ij_; // (Q_{ij} | a_{ij} b_{ij})
 
-    std::vector<SharedMatrix> i_Qk_ij_;   // (Q_{ij} | k_{ij} i)
-    std::vector<SharedMatrix> i_Qa_ij_;   // (Q_{ij} | a_{ij} i)
-    std::vector<SharedMatrix> i_Qk_t1_;   // (Q_{ij} | k_{ij} i) [T1-dressed] (Jiang Eq. 91)
-    std::vector<SharedMatrix> i_Qa_t1_;   // (Q_{ij} | a_{ij} i) [T1-dressed] (Jiang Eq. 92)
+    std::vector<SharedMatrix<double>> i_Qk_ij_;   // (Q_{ij} | k_{ij} i)
+    std::vector<SharedMatrix<double>> i_Qa_ij_;   // (Q_{ij} | a_{ij} i)
+    std::vector<SharedMatrix<double>> i_Qk_t1_;   // (Q_{ij} | k_{ij} i) [T1-dressed] (Jiang Eq. 91)
+    std::vector<SharedMatrix<double>> i_Qa_t1_;   // (Q_{ij} | a_{ij} i) [T1-dressed] (Jiang Eq. 92)
 
     // Dressed Fock matrices (used in DLPNO-T1-CCSD)
-    SharedMatrix Fkj_; // Jiang Eq. 94
-    std::vector<SharedMatrix> Fkc_; // Jiang Eq. 95
-    std::vector<SharedMatrix> Fai_; // Jiang Eq. 96
-    std::vector<SharedMatrix> Fab_; // Jiang Eq. 97
+    SharedMatrix<double> Fkj_; // Jiang Eq. 94
+    std::vector<SharedMatrix<double>> Fkc_; // Jiang Eq. 95
+    std::vector<SharedMatrix<double>> Fai_; // Jiang Eq. 96
+    std::vector<SharedMatrix<double>> Fab_; // Jiang Eq. 97
 
     double e_lmp2_; ///< raw (uncorrected) local MP2 correlation energy
     double e_lccsd_; ///< raw (uncorrected) local CCSD correlation energy
 
     /// Returns the appropriate overlap matrix given two LMO pairs
-    inline SharedMatrix S_PNO(const int ij, const int mn);
+    inline SharedMatrix<double> S_PNO(const int ij, const int mn);
     /// Encapsulates the reading in of (Q_{ij}|m_{ij} a_{ij}) integrals (regardless of core or disk)
-    inline std::vector<SharedMatrix> QIA_PNO(const int ij);
+    inline std::vector<SharedMatrix<double>> QIA_PNO(const int ij);
     /// Encapsulates the reading in of (Q_{ij}|a_{ij} b_{ij}) integrals (regardless of core or disk)
-    inline std::vector<SharedMatrix> QAB_PNO(const int ij);
+    inline std::vector<SharedMatrix<double>> QAB_PNO(const int ij);
 
     /// These functions split up pairs that survive the initial dipole screening
     // The "crude" pre-screening step splits up semi-canonical MP2 pairs from the rest,
@@ -403,13 +403,13 @@ class PSI_API DLPNOCCSD : public DLPNO {
     // => CCSD intermediates <= //
 
     /// Jiang Equation 82
-    std::vector<SharedMatrix> compute_beta();
+    std::vector<SharedMatrix<double>> compute_beta();
     /// Jiang Equation 83
-    std::vector<SharedMatrix> compute_gamma();
+    std::vector<SharedMatrix<double>> compute_gamma();
     /// Jiang Equation 84
-    std::vector<SharedMatrix> compute_delta();
+    std::vector<SharedMatrix<double>> compute_delta();
     /// Jiang Equation 86
-    SharedMatrix compute_Fkj_double_tilde();
+    SharedMatrix<double> compute_Fkj_double_tilde();
 
     /// compute T1-dressed DF integrals (Jiang Eq. 91-92)
     void t1_ints();
@@ -417,9 +417,9 @@ class PSI_API DLPNOCCSD : public DLPNO {
     void t1_fock();
 
     /// computes singles residuals in LCCSD equations, using pre-allocated memory (Jiang Eq. 32)
-    void compute_R_ia(std::vector<SharedMatrix>& R_ia, std::vector<std::vector<SharedMatrix>>& R_ia_buffer);
+    void compute_R_ia(std::vector<SharedMatrix<double>>& R_ia, std::vector<std::vector<SharedMatrix<double>>>& R_ia_buffer);
     /// computes doubles residuals in LCCSD equations, using pre-allocated memory (Jiang Eq. 19)
-    void compute_R_iajb(std::vector<SharedMatrix>& R_iajb, std::vector<SharedMatrix>& Rn_iajb);
+    void compute_R_iajb(std::vector<SharedMatrix<double>>& R_iajb, std::vector<SharedMatrix<double>>& Rn_iajb);
 
     /// iteratively solve local CCSD equations
     void lccsd_iterations();
@@ -447,10 +447,10 @@ class PSI_API DLPNOCCSD_T : public DLPNOCCSD {
     std::vector<std::tuple<int, int, int>> ijk_to_i_j_k_; ///< LMO triplet index (ijk) to LMO index tuple (i, j, k)
 
     /// triplet natural orbitals (TNOs)
-    std::vector<SharedMatrix> W_iajbkc_; ///< W3 intermediate for each lmo triplet (Jiang Eq. 109)
-    std::vector<SharedMatrix> V_iajbkc_; ///< V3 intermeidate for each lmo triplet (Jiang Eq. 110)
-    std::vector<SharedMatrix> T_iajbkc_; ///< Triples amplitude for each lmo triplet
-    std::vector<SharedMatrix> X_tno_; ///< global PAO -> canonical TNO transforms
+    std::vector<SharedMatrix<double>> W_iajbkc_; ///< W3 intermediate for each lmo triplet (Jiang Eq. 109)
+    std::vector<SharedMatrix<double>> V_iajbkc_; ///< V3 intermeidate for each lmo triplet (Jiang Eq. 110)
+    std::vector<SharedMatrix<double>> T_iajbkc_; ///< Triples amplitude for each lmo triplet
+    std::vector<SharedMatrix<double>> X_tno_; ///< global PAO -> canonical TNO transforms
     std::vector<SharedVector> e_tno_; ///< TNO orbital energies
     std::vector<int> n_tno_; ///< number of tnos per triplet domain
     std::vector<double> e_ijk_; ///< energy of triplet ijk (used for pre-screening and convergence purposes)
@@ -475,9 +475,9 @@ class PSI_API DLPNOCCSD_T : public DLPNOCCSD {
     void sort_triplets(double e_total);
 
     /// A helper function to transform triples-like tensor
-    SharedMatrix matmul_3d(SharedMatrix A, SharedMatrix X, int dim_old, int dim_new);
+    SharedMatrix<double> matmul_3d(SharedMatrix<double> A, SharedMatrix<double> X, int dim_old, int dim_new);
     /// Returns a symmetrized version of a triples-like tensor (in i <= j <= k ordering)
-    SharedMatrix triples_permuter(const SharedMatrix& X, int i, int j, int k, bool reverse=false);
+    SharedMatrix<double> triples_permuter(const SharedMatrix<double>& X, int i, int j, int k, bool reverse=false);
     /// compute (T) iteration energy (Jiang Eq. 53)
     double compute_t_iteration_energy();
 

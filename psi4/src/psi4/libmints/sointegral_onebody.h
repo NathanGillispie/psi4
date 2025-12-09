@@ -68,7 +68,7 @@ class PSI_API OneBodySOInt {
      *
      * \param result Where the integrals are going.
      */
-    virtual void compute(SharedMatrix result);
+    virtual void compute(SharedMatrix<double> result);
 
     /**
      * Computes one-electron integral matrices. Should be able to handle
@@ -76,7 +76,7 @@ class PSI_API OneBodySOInt {
      *
      * \param results Where the integrals are going.
      */
-    virtual void compute(std::vector<SharedMatrix> results);
+    virtual void compute(std::vector<SharedMatrix<double>> results);
 
     /**
      * Computes one-electron integral derivative matrices.
@@ -85,7 +85,7 @@ class PSI_API OneBodySOInt {
      * \param cdsalcs The Cartesian displacement SALCs that you are interested
      *                in.
      */
-    virtual void compute_deriv1(std::vector<SharedMatrix> result, const CdSalcList& cdsalcs);
+    virtual void compute_deriv1(std::vector<SharedMatrix<double>> result, const CdSalcList& cdsalcs);
 };
 
 }  // namespace psi

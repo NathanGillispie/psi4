@@ -67,21 +67,21 @@ class CorrGrad {
      * Pa + Pb = P
      **/
 
-    SharedMatrix Ca_;
-    SharedMatrix Cb_;
-    SharedMatrix La_;
-    SharedMatrix Lb_;
-    SharedMatrix Ra_;
-    SharedMatrix Rb_;
+    SharedMatrix<double> Ca_;
+    SharedMatrix<double> Cb_;
+    SharedMatrix<double> La_;
+    SharedMatrix<double> Lb_;
+    SharedMatrix<double> Ra_;
+    SharedMatrix<double> Rb_;
 
-    SharedMatrix Da_;
-    SharedMatrix Db_;
-    SharedMatrix Dt_;
-    SharedMatrix Pa_;
-    SharedMatrix Pb_;
-    SharedMatrix Pt_;
+    SharedMatrix<double> Da_;
+    SharedMatrix<double> Db_;
+    SharedMatrix<double> Dt_;
+    SharedMatrix<double> Pa_;
+    SharedMatrix<double> Pb_;
+    SharedMatrix<double> Pt_;
 
-    std::map<std::string, SharedMatrix> gradients_;
+    std::map<std::string, SharedMatrix<double>> gradients_;
 
     void common_init();
 
@@ -97,18 +97,18 @@ class CorrGrad {
      */
     static std::shared_ptr<CorrGrad> build_CorrGrad(std::shared_ptr<MintsHelper> mints);
 
-    void set_Ca(SharedMatrix Ca) { Ca_ = Ca; }
-    void set_Cb(SharedMatrix Cb) { Cb_ = Cb; }
-    void set_La(SharedMatrix La) { La_ = La; }
-    void set_Lb(SharedMatrix Lb) { Lb_ = Lb; }
-    void set_Ra(SharedMatrix Ra) { Ra_ = Ra; }
-    void set_Rb(SharedMatrix Rb) { Rb_ = Rb; }
-    void set_Da(SharedMatrix Da) { Da_ = Da; }
-    void set_Db(SharedMatrix Db) { Db_ = Db; }
-    void set_Dt(SharedMatrix Dt) { Dt_ = Dt; }
-    void set_Pa(SharedMatrix Pa) { Pa_ = Pa; }
-    void set_Pb(SharedMatrix Pb) { Pb_ = Pb; }
-    void set_Pt(SharedMatrix Pt) { Pt_ = Pt; }
+    void set_Ca(SharedMatrix<double> Ca) { Ca_ = Ca; }
+    void set_Cb(SharedMatrix<double> Cb) { Cb_ = Cb; }
+    void set_La(SharedMatrix<double> La) { La_ = La; }
+    void set_Lb(SharedMatrix<double> Lb) { Lb_ = Lb; }
+    void set_Ra(SharedMatrix<double> Ra) { Ra_ = Ra; }
+    void set_Rb(SharedMatrix<double> Rb) { Rb_ = Rb; }
+    void set_Da(SharedMatrix<double> Da) { Da_ = Da; }
+    void set_Db(SharedMatrix<double> Db) { Db_ = Db; }
+    void set_Dt(SharedMatrix<double> Dt) { Dt_ = Dt; }
+    void set_Pa(SharedMatrix<double> Pa) { Pa_ = Pa; }
+    void set_Pb(SharedMatrix<double> Pb) { Pb_ = Pb; }
+    void set_Pt(SharedMatrix<double> Pt) { Pt_ = Pt; }
 
     /**
      * Cutoff for individual contributions to the J/K matrices
@@ -141,7 +141,7 @@ class CorrGrad {
     /// Bench flag (defaults to 0)
     void set_bench(int bench) { bench_ = bench; }
 
-    std::map<std::string, SharedMatrix>& gradients() { return gradients_; }
+    std::map<std::string, SharedMatrix<double>>& gradients() { return gradients_; }
 
     virtual void compute_gradient() = 0;
 
@@ -167,8 +167,8 @@ class DFCorrGrad : public CorrGrad {
     void build_AB_x_terms();
     void build_Amn_x_terms();
 
-    void fitting_helper(SharedMatrix J, size_t file, const std::string& label, size_t naux, size_t nij, size_t memory);
-    void UV_helper(SharedMatrix V, double c, size_t file, const std::string& label, size_t naux, size_t nij,
+    void fitting_helper(SharedMatrix<double> J, size_t file, const std::string& label, size_t naux, size_t nij, size_t memory);
+    void UV_helper(SharedMatrix<double> V, double c, size_t file, const std::string& label, size_t naux, size_t nij,
                    size_t memory);
 
     /// File number for Alpha (Q|mn) tensor

@@ -42,6 +42,7 @@
 namespace psi {
 
 class PSIO;
+template <typename T>
 class Matrix;
 
 class Vector;
@@ -344,7 +345,7 @@ class PSI_API Vector final : public IrreppedVector<double> {
      * @ X Vector to multiply by.
      * @ beta Scaling factor for current input.
      */
-    void gemv(bool transa, double alpha, const Matrix& A, const Vector& X, double beta);
+    void gemv(bool transa, double alpha, const Matrix<double>& A, const Vector& X, double beta);
 
     /// Vector dot product
     double vector_dot(const Vector &other) const;

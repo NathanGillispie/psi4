@@ -38,6 +38,7 @@
 namespace psi {
 
 class Molecule;
+template <typename T>
 class Matrix;
 class Wavefunction;
 

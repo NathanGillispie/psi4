@@ -31,6 +31,7 @@
 
 namespace psi {
 
+template <typename T>
 class Matrix;
 class Vector;
 
@@ -38,7 +39,7 @@ class Vector;
 class PSI_API Denominator {
    protected:
     // Denominator (w in rows, ia in column)
-    SharedMatrix denominator_;
+    SharedMatrix<double> denominator_;
 
     // Pointer to active occupied orbital eigenvalues
     std::shared_ptr<Vector> eps_occ_;
@@ -62,15 +63,15 @@ class PSI_API Denominator {
     double delta() const { return delta_; }
     int nvector() const { return nvector_; }
     virtual void debug();
-    SharedMatrix denominator() const { return denominator_; }
+    SharedMatrix<double> denominator() const { return denominator_; }
 };
 
 class PSI_API LaplaceDenominator : public Denominator {
    protected:
     // Fully split denominator (w in rows, i in columns)
-    SharedMatrix denominator_occ_;
+    SharedMatrix<double> denominator_occ_;
     // Fully split denominator (w in rows, a in columns)
-    SharedMatrix denominator_vir_;
+    SharedMatrix<double> denominator_vir_;
 
     void decompose() override;
 
@@ -78,8 +79,8 @@ class PSI_API LaplaceDenominator : public Denominator {
     LaplaceDenominator(std::shared_ptr<Vector> eps_occ_, std::shared_ptr<Vector> eps_vir, double delta);
     ~LaplaceDenominator() override;
     void debug() override;
-    SharedMatrix denominator_occ() const { return denominator_occ_; }
-    SharedMatrix denominator_vir() const { return denominator_vir_; }
+    SharedMatrix<double> denominator_occ() const { return denominator_occ_; }
+    SharedMatrix<double> denominator_vir() const { return denominator_vir_; }
 };
 
 class PSI_API CholeskyDenominator : public Denominator {
@@ -95,9 +96,9 @@ class PSI_API CholeskyDenominator : public Denominator {
 class PSI_API SAPTDenominator {
    protected:
     // Denominator (w in rows, ar in column) (monomer A)
-    SharedMatrix denominatorA_;
+    SharedMatrix<double> denominatorA_;
     // Denominator (w in rows, bs in column) (monomer B)
-    SharedMatrix denominatorB_;
+    SharedMatrix<double> denominatorB_;
 
     // Pointer to active occupied orbital eigenvalues (monomer A)
     std::shared_ptr<Vector> eps_occA_;
@@ -115,7 +116,7 @@ class PSI_API SAPTDenominator {
     bool debug_;
 
     virtual void decompose() = 0;
-    void check_denom(std::shared_ptr<Vector>, std::shared_ptr<Vector>, SharedMatrix);
+    void check_denom(std::shared_ptr<Vector>, std::shared_ptr<Vector>, SharedMatrix<double>);
 
    public:
     SAPTDenominator(std::shared_ptr<Vector>, std::shared_ptr<Vector>, std::shared_ptr<Vector>, std::shared_ptr<Vector>,
@@ -130,23 +131,23 @@ class PSI_API SAPTDenominator {
     double delta() const { return delta_; }
     int nvector() const { return nvector_; }
     virtual void debug();
-    SharedMatrix denominatorA() const { return denominatorA_; }
-    SharedMatrix denominatorB() const { return denominatorB_; }
+    SharedMatrix<double> denominatorA() const { return denominatorA_; }
+    SharedMatrix<double> denominatorB() const { return denominatorB_; }
 };
 
 class PSI_API SAPTLaplaceDenominator : public SAPTDenominator {
    protected:
     // Fully split denominator (w in rows, a in columns) (monomer A)
-    SharedMatrix denominator_occA_;
+    SharedMatrix<double> denominator_occA_;
     // Fully split denominator (w in rows, r in columns) (monomer A)
-    SharedMatrix denominator_virA_;
+    SharedMatrix<double> denominator_virA_;
     // Fully split denominator (w in rows, b in columns) (monomer B)
-    SharedMatrix denominator_occB_;
+    SharedMatrix<double> denominator_occB_;
     // Fully split denominator (w in rows, s in columns) (monomer B)
-    SharedMatrix denominator_virB_;
+    SharedMatrix<double> denominator_virB_;
 
     void decompose() override;
-    void check_split(std::shared_ptr<Vector>, std::shared_ptr<Vector>, SharedMatrix, SharedMatrix);
+    void check_split(std::shared_ptr<Vector>, std::shared_ptr<Vector>, SharedMatrix<double>, SharedMatrix<double>);
 
    public:
     SAPTLaplaceDenominator(std::shared_ptr<Vector>, std::shared_ptr<Vector>, std::shared_ptr<Vector>,
@@ -154,10 +155,10 @@ class PSI_API SAPTLaplaceDenominator : public SAPTDenominator {
     ~SAPTLaplaceDenominator() override;
 
     void debug() override;
-    SharedMatrix denominator_occA() const { return denominator_occA_; }
-    SharedMatrix denominator_virA() const { return denominator_virA_; }
-    SharedMatrix denominator_occB() const { return denominator_occB_; }
-    SharedMatrix denominator_virB() const { return denominator_virB_; }
+    SharedMatrix<double> denominator_occA() const { return denominator_occA_; }
+    SharedMatrix<double> denominator_virA() const { return denominator_virA_; }
+    SharedMatrix<double> denominator_occB() const { return denominator_occB_; }
+    SharedMatrix<double> denominator_virB() const { return denominator_virB_; }
 };
 
 class PSI_API SAPTCholeskyDenominator : public SAPTDenominator {
@@ -179,9 +180,9 @@ class PSI_API TLaplaceDenominator {
     double delta_;
 
     // Fully split denominator (w in rows i in columns)
-    SharedMatrix denominator_occ_;
+    SharedMatrix<double> denominator_occ_;
     // Fully split denominator (w in rows i in columns)
-    SharedMatrix denominator_vir_;
+    SharedMatrix<double> denominator_vir_;
     // Number of vectors required to obtain given accuracy
     int nvector_;
 
@@ -194,8 +195,8 @@ class PSI_API TLaplaceDenominator {
     double delta() const { return delta_; }
     int nvector() const { return nvector_; }
     virtual void debug();
-    SharedMatrix denominator_occ() const { return denominator_occ_; }
-    SharedMatrix denominator_vir() const { return denominator_vir_; }
+    SharedMatrix<double> denominator_occ() const { return denominator_occ_; }
+    SharedMatrix<double> denominator_vir() const { return denominator_vir_; }
 };
 
 }  // Namespace psi

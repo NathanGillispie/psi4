@@ -125,7 +125,7 @@ class PKManager {
     std::vector<double*> D_vec_;
     /// Vector of original D matrices. We keep it around for building exchange
     /// in non-symmetric cases.
-    std::vector<SharedMatrix> D_;
+    std::vector<SharedMatrix<double>> D_;
     /// Vector of booleans, true if corresponding density matrix is symmetric
     std::vector<bool> symmetric_;
     /// Are all density matrices symmetric?
@@ -164,7 +164,7 @@ class PKManager {
     std::shared_ptr<BasisSet> primary() const { return primary_; }
     bool is_sym(int i) const { return symmetric_[i]; }
     bool all_sym() const { return all_sym_; }
-    SharedMatrix original_D(int N) const { return D_[N]; }
+    SharedMatrix<double> original_D(int N) const { return D_[N]; }
 
     /// Accessor that returns buffer corresponding to current thread
     SharedPKWrkr get_buffer();
@@ -191,8 +191,8 @@ class PKManager {
     /// Forming PK supermatrices for wK
     virtual void form_PK_wK() = 0;
     /// Preparing JK computation
-    virtual void prepare_JK(std::vector<SharedMatrix> D, std::vector<SharedMatrix> Cl,
-                            std::vector<SharedMatrix> Cr) = 0;
+    virtual void prepare_JK(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> Cl,
+                            std::vector<SharedMatrix<double>> Cr) = 0;
     /// Cleaning up after JK computation
     virtual void finalize_JK() = 0;
 
@@ -221,18 +221,18 @@ class PKManager {
 
     /// Actual computation of J and K
     /// Prepare the density matrix
-    void form_D_vec(std::vector<SharedMatrix> D, std::vector<SharedMatrix> Cl, std::vector<SharedMatrix> Cr);
+    void form_D_vec(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> Cl, std::vector<SharedMatrix<double>> Cr);
     /// Forming J, shared_ptr() initializes to null
-    virtual void form_J(std::vector<SharedMatrix> J, std::string exch = "",
-                        std::vector<SharedMatrix> K = std::vector<SharedMatrix>()) = 0;
+    virtual void form_J(std::vector<SharedMatrix<double>> J, std::string exch = "",
+                        std::vector<SharedMatrix<double>> K = std::vector<SharedMatrix<double>>()) = 0;
     /// Preparing triangular vector for J/K
-    void make_J_vec(std::vector<SharedMatrix> J);
+    void make_J_vec(std::vector<SharedMatrix<double>> J);
     /// Extracting results from vectors to matrix
-    void get_results(std::vector<SharedMatrix> J, std::string exch);
+    void get_results(std::vector<SharedMatrix<double>> J, std::string exch);
     /// Forming K
-    void form_K(std::vector<SharedMatrix> K);
+    void form_K(std::vector<SharedMatrix<double>> K);
     /// Forming wK
-    virtual void form_wK(std::vector<SharedMatrix> wK);
+    virtual void form_wK(std::vector<SharedMatrix<double>> wK);
     /// Finalize and delete the density matrix vectors
     void finalize_D();
 };
@@ -297,7 +297,7 @@ class PKMgrDisk : public PKManager {
     /// Allocating new buffers for wK integrals
     virtual void allocate_buffers_wK() = 0;
     /// Prepare the JK formation for disk algorithms
-    void prepare_JK(std::vector<SharedMatrix> D, std::vector<SharedMatrix> Cl, std::vector<SharedMatrix> Cr) override;
+    void prepare_JK(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> Cl, std::vector<SharedMatrix<double>> Cr) override;
 
     /// Determining the batch sizes
     void batch_sizing();
@@ -320,8 +320,8 @@ class PKMgrDisk : public PKManager {
     virtual void close_PK_file(bool keep);
 
     /// Form J from PK supermatrix, shared_ptr() initialized to null
-    void form_J(std::vector<SharedMatrix> J, std::string exch = "",
-                std::vector<SharedMatrix> K = std::vector<SharedMatrix>()) override;
+    void form_J(std::vector<SharedMatrix<double>> J, std::string exch = "",
+                std::vector<SharedMatrix<double>> K = std::vector<SharedMatrix<double>>()) override;
 
     /// Finalize JK matrix formation
     void finalize_JK() override;
@@ -487,11 +487,11 @@ class PKMgrInCore : public PKManager {
     /// Sequence of steps to form wK PK matrix
     void form_PK_wK() override;
     /// Steps to prepare JK formation
-    void prepare_JK(std::vector<SharedMatrix> D, std::vector<SharedMatrix> Cl, std::vector<SharedMatrix> Cr) override;
+    void prepare_JK(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> Cl, std::vector<SharedMatrix<double>> Cr) override;
 
     /// Form J matrix, shared_ptr() initializes to null
-    void form_J(std::vector<SharedMatrix> J, std::string exch = "",
-                std::vector<SharedMatrix> K = std::vector<SharedMatrix>()) override;
+    void form_J(std::vector<SharedMatrix<double>> J, std::string exch = "",
+                std::vector<SharedMatrix<double>> K = std::vector<SharedMatrix<double>>()) override;
     /// Finalize JK formation
     void finalize_JK() override;
 

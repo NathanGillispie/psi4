@@ -168,8 +168,8 @@ class Tensor2d {
     void set(double **A);
     void set(double *A);
     void set(SharedTensor2d &A);
-    void set(SharedMatrix A);
-    void set2(SharedMatrix A);
+    void set(SharedMatrix<double> A);
+    void set2(SharedMatrix<double> A);
     void set(SharedTensor1d &A);
     // A2d_[n][ij] = A(i,j)
     void set_row(const SharedTensor2d &A, int n);
@@ -292,8 +292,8 @@ class Tensor2d {
     double vector_dot(double **rhs);
     double **to_block_matrix();
     double *to_lower_triangle();
-    void to_shared_matrix(SharedMatrix A);
-    void to_matrix(SharedMatrix A);
+    void to_shared_matrix(SharedMatrix<double> A);
+    void to_matrix(SharedMatrix<double> A);
     void to_pointer(double *A);
     // mgs: orthogonalize with a Modified Gram-Schmid algorithm
     void mgs();

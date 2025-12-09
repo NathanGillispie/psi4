@@ -125,7 +125,7 @@ class Array2d {
     void set(int i, int j, double value);
     void set(double **A);
     void set(Array2d *A);
-    void set(SharedMatrix A);
+    void set(SharedMatrix<double> A);
     double get(int i, int j);
     void add(const Array2d *Adum);
     // A2d = alpha * Adum
@@ -172,7 +172,7 @@ class Array2d {
     double vector_dot(double **rhs);
     double **to_block_matrix();
     double *to_lower_triangle();
-    void to_shared_matrix(SharedMatrix A);
+    void to_shared_matrix(SharedMatrix<double> A);
     // mgs: orthogonalize with a Modified Gram-Schmid algorithm
     void mgs();
     // gs: orthogonalize with a Classical Gram-Schmid algorithm

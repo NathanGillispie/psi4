@@ -39,19 +39,19 @@ namespace scf {
 
 class ROHF : public HF {
    protected:
-    SharedMatrix moFeff_;
-    SharedMatrix soFeff_;
-    SharedMatrix Dt_;
-    SharedMatrix Da_old_;
-    SharedMatrix Db_old_;
-    SharedMatrix Dt_old_;
-    SharedMatrix Ct_;
-    SharedMatrix Ga_;
-    SharedMatrix Gb_;
-    SharedMatrix Ka_;
-    SharedMatrix Kb_;
-    SharedMatrix moFa_;
-    SharedMatrix moFb_;
+    SharedMatrix<double> moFeff_;
+    SharedMatrix<double> soFeff_;
+    SharedMatrix<double> Dt_;
+    SharedMatrix<double> Da_old_;
+    SharedMatrix<double> Db_old_;
+    SharedMatrix<double> Dt_old_;
+    SharedMatrix<double> Ct_;
+    SharedMatrix<double> Ga_;
+    SharedMatrix<double> Gb_;
+    SharedMatrix<double> Ka_;
+    SharedMatrix<double> Kb_;
+    SharedMatrix<double> moFa_;
+    SharedMatrix<double> moFb_;
 
     void form_initial_F() override;
     void form_initial_C() override;
@@ -60,7 +60,7 @@ class ROHF : public HF {
     void semicanonicalize() override;
 
     // Second-order convergence code
-    void Hx(SharedMatrix x, SharedMatrix ret);
+    void Hx(SharedMatrix<double> x, SharedMatrix<double> ret);
 
     void format_guess() override;
 
@@ -73,11 +73,11 @@ class ROHF : public HF {
          std::shared_ptr<PSIO> psio);
     ~ROHF() override;
 
-    SharedMatrix soFeff() const { return soFeff_; }
-    SharedMatrix moFeff() const { return moFeff_; }
-    SharedMatrix moFa() const { return moFa_; }
-    SharedMatrix moFb() const { return moFb_; }
-    SharedMatrix Ct() const {return Ct_; }
+    SharedMatrix<double> soFeff() const { return soFeff_; }
+    SharedMatrix<double> moFeff() const { return moFeff_; }
+    SharedMatrix<double> moFa() const { return moFa_; }
+    SharedMatrix<double> moFb() const { return moFb_; }
+    SharedMatrix<double> Ct() const {return Ct_; }
 
     void save_density_and_energy() override;
 

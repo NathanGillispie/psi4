@@ -38,8 +38,8 @@ namespace scf {
 
 class UHF : public HF {
    protected:
-    SharedMatrix Da_old_, Db_old_;
-    SharedMatrix Ga_, Gb_, J_, Ka_, Kb_, wKa_, wKb_;
+    SharedMatrix<double> Da_old_, Db_old_;
+    SharedMatrix<double> Ga_, Gb_, J_, Ka_, Kb_, wKa_, wKb_;
 
     std::shared_ptr<UV> potential_;
 
@@ -62,8 +62,8 @@ class UHF : public HF {
     void compute_nos();
 
     // Second-order convergence code
-    void Hx(SharedMatrix x_a, SharedMatrix IFock_a, SharedMatrix Cocc_a, SharedMatrix Cvir_a, SharedMatrix ret_a,
-            SharedMatrix x_b, SharedMatrix IFock_b, SharedMatrix Cocc_b, SharedMatrix Cvir_b, SharedMatrix ret_b);
+    void Hx(SharedMatrix<double> x_a, SharedMatrix<double> IFock_a, SharedMatrix<double> Cocc_a, SharedMatrix<double> Cvir_a, SharedMatrix<double> ret_a,
+            SharedMatrix<double> x_b, SharedMatrix<double> IFock_b, SharedMatrix<double> Cocc_b, SharedMatrix<double> Cvir_b, SharedMatrix<double> ret_b);
 
    public:
     UHF(SharedWavefunction ref_wfn, std::shared_ptr<SuperFunctional> functional);
@@ -92,11 +92,11 @@ class UHF : public HF {
     std::shared_ptr<VBase> V_potential() const override { return potential_; };
 
     /// Hessian-vector computers and solvers
-    std::vector<SharedMatrix> onel_Hx(std::vector<SharedMatrix> x) override;
-    std::vector<SharedMatrix> twoel_Hx(std::vector<SharedMatrix> x, bool combine = true,
+    std::vector<SharedMatrix<double>> onel_Hx(std::vector<SharedMatrix<double>> x) override;
+    std::vector<SharedMatrix<double>> twoel_Hx(std::vector<SharedMatrix<double>> x, bool combine = true,
                                        std::string return_basis = "MO") override;
-    std::vector<SharedMatrix> cphf_Hx(std::vector<SharedMatrix> x) override;
-    std::vector<SharedMatrix> cphf_solve(std::vector<SharedMatrix> x_vec, double conv_tol = 1.e-4, int max_iter = 10,
+    std::vector<SharedMatrix<double>> cphf_Hx(std::vector<SharedMatrix<double>> x) override;
+    std::vector<SharedMatrix<double>> cphf_solve(std::vector<SharedMatrix<double>> x_vec, double conv_tol = 1.e-4, int max_iter = 10,
                                          int print_lvl = 1) override;
 
     std::shared_ptr<UHF> c1_deep_copy(std::shared_ptr<BasisSet> basis);

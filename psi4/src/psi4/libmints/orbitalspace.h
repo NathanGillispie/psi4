@@ -51,7 +51,7 @@ class PSI_API OrbitalSpace {
     /// Name of the orbital space.
     std::string name_;
     /// AO->MO transformation matrix (ao x mo) or SO->MO transformation matrix
-    SharedMatrix C_;
+    SharedMatrix<double> C_;
 
     /// MO "eigenvalues"
     std::shared_ptr<Vector> evals_;
@@ -68,11 +68,11 @@ class PSI_API OrbitalSpace {
     OrbitalSpace();
 
    public:
-    OrbitalSpace(const std::string& id, const std::string& name, const SharedMatrix& full_C,
+    OrbitalSpace(const std::string& id, const std::string& name, const SharedMatrix<double>& full_C,
                  const std::shared_ptr<Vector>& evals, const std::shared_ptr<BasisSet>& basis,
                  const std::shared_ptr<IntegralFactory>& ints);
 
-    OrbitalSpace(const std::string& id, const std::string& name, const SharedMatrix& full_C,
+    OrbitalSpace(const std::string& id, const std::string& name, const SharedMatrix<double>& full_C,
                  const std::shared_ptr<BasisSet>& basis, const std::shared_ptr<IntegralFactory>& ints);
 
     OrbitalSpace(const std::string& id, const std::string& name, const std::shared_ptr<Wavefunction>& wave);
@@ -82,7 +82,7 @@ class PSI_API OrbitalSpace {
     const std::string& name() const;
 
     /// C - transformation matrix (AO x MO)
-    const SharedMatrix& C() const;
+    const SharedMatrix<double>& C() const;
 
     /// "Eigenvalues" of the C matrix
     const std::shared_ptr<Vector>& evals() const;
@@ -108,11 +108,11 @@ class PSI_API OrbitalSpace {
         space1.C().coldim().
         Throws if the overlap cannot be computed.
       */
-    static SharedMatrix overlap(const OrbitalSpace& space1, const OrbitalSpace& space2);
+    static SharedMatrix<double> overlap(const OrbitalSpace& space1, const OrbitalSpace& space2);
     /** Returns the overlap matrix between basis1 and basis2.
         Throws if the overlap cannot be computed.
       */
-    static SharedMatrix overlap(const std::shared_ptr<BasisSet>& basis1, const std::shared_ptr<BasisSet>& basis2);
+    static SharedMatrix<double> overlap(const std::shared_ptr<BasisSet>& basis1, const std::shared_ptr<BasisSet>& basis2);
 
      /** Given two spaces, it projects out one space from the other and returns the new spaces.
      * \param orb_space The space to project out. The returned space will be orthogonal to this.

@@ -60,14 +60,14 @@ class ElectricFieldInt : public OneBodyAOInt {
     static Vector3 nuclear_contribution(const Vector3 &origin, std::shared_ptr<Molecule> mol);
 
     /// Computes all integrals and stores them in result by default this method throws
-    void compute(std::vector<SharedMatrix>& result) override;
+    void compute(std::vector<SharedMatrix<double>>& result) override;
 
     /** Compute field integrals at coords with a functor to obtain
     a) the expectation value of the electric field at all coords (ContractOverDensityFieldFunctor)
     b) the induction operator matrix by contraction with dipoles (ContractOverDipolesFunctor)
     */
     template <typename ContractionFunctor>
-    void compute_with_functor(ContractionFunctor functor, SharedMatrix coords);
+    void compute_with_functor(ContractionFunctor functor, SharedMatrix<double> coords);
 
     void set_origin(const Vector3& _origin) override;
 };
@@ -84,7 +84,7 @@ class ContractOverDipolesFunctor {
     double **dipoles_;
 
    public:
-    ContractOverDipolesFunctor(SharedMatrix dipoles, SharedMatrix F) : pF_(F->pointer()), dipoles_(dipoles->pointer()) {
+    ContractOverDipolesFunctor(SharedMatrix<double> dipoles, SharedMatrix<double> F) : pF_(F->pointer()), dipoles_(dipoles->pointer()) {
         if (F->rowdim() != F->coldim()) throw PSIEXCEPTION("Invalid Fock matrix in ContractOverCharges");
         if (dipoles->coldim() != 3) throw PSIEXCEPTION("Dipole matrix must have 3 columns.");
     }
@@ -107,7 +107,7 @@ class ContractOverDensityFieldFunctor {
     double **field_;
 
    public:
-    ContractOverDensityFieldFunctor(SharedMatrix field, SharedMatrix D) : pD_(D->pointer()), field_(field->pointer()) {
+    ContractOverDensityFieldFunctor(SharedMatrix<double> field, SharedMatrix<double> D) : pD_(D->pointer()), field_(field->pointer()) {
         if (D->rowdim() != D->coldim()) throw PSIEXCEPTION("Invalid density matrix in ContractOverDensityFieldFunctor");
         if (field->coldim() != 3) throw PSIEXCEPTION("Field matrix must have 3 columns.");
     }

@@ -46,7 +46,7 @@ void scalar_saver_ground(ccenergy::CCEnergyWavefunction& wfn, struct TD_Params *
 // Save a scalar describing a excited->excited transition.
 void scalar_saver_excited(ccenergy::CCEnergyWavefunction& wfn, struct TD_Params *S, struct TD_Params *U, const std::string suffix, double val);
 // Save a density.
-void density_saver(ccenergy::CCEnergyWavefunction& wfn, struct RHO_Params *S, const std::string suffix, SharedMatrix val);
+void density_saver(ccenergy::CCEnergyWavefunction& wfn, struct RHO_Params *S, const std::string suffix, SharedMatrix<double> val);
 
 }
 }

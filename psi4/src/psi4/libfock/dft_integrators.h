@@ -83,7 +83,7 @@ inline std::vector<double> rks_quadrature_integrate(std::shared_ptr<BlockOPoints
 }
 
 inline void sap_integrator(std::shared_ptr<BlockOPoints> block, const SharedVector& sap_potential,
-                           std::shared_ptr<PointFunctions> pworker, SharedMatrix V) {
+                           std::shared_ptr<PointFunctions> pworker, SharedMatrix<double> V) {
     // Block data
     const std::vector<int>& function_map = block->functions_local_to_global();
     int nlocal = function_map.size();
@@ -121,7 +121,7 @@ inline void sap_integrator(std::shared_ptr<BlockOPoints> block, const SharedVect
 }
 
 inline void rks_integrator(std::shared_ptr<BlockOPoints> block, std::shared_ptr<SuperFunctional> fworker,
-                           std::shared_ptr<PointFunctions> pworker, SharedMatrix V, int ansatz = -1) {
+                           std::shared_ptr<PointFunctions> pworker, SharedMatrix<double> V, int ansatz = -1) {
     ansatz = (ansatz == -1 ? fworker->ansatz() : ansatz);
     // printf("Ansatz %d\n", ansatz);
 
@@ -215,7 +215,7 @@ inline void rks_integrator(std::shared_ptr<BlockOPoints> block, std::shared_ptr<
 
 inline void rks_gradient_integrator(std::shared_ptr<BasisSet> primary, std::shared_ptr<BlockOPoints> block,
                                     std::shared_ptr<SuperFunctional> fworker, std::shared_ptr<PointFunctions> pworker,
-                                    SharedMatrix G, SharedMatrix U, int ansatz = -1) {
+                                    SharedMatrix<double> G, SharedMatrix<double> U, int ansatz = -1) {
     ansatz = (ansatz == -1 ? fworker->ansatz() : ansatz);
 
     // => Setup scratch pointers, and associated variables <= //

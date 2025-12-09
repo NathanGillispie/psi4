@@ -63,12 +63,12 @@ protected:
 
     std::shared_ptr<BasisSet> primary_;
 
-    SharedMatrix Ca_;
-    SharedMatrix Cb_;
+    SharedMatrix<double> Ca_;
+    SharedMatrix<double> Cb_;
 
-    SharedMatrix Da_;
-    SharedMatrix Db_;
-    SharedMatrix Dt_;
+    SharedMatrix<double> Da_;
+    SharedMatrix<double> Db_;
+    SharedMatrix<double> Dt_;
 
     bool do_J_;
     bool do_K_;
@@ -76,8 +76,8 @@ protected:
 
     double omega_;
 
-    std::map<std::string, SharedMatrix> gradients_;
-    std::map<std::string, SharedMatrix> hessians_;
+    std::map<std::string, SharedMatrix<double>> gradients_;
+    std::map<std::string, SharedMatrix<double>> hessians_;
 
     void common_init();
 
@@ -93,11 +93,11 @@ public:
     */
     static std::shared_ptr<JKGrad> build_JKGrad(int deriv, std::shared_ptr<MintsHelper> mints);
 
-    void set_Ca(SharedMatrix Ca) { Ca_ = Ca; }
-    void set_Cb(SharedMatrix Cb) { Cb_ = Cb; }
-    void set_Da(SharedMatrix Da) { Da_ = Da; }
-    void set_Db(SharedMatrix Db) { Db_ = Db; }
-    void set_Dt(SharedMatrix Dt) { Dt_ = Dt; }
+    void set_Ca(SharedMatrix<double> Ca) { Ca_ = Ca; }
+    void set_Cb(SharedMatrix<double> Cb) { Cb_ = Cb; }
+    void set_Da(SharedMatrix<double> Da) { Da_ = Da; }
+    void set_Db(SharedMatrix<double> Db) { Db_ = Db; }
+    void set_Dt(SharedMatrix<double> Dt) { Dt_ = Dt; }
 
     /**
      * Cutoff for individual contributions to the J/K matrices
@@ -153,8 +153,8 @@ public:
     */
     void set_omega(double omega) { omega_ = omega; }
 
-    std::map<std::string, SharedMatrix>& gradients() { return gradients_; }
-    std::map<std::string, SharedMatrix>& hessians() { return hessians_; }
+    std::map<std::string, SharedMatrix<double>>& gradients() { return gradients_; }
+    std::map<std::string, SharedMatrix<double>>& hessians() { return hessians_; }
 
     virtual void compute_gradient() = 0;
     virtual void compute_hessian() = 0;
@@ -239,8 +239,8 @@ protected:
 
     void common_init();
 
-    std::map<std::string, std::shared_ptr<Matrix> > compute1(std::vector<std::shared_ptr<TwoBodyAOInt> >& ints);
-    std::map<std::string, std::shared_ptr<Matrix> > compute2(std::vector<std::shared_ptr<TwoBodyAOInt> >& ints);
+    std::map<std::string, std::shared_ptr<Matrix<double>> > compute1(std::vector<std::shared_ptr<TwoBodyAOInt> >& ints);
+    std::map<std::string, std::shared_ptr<Matrix<double>> > compute2(std::vector<std::shared_ptr<TwoBodyAOInt> >& ints);
 public:
     DirectJKGrad(int deriv, std::shared_ptr<BasisSet> primary);
     ~DirectJKGrad() override;

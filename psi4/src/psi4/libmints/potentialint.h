@@ -89,7 +89,7 @@ class ContractOverDensityFunctor {
    public:
     void initialize(int num_threads) {}
     void finalize(int num_threads) {}
-    ContractOverDensityFunctor(size_t /*ncenters*/, double *charges, SharedMatrix D)
+    ContractOverDensityFunctor(size_t /*ncenters*/, double *charges, SharedMatrix<double> D)
         : pD_(D->pointer()), charges_(charges) {}
     void operator()(int bf1, int bf2, int center, double integral, int thread) { charges_[center] += pD_[bf1][bf2] * integral; }
 };
@@ -101,14 +101,14 @@ class ContractOverChargesFunctor {
      */
    protected:
     /// Smart pointer to the Fock matrix contribution
-    SharedMatrix F_;
+    SharedMatrix<double> F_;
     /// The array of charges
     const double *charges_;
     /// A copy of the Fock matrix for each thread to accumulate into
-    std::vector<SharedMatrix> tempFock;
+    std::vector<SharedMatrix<double>> tempFock;
 
    public:
-    ContractOverChargesFunctor(const double *charges, SharedMatrix F) : F_(F), charges_(charges) {
+    ContractOverChargesFunctor(const double *charges, SharedMatrix<double> F) : F_(F), charges_(charges) {
         if (F->rowdim() != F->coldim()) throw PSIEXCEPTION("Invalid Fock matrix in ContractOverCharges");
     }
     void initialize(int num_threads) {

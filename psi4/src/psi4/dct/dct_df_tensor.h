@@ -34,7 +34,7 @@
 namespace psi {
 namespace dct {
 
-class DFTensor : public Matrix {
+class DFTensor : public Matrix<double> {
   protected:
       int nQ_;
       Dimension dim2_;
@@ -56,15 +56,15 @@ class DFTensor : public Matrix {
       /// r(Q|pq) = \sum_Q B(P|rs) (pq|rs) with.
       void contract343(const DFTensor& b, dpdbuf4& G, bool transpose, double alpha, double beta);
       /// Transform b(Q|mu,nu) from SO basis to another basis with symmetry
-      void three_idx_primary_transform_gemm(const DFTensor& three_idx, const Matrix& left, const Matrix& right,
+      void three_idx_primary_transform_gemm(const DFTensor& three_idx, const Matrix<double>& left, const Matrix<double>& right,
                                             double alpha, double beta);
 
       // Static functions create a new DFTensor and operate on it.
-      static DFTensor three_idx_primary_transform(const DFTensor& three_idx, const Matrix& left, const Matrix& right);
+      static DFTensor three_idx_primary_transform(const DFTensor& three_idx, const Matrix<double>& left, const Matrix<double>& right);
       /// r(Q|pq) = \sum_Q J(PQ) B(P|pq)
-      static DFTensor contract233(const Matrix& J, const DFTensor& B);
+      static DFTensor contract233(const Matrix<double>& J, const DFTensor& B);
       /// (Q) (p|q) -> (Q|pq)
-      static DFTensor contract123(const Matrix& Q, const Matrix& G);
+      static DFTensor contract123(const Matrix<double>& Q, const Matrix<double>& G);
 
 };
 

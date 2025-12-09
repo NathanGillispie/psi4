@@ -186,8 +186,8 @@ struct SAPTDFInts {
     size_t i_start_;
     size_t j_start_;
 
-    SharedMatrix BpMat_;
-    SharedMatrix BdMat_;
+    SharedMatrix<double> BpMat_;
+    SharedMatrix<double> BdMat_;
     double **B_p_{nullptr};
     double **B_d_{nullptr};
 

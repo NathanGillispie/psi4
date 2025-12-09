@@ -77,13 +77,13 @@ SparseMap chain_maps(const SparseMap &x_to_y, const SparseMap &y_to_z);
 SparseMap extend_maps(const SparseMap &i_to_y, const std::vector<std::pair<int,int>> &ij_to_i_j);
 
 /* Args: Matrix, list of row indices */
-SharedMatrix submatrix_rows(const Matrix &mat, const std::vector<int> &row_inds);
+SharedMatrix<double> submatrix_rows(const Matrix<double> &mat, const std::vector<int> &row_inds);
 
 /* Args: Matrix, list of column indices */
-SharedMatrix submatrix_cols(const Matrix &mat, const std::vector<int> &col_inds);
+SharedMatrix<double> submatrix_cols(const Matrix<double> &mat, const std::vector<int> &col_inds);
 
 /* Args: Matrix, list of row and column indices */
-SharedMatrix submatrix_rows_and_cols(const Matrix &mat, const std::vector<int> &row_inds, const std::vector<int> &col_inds);
+SharedMatrix<double> submatrix_rows_and_cols(const Matrix<double> &mat, const std::vector<int> &row_inds, const std::vector<int> &col_inds);
 
 } // namespace psi
 

@@ -209,7 +209,7 @@ class PSI_API TwoBodyAOInt {
     /// Is sieve initialized?
     bool sieve_initialized() { return sieve_initialized_; };
     /// Update max_dens_shell_pair_ given an updated density matrix (Haser 1989)
-    void update_density(const std::vector<SharedMatrix>& D);
+    void update_density(const std::vector<SharedMatrix<double>>& D);
     /// Ask the built in sieve whether this quartet contributes
     bool shell_significant(int M, int N, int R, int S) const { return sieve_impl_(M, N, R, S); };
     /// Are any of the quartets within a given shellpair list significant

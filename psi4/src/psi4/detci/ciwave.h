@@ -40,7 +40,7 @@ class Options;
 class JK;
 class IntegralTransform;
 class MOSpace;
-typedef std::shared_ptr<Matrix> SharedMatrix;
+typedef std::shared_ptr<Matrix<double>> SharedMatrix<double>;
 class SOMCSCF;
 class DFHelper;
 
@@ -84,7 +84,7 @@ class CIWavefunction : public Wavefunction {
      * @param  orbital_name fzc, drc, docc, act, ras1, ras2, ras3, ras4, pop, vir, fzv, drv, or all
      * @return C            Returns the appropriate orbitals in the SO basis.
      */
-    SharedMatrix get_orbitals(const std::string &orbital_name);
+    SharedMatrix<double> get_orbitals(const std::string &orbital_name);
 
     /**!
      * Similar to wavefunction.Ca_subset(); however, this version knows about all of the CI
@@ -92,7 +92,7 @@ class CIWavefunction : public Wavefunction {
      * @param  orbital_name FZC, DRC, DOCC, ACT, RAS1, RAS2, RAS3, RAS4, POP, VIR, FZV, DRV, or ALL
      * @param  orbitals     SharedMatrix to set
      */
-    void set_orbitals(const std::string &orbital_name, SharedMatrix orbitals);
+    void set_orbitals(const std::string &orbital_name, SharedMatrix<double> orbitals);
 
     /**!
      * Gets the dimension of the desired subspace.
@@ -117,7 +117,7 @@ class CIWavefunction : public Wavefunction {
      * @param onel_out  one-electron output vector
      * @param twoel_out two-electron output vector
      */
-    void rotate_mcscf_integrals(SharedMatrix K, SharedVector onel_out, SharedVector twoel_out);
+    void rotate_mcscf_integrals(SharedMatrix<double> K, SharedVector onel_out, SharedVector twoel_out);
 
     /**
      * Takes a pitzer order act x act Matrix and converts it into a ci-ordered vector that
@@ -125,7 +125,7 @@ class CIWavefunction : public Wavefunction {
      * @param src  Source Matrix - can have irreps
      * @param dest Destination Vector - should be of size, ncitri = (nact * (nact + 1)) / 2
      */
-    void pitzer_to_ci_order_onel(SharedMatrix src, SharedVector dest);
+    void pitzer_to_ci_order_onel(SharedMatrix<double> src, SharedVector dest);
 
     /**
      * Takes a pitzer order act^2 x act^2 Matrix and converts it into a ci-ordered vector that
@@ -133,7 +133,7 @@ class CIWavefunction : public Wavefunction {
      * @param src  Source Matrix - Cannot have irreps
      * @param dest Destination Vector - should be of size, (ncitri * (nctri + 1)) / 2
      */
-    void pitzer_to_ci_order_twoel(SharedMatrix src, SharedVector dest);
+    void pitzer_to_ci_order_twoel(SharedMatrix<double> src, SharedVector dest);
 
     /**!
      * Obtains the OPDM <Iroot| Epq |Jroot> from the ciwave object. If Jroot is
@@ -145,7 +145,7 @@ class CIWavefunction : public Wavefunction {
      * @param full_space If false return only the active OPDM else return full OPDM
      * @return OPDM or TDM shared matrix
      **/
-    SharedMatrix get_opdm(int Iroot = -1, int Jroot = -1, const std::string &spin = "SUM", bool full_space = false);
+    SharedMatrix<double> get_opdm(int Iroot = -1, int Jroot = -1, const std::string &spin = "SUM", bool full_space = false);
 
     /**!
      * Compute the one-particle density matrix between two CIVectors
@@ -155,7 +155,7 @@ class CIWavefunction : public Wavefunction {
      * @param Iroot      Iroot to use
      * @return           AA, BB, and summed OPDM's
      **/
-    std::vector<SharedMatrix> opdm(SharedCIVector Ivec, SharedCIVector Jvec, int Iroot, int Jroot);
+    std::vector<SharedMatrix<double>> opdm(SharedCIVector Ivec, SharedCIVector Jvec, int Iroot, int Jroot);
 
     /**!
      * Obtains the "special" TPDM, other TPDM roots are not held here.
@@ -166,7 +166,7 @@ class CIWavefunction : public Wavefunction {
      * @param symmetrize Symmetrize the TPDM, only works for SUM currently
      * @return           The request 4D active TPDM
      **/
-    SharedMatrix get_tpdm(const std::string &spin = "SUM", bool symmetrize = true);
+    SharedMatrix<double> get_tpdm(const std::string &spin = "SUM", bool symmetrize = true);
 
     /**!
      * Compute the two-particle density matrix between two CIVectors
@@ -176,7 +176,7 @@ class CIWavefunction : public Wavefunction {
      * @param Iroot      Iroot to use
      * @return           AA, AB, BB, and summed TPDM's
      **/
-    std::vector<SharedMatrix> tpdm(SharedCIVector Ivec, SharedCIVector Jvec, int Iroot, int Jroot);
+    std::vector<SharedMatrix<double>> tpdm(SharedCIVector Ivec, SharedCIVector Jvec, int Iroot, int Jroot);
 
     /**!
      Builds and returns a new CIvect object.
@@ -236,7 +236,7 @@ class CIWavefunction : public Wavefunction {
     /**
      * Compute the state-transfer operator. Currently in construction and not to be used.
      */
-    void compute_state_transfer(SharedCIVector ref, int ref_vec, SharedMatrix prop, SharedCIVector ret);
+    void compute_state_transfer(SharedCIVector ref, int ref_vec, SharedMatrix<double> prop, SharedCIVector ret);
 
     // Compute functions
     void compute_cc();
@@ -299,7 +299,7 @@ class CIWavefunction : public Wavefunction {
      * @param  hsize Compute the first hsize elements of the CI Hamiltonian
      * @return       The requested CI Hamiltonian.
      */
-    SharedMatrix hamiltonian(size_t hsize = 0);
+    SharedMatrix<double> hamiltonian(size_t hsize = 0);
 
    private:
     /// => General Helper Functions <= ///
@@ -325,7 +325,7 @@ class CIWavefunction : public Wavefunction {
     void orbital_locations(const std::string &orbital_name, int *start, int *end);
 
     /// Symmetry block a matrix
-    SharedMatrix symm_block(SharedMatrix x, Dimension dim1, Dimension dim2);
+    SharedMatrix<double> symm_block(SharedMatrix<double> x, Dimension dim1, Dimension dim2);
 
     /// => Integrals <= ///
     bool ints_init_;
@@ -351,19 +351,19 @@ class CIWavefunction : public Wavefunction {
     void setup_mcscf_ints();
     void transform_mcscf_ints(bool approx_only = false);
     void read_dpd_ci_ints();
-    void rotate_mcscf_twoel_ints(SharedMatrix K, SharedVector twoel_out);
+    void rotate_mcscf_twoel_ints(SharedMatrix<double> K, SharedVector twoel_out);
 
     /// DF integral functions
     void setup_dfmcscf_ints();
     void transform_dfmcscf_ints(bool approx_only = false);
-    void rotate_dfmcscf_twoel_ints(SharedMatrix K, SharedVector twoel_out);
+    void rotate_dfmcscf_twoel_ints(SharedMatrix<double> K, SharedVector twoel_out);
 
     /// MO transformation through TeraCHEM-like
     /// Added in by Kevin Patrick Hannon
     void transform_mcscf_ints_ao(bool approx_only = false);
     void setup_mcscf_ints_ao();
-    SharedMatrix tei_raaa_;
-    SharedMatrix tei_aaaa_;
+    SharedMatrix<double> tei_raaa_;
+    SharedMatrix<double> tei_aaaa_;
 
     /// => Globals <= //
     struct stringwr **alplist_;
@@ -449,9 +449,9 @@ class CIWavefunction : public Wavefunction {
     void mpn_generator(CIvect &Hd);
 
     /// => Density Matrix helpers <= //
-    std::vector<std::vector<SharedMatrix> > opdm(SharedCIVector Ivec, SharedCIVector Jvec,
+    std::vector<std::vector<SharedMatrix<double>> > opdm(SharedCIVector Ivec, SharedCIVector Jvec,
                                                  std::vector<std::tuple<int, int> > states_vec);
-    SharedMatrix opdm_add_inactive(SharedMatrix opdm, double value, bool virt = false);
+    SharedMatrix<double> opdm_add_inactive(SharedMatrix<double> opdm, double value, bool virt = false);
     void opdm_block(struct stringwr **alplist, struct stringwr **betlist, double **onepdm_a, double **onepdm_b,
                     double **CJ, double **CI, int Ja_list, int Jb_list, int Jnas, int Jnbs, int Ia_list, int Ib_list,
                     int Inas, int Inbs);
@@ -459,22 +459,22 @@ class CIWavefunction : public Wavefunction {
     // OPDM holders, opdm_map holds lots of active-active opdms
     // opdm_, opdm_a_, etc are for "the" current OPDM
     bool opdm_called_;
-    std::map<std::string, SharedMatrix> opdm_map_;
-    SharedMatrix opdm_;
-    SharedMatrix opdm_a_;
-    SharedMatrix opdm_b_;
+    std::map<std::string, SharedMatrix<double>> opdm_map_;
+    SharedMatrix<double> opdm_;
+    SharedMatrix<double> opdm_a_;
+    SharedMatrix<double> opdm_b_;
 
-    std::vector<SharedMatrix> tpdm(SharedCIVector Ivec, SharedCIVector Jvec,
+    std::vector<SharedMatrix<double>> tpdm(SharedCIVector Ivec, SharedCIVector Jvec,
                                    std::vector<std::tuple<int, int, double> > states_vec);
     void tpdm_block(struct stringwr **alplist, struct stringwr **betlist, int nbf, int nalplists, int nbetlists,
                     double *twopdm_aa, double *twopdm_bb, double *twopdm_ab, double **CJ, double **CI, int Ja_list,
                     int Jb_list, int Jnas, int Jnbs, int Ia_list, int Ib_list, int Inas, int Inbs, double weight);
 
     bool tpdm_called_;
-    SharedMatrix tpdm_;
-    SharedMatrix tpdm_aa_;
-    SharedMatrix tpdm_ab_;
-    SharedMatrix tpdm_bb_;
+    SharedMatrix<double> tpdm_;
+    SharedMatrix<double> tpdm_aa_;
+    SharedMatrix<double> tpdm_ab_;
+    SharedMatrix<double> tpdm_bb_;
 
 };  // End CIWavefunction
 

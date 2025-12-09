@@ -155,7 +155,7 @@ class PSI_API CdSalcList {
      */
     size_t ncd() const { return salcs_.size(); }
 
-    std::vector<SharedMatrix> create_matrices(const std::string& basename, const MatrixFactory& factory) const;
+    std::vector<SharedMatrix<double>> create_matrices(const std::string& basename, const MatrixFactory& factory) const;
     std::string salc_name(int index) const;
 
     char needed_irreps() const { return needed_irreps_; }
@@ -170,8 +170,8 @@ class PSI_API CdSalcList {
 
     const std::vector<CdSalc>& get_salcs() const { return salcs_; }
 
-    SharedMatrix matrix() const;
-    SharedMatrix matrix_irrep(int h) const;  // return only salcs of a given irrep
+    SharedMatrix<double> matrix() const;
+    SharedMatrix<double> matrix_irrep(int h) const;  // return only salcs of a given irrep
     // SharedMatrix matrix_projected_out() const;
 
     void print() const;

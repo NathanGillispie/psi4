@@ -266,7 +266,7 @@ void OneBodyAOInt::compute_pair_deriv2(const libint2::Shell &s1, const libint2::
     }
 }
 
-void OneBodyAOInt::compute(SharedMatrix &result) {
+void OneBodyAOInt::compute(SharedMatrix<double> &result) {
     const auto bs1_equiv_bs2 = (bs1_ == bs2_);
 
     double sign = is_antisymmetric() ? -1 : 1;
@@ -294,7 +294,7 @@ void OneBodyAOInt::compute(SharedMatrix &result) {
     }
 }
 
-void OneBodyAOInt::compute(std::vector<SharedMatrix> &result) {
+void OneBodyAOInt::compute(std::vector<SharedMatrix<double>> &result) {
     // Do not worry about zeroing out result
     int ns1 = bs1_->nshell();
     int ns2 = bs2_->nshell();

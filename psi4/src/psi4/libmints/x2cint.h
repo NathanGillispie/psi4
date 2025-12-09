@@ -59,7 +59,7 @@ class PSI_API X2CInt {
      * @param options an Options object used to read basis set information.
      */
     void compute(std::shared_ptr<Molecule> molecule, std::shared_ptr<BasisSet> basis,
-                 std::shared_ptr<BasisSet> x2c_basis, SharedMatrix S, SharedMatrix T, SharedMatrix V,
+                 std::shared_ptr<BasisSet> x2c_basis, SharedMatrix<double> S, SharedMatrix<double> T, SharedMatrix<double> V,
                  const std::vector<double> lambda);
     /*! @} */
 
@@ -95,33 +95,33 @@ class PSI_API X2CInt {
 
     // Matrices in the orbital basis
     /// The overlap matrix in the orbital basis
-    SharedMatrix sMat;
+    SharedMatrix<double> sMat;
     /// The kinetic energy matrix in the orbital basis
-    SharedMatrix tMat;
+    SharedMatrix<double> tMat;
     /// The potential energy matrix in the orbital basis
-    SharedMatrix vMat;
+    SharedMatrix<double> vMat;
     /// The spin-free relativistic potential (W = pVp) matrix in the orbital basis
-    SharedMatrix wMat;
+    SharedMatrix<double> wMat;
     /// The X matrix
-    SharedMatrix xMat;
+    SharedMatrix<double> xMat;
     /// The R matrix
-    SharedMatrix rMat;
+    SharedMatrix<double> rMat;
     /// The XR matrix
-    SharedMatrix xrMat;
+    SharedMatrix<double> xrMat;
     /// The X2C overlap matrix
-    SharedMatrix S_x2c_;
+    SharedMatrix<double> S_x2c_;
     /// The X2C kinetic energy matrix
-    SharedMatrix T_x2c_;
+    SharedMatrix<double> T_x2c_;
     /// The X2C potential energy matrix
-    SharedMatrix V_x2c_;
+    SharedMatrix<double> V_x2c_;
 
     // Matrices in the orbital basis doubled
     /// The four-component Hamiltonian of the modified Dirac equation
-    SharedMatrix dMat;
+    SharedMatrix<double> dMat;
     /// The four-component overlap matrix of the modified Dirac equation
-    SharedMatrix SXMat;
+    SharedMatrix<double> SXMat;
     /// Eigenvectors of the modified Dirac equation
-    SharedMatrix C_LS_Mat;
+    SharedMatrix<double> C_LS_Mat;
     /// Eigenvalues of the modified Dirac equation
     SharedVector E_LS_Mat;
 

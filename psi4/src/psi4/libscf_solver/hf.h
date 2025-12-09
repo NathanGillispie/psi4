@@ -38,7 +38,7 @@
 #include "psi4/pybind11.h"
 
 namespace psi {
-using PerturbedPotentialFunction = std::function<SharedMatrix(SharedMatrix)>;
+using PerturbedPotentialFunction = std::function<SharedMatrix<double>(SharedMatrix<double>)>;
 using PerturbedPotentials = std::map<std::string, PerturbedPotentialFunction>;
 class Vector;
 class JK;
@@ -53,32 +53,32 @@ namespace scf {
 class HF : public Wavefunction {
    protected:
     /// The kinetic energy matrix
-    SharedMatrix T_;
+    SharedMatrix<double> T_;
     /// The 1e potential energy matrix
-    SharedMatrix V_;
+    SharedMatrix<double> V_;
     /// A temporary spot for the H matrix
-    SharedMatrix Horig_;
+    SharedMatrix<double> Horig_;
     /// The DFT potential matrices (nice naming scheme)
-    SharedMatrix Va_;
-    SharedMatrix Vb_;
+    SharedMatrix<double> Va_;
+    SharedMatrix<double> Vb_;
     /// The orthogonalization matrix (symmetric or canonical)
-    SharedMatrix X_;
+    SharedMatrix<double> X_;
     /// List of external potentials to add to Fock matrix and updated at every iteration
     /// e.g. PCM potential
-    std::vector<SharedMatrix> external_potentials_;
+    std::vector<SharedMatrix<double>> external_potentials_;
 
     /// Map of external potentials/perturbations to add to the CPSCF two-electron contribution
     /// e.g. PCM or PE potential
     PerturbedPotentials external_cpscf_perturbations_;
 
     /// Old C Alpha matrix (if needed for MOM)
-    SharedMatrix Ca_old_;
+    SharedMatrix<double> Ca_old_;
     /// Old C Beta matrix (if needed for MOM)
-    SharedMatrix Cb_old_;
+    SharedMatrix<double> Cb_old_;
 
     /// User defined orbitals
-    SharedMatrix guess_Ca_;
-    SharedMatrix guess_Cb_;
+    SharedMatrix<double> guess_Ca_;
+    SharedMatrix<double> guess_Cb_;
 
     // Q: right now, thresholds are removed from Wfn since only appear once, py-side.
     //    should we instead store here the E & D to which SCF was converged?
@@ -141,8 +141,8 @@ class HF : public Wavefunction {
     /// Frac started? (Same thing as frac_performed_)
     bool frac_performed_;
     /// The orbitals _before_ scaling needed for Frac
-    SharedMatrix unscaled_Ca_;
-    SharedMatrix unscaled_Cb_;
+    SharedMatrix<double> unscaled_Ca_;
+    SharedMatrix<double> unscaled_Cb_;
 
     /// DIIS manager intiialized?
     bool initialized_diis_manager_;
@@ -186,7 +186,7 @@ class HF : public Wavefunction {
     /// Start the MOM algorithm (requires one iteration worth of setup)
     void MOM_start();
     /// Perform MOM operations for a single spincase
-    void MOM_spincase(const Dimension& npi, Vector& orb_energies, Matrix& old_C, Matrix& new_C);
+    void MOM_spincase(const Dimension& npi, Vector& orb_energies, Matrix<double>& old_C, Matrix<double>& new_C);
 
     /// Fractional occupation UHF/UKS
     void frac();
@@ -218,10 +218,10 @@ class HF : public Wavefunction {
     virtual void compute_sapgau_guess();
 
     /** Transformation, diagonalization, and backtransform of Fock matrix */
-    virtual void diagonalize_F(const SharedMatrix& F, SharedMatrix& C, std::shared_ptr<Vector>& eps);
+    virtual void diagonalize_F(const SharedMatrix<double>& F, SharedMatrix<double>& C, std::shared_ptr<Vector>& eps);
 
     /** Form Fia (for DIIS) **/
-    virtual SharedMatrix form_Fia(SharedMatrix Fso, SharedMatrix Cso, int* noccpi);
+    virtual SharedMatrix<double> form_Fia(SharedMatrix<double> Fso, SharedMatrix<double> Cso, int* noccpi);
 
     /** Performs any operations required for a incoming guess **/
     virtual void format_guess();
@@ -389,17 +389,17 @@ class HF : public Wavefunction {
     virtual void form_G();
 
     /** Form X'(FDS - SDF)X (for DIIS) **/
-    virtual SharedMatrix form_FDSmSDF(SharedMatrix Fso, SharedMatrix Dso);
+    virtual SharedMatrix<double> form_FDSmSDF(SharedMatrix<double> Fso, SharedMatrix<double> Dso);
 
     /** Rotates orbitals inplace C' = C exp(U), U = antisymmetric matrix from x */
-    void rotate_orbitals(SharedMatrix C, const SharedMatrix x);
+    void rotate_orbitals(SharedMatrix<double> C, const SharedMatrix<double> x);
 
     /// Hessian-vector computers and solvers
-    virtual std::vector<SharedMatrix> onel_Hx(std::vector<SharedMatrix> x);
-    virtual std::vector<SharedMatrix> twoel_Hx(std::vector<SharedMatrix> x, bool combine = true,
+    virtual std::vector<SharedMatrix<double>> onel_Hx(std::vector<SharedMatrix<double>> x);
+    virtual std::vector<SharedMatrix<double>> twoel_Hx(std::vector<SharedMatrix<double>> x, bool combine = true,
                                                std::string return_basis = "MO");
-    virtual std::vector<SharedMatrix> cphf_Hx(std::vector<SharedMatrix> x);
-    virtual std::vector<SharedMatrix> cphf_solve(std::vector<SharedMatrix> x_vec, double conv_tol = 1.e-4,
+    virtual std::vector<SharedMatrix<double>> cphf_Hx(std::vector<SharedMatrix<double>> x);
+    virtual std::vector<SharedMatrix<double>> cphf_solve(std::vector<SharedMatrix<double>> x_vec, double conv_tol = 1.e-4,
                                                  int max_iter = 10, int print_lvl = 1);
 
     // CPHF data
@@ -407,12 +407,12 @@ class HF : public Wavefunction {
     int cphf_nfock_builds() { return cphf_nfock_builds_; }
 
     // Return the DFT potenitals
-    SharedMatrix Va() { return Va_; }
-    SharedMatrix Vb() { return Vb_; }
+    SharedMatrix<double> Va() { return Va_; }
+    SharedMatrix<double> Vb() { return Vb_; }
 
     // Set guess occupied orbitals, nalpha and nbeta will be taken from the number of passed in eigenvectors
-    void guess_Ca(SharedMatrix Ca) { guess_Ca_ = Ca; }
-    void guess_Cb(SharedMatrix Cb) { guess_Cb_ = Cb; }
+    void guess_Ca(SharedMatrix<double> Ca) { guess_Ca_ = Ca; }
+    void guess_Cb(SharedMatrix<double> Cb) { guess_Cb_ = Cb; }
 
     // Expert option to reset the occuption or not at iteration zero
     bool reset_occ() const { return reset_occ_; }
@@ -433,7 +433,7 @@ class HF : public Wavefunction {
 
     // External potentials
     void clear_external_potentials() { external_potentials_.clear(); }
-    void push_back_external_potential(const SharedMatrix& Vext) { external_potentials_.push_back(Vext); }
+    void push_back_external_potential(const SharedMatrix<double>& Vext) { external_potentials_.push_back(Vext); }
     void set_external_cpscf_perturbation(const std::string name, PerturbedPotentialFunction fun) {
         external_cpscf_perturbations_[name] = fun;
     }

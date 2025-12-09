@@ -42,6 +42,7 @@
 namespace psi {
 
 class BasisSet;
+template <typename T>
 class Matrix;
 class TwoBodyAOInt;
 
@@ -218,7 +219,7 @@ class PSI_API DFHelper {
     /// @param key used to access space orbitals
     /// @param space orbital space matrix
     ///
-    void add_space(std::string key, SharedMatrix space);
+    void add_space(std::string key, SharedMatrix<double> space);
 
     ///
     /// Add transformation with name using two space keys
@@ -244,10 +245,10 @@ class PSI_API DFHelper {
     /// I will check to make sure your slice sizes are not larger than the matrix bounds,
     /// but be prepared for a runtime throw.
     ///
-    void fill_tensor(std::string name, SharedMatrix M);
-    void fill_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1);
-    void fill_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1, std::vector<size_t> a2);
-    void fill_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1, std::vector<size_t> a2,
+    void fill_tensor(std::string name, SharedMatrix<double> M);
+    void fill_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1);
+    void fill_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1, std::vector<size_t> a2);
+    void fill_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1, std::vector<size_t> a2,
                      std::vector<size_t> a3);
 
     ///
@@ -269,10 +270,10 @@ class PSI_API DFHelper {
     /// For example, get_tensor("ia", (0:15), (0:5), (0:5)) will return a
     /// SharedMatrix of size (15, 25), so be careful if you plan to use Matrix::gemm
     ///
-    SharedMatrix get_tensor(std::string name);
-    SharedMatrix get_tensor(std::string name, std::vector<size_t> a1);
-    SharedMatrix get_tensor(std::string name, std::vector<size_t> a1, std::vector<size_t> a2);
-    SharedMatrix get_tensor(std::string name, std::vector<size_t> a1, std::vector<size_t> a2, std::vector<size_t> a3);
+    SharedMatrix<double> get_tensor(std::string name);
+    SharedMatrix<double> get_tensor(std::string name, std::vector<size_t> a1);
+    SharedMatrix<double> get_tensor(std::string name, std::vector<size_t> a1, std::vector<size_t> a2);
+    SharedMatrix<double> get_tensor(std::string name, std::vector<size_t> a1, std::vector<size_t> a2, std::vector<size_t> a3);
 
     ///
     /// Add a 3-index disk tensor (that is not a transformation)
@@ -288,10 +289,10 @@ class PSI_API DFHelper {
     /// @param M SharedMatrix with contents to write to disk tensor
     /// Bound checks are performed
     ///
-    void write_disk_tensor(std::string name, SharedMatrix M);
-    void write_disk_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1);
-    void write_disk_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1, std::vector<size_t> a2);
-    void write_disk_tensor(std::string name, SharedMatrix M, std::vector<size_t> a1, std::vector<size_t> a2,
+    void write_disk_tensor(std::string name, SharedMatrix<double> M);
+    void write_disk_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1);
+    void write_disk_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1, std::vector<size_t> a2);
+    void write_disk_tensor(std::string name, SharedMatrix<double> M, std::vector<size_t> a1, std::vector<size_t> a2,
                            std::vector<size_t> a3);
 
     ///
@@ -326,8 +327,8 @@ class PSI_API DFHelper {
     size_t get_naux() { return naux_; }
 
     /// builds J/K
-    void build_JK(std::vector<SharedMatrix> Cleft, std::vector<SharedMatrix> Cright, std::vector<SharedMatrix> D,
-                  std::vector<SharedMatrix> J, std::vector<SharedMatrix> K, std::vector<SharedMatrix> wK,
+    void build_JK(std::vector<SharedMatrix<double>> Cleft, std::vector<SharedMatrix<double>> Cright, std::vector<SharedMatrix<double>> D,
+                  std::vector<SharedMatrix<double>> J, std::vector<SharedMatrix<double>> K, std::vector<SharedMatrix<double>> wK,
                   size_t max_nocc, bool do_J, bool do_K, bool do_wK, bool lr_symmetric);
 
    protected:
@@ -379,7 +380,7 @@ class PSI_API DFHelper {
     void AO_core(bool set_AO_core);
     std::unique_ptr<double[]> Ppq_;
     // Maps x -> (P|Q) ^ x.
-    std::map<double, SharedMatrix> metrics_;
+    std::map<double, SharedMatrix<double>> metrics_;
 
     // => in-core wK machinery <=
     std::unique_ptr<double[]> wPpq_;  // if do_wK_ holds (A|w|mn)
@@ -485,7 +486,7 @@ class PSI_API DFHelper {
     void contract_metric_AO_core(double* Qpq, double* metp);
 
     // => spaces and transformation maps <=
-    std::map<std::string, std::tuple<SharedMatrix, size_t>> spaces_;
+    std::map<std::string, std::tuple<SharedMatrix<double>, size_t>> spaces_;
     std::map<std::string, std::tuple<std::string, std::string, size_t>> transf_;
     std::map<std::string, std::unique_ptr<double[]>> transf_core_;
 
@@ -558,7 +559,7 @@ class PSI_API DFHelper {
     void check_file_key(std::string);
     void check_file_tuple(std::string name, std::pair<size_t, size_t> t0, std::pair<size_t, size_t> t1,
                           std::pair<size_t, size_t> t2);
-    void check_matrix_size(std::string name, SharedMatrix M, std::pair<size_t, size_t> t0, std::pair<size_t, size_t> t1,
+    void check_matrix_size(std::string name, SharedMatrix<double> M, std::pair<size_t, size_t> t0, std::pair<size_t, size_t> t1,
                            std::pair<size_t, size_t> t2);
 
     // => transpose a tensor <=
@@ -566,28 +567,28 @@ class PSI_API DFHelper {
     void transpose_disk(std::string name, std::tuple<size_t, size_t, size_t> order);
 
     // => JK <=
-    void compute_JK(std::vector<SharedMatrix> Cleft, std::vector<SharedMatrix> Cright, std::vector<SharedMatrix> D,
-                    std::vector<SharedMatrix> J, std::vector<SharedMatrix> K, size_t max_nocc, bool do_J, bool do_K,
+    void compute_JK(std::vector<SharedMatrix<double>> Cleft, std::vector<SharedMatrix<double>> Cright, std::vector<SharedMatrix<double>> D,
+                    std::vector<SharedMatrix<double>> J, std::vector<SharedMatrix<double>> K, size_t max_nocc, bool do_J, bool do_K,
                     bool do_wK, bool lr_symmetric);
-    void compute_D(std::vector<SharedMatrix> D, std::vector<SharedMatrix> Cleft, std::vector<SharedMatrix> Cright);
+    void compute_D(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> Cleft, std::vector<SharedMatrix<double>> Cright);
     // Compute the J matrices (mn|rs) D_rs and store them into J, for an array of D.
     // @param D: vector of densities to be contracted against AO basis integrals.
     // @param J: vector of Coulomb integrals, one for each density
     // @param M1p : Intermediate populated now for wK later.
     // @param T1p : Temporary matrix
     // @param T2p : Temporary matrix
-    void compute_J(const std::vector<SharedMatrix> D, std::vector<SharedMatrix> J, double* Mp, double* T1p, double* T2p,
+    void compute_J(const std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> J, double* Mp, double* T1p, double* T2p,
                    std::vector<std::vector<double>>& D_buffers, size_t bcount, size_t block_size);
-    void compute_J_symm(std::vector<SharedMatrix> D, std::vector<SharedMatrix> J, double* Mp, double* T1p, double* T2p,
+    void compute_J_symm(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> J, double* Mp, double* T1p, double* T2p,
                         std::vector<std::vector<double>>& D_buffers, size_t bcount, size_t block_size);
-    void compute_J_combined(std::vector<SharedMatrix> D, std::vector<SharedMatrix> J, double* Mp, double* T1p, double* T2p, std::vector<std::vector<double>>& D_buffers, size_t bcount, size_t block_size);
-    void compute_K(std::vector<SharedMatrix> Cleft, std::vector<SharedMatrix> Cright, std::vector<SharedMatrix> K,
+    void compute_J_combined(std::vector<SharedMatrix<double>> D, std::vector<SharedMatrix<double>> J, double* Mp, double* T1p, double* T2p, std::vector<std::vector<double>>& D_buffers, size_t bcount, size_t block_size);
+    void compute_K(std::vector<SharedMatrix<double>> Cleft, std::vector<SharedMatrix<double>> Cright, std::vector<SharedMatrix<double>> K,
                    double* Tp, double* Jtmp, double* Mp, size_t bcount, size_t block_size,
                    std::vector<std::vector<double>>& C_buffers, bool lr_symmetric);
     // returns tuple(largest AO buffer size, largest Q block size)
     std::tuple<size_t, size_t> Qshell_blocks_for_JK_build(std::vector<std::pair<size_t, size_t>>& b, size_t max_nocc,
                                                           bool lr_symmetric);
-    void compute_wK(std::vector<SharedMatrix> Cleft, std::vector<SharedMatrix> Cright, std::vector<SharedMatrix> wK,
+    void compute_wK(std::vector<SharedMatrix<double>> Cleft, std::vector<SharedMatrix<double>> Cright, std::vector<SharedMatrix<double>> wK,
                     size_t max_nocc, bool do_J, bool do_K, bool do_wK);
 
     // => misc <=

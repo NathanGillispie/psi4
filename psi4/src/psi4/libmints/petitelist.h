@@ -44,6 +44,7 @@ namespace psi {
 class BasisSet;
 class Molecule;
 class IntegralFactory;
+template <typename T>
 class Matrix;
 class Dimension;
 
@@ -286,7 +287,7 @@ class PSI_API PetiteList {
 
     /// Return the basis function rotation matrix R(g)
     /// @param g index of the group operation
-    Matrix *r(int g);
+    Matrix<double> *r(int g);
 
     std::vector<SO_block> compute_aotoso_info();
 
@@ -301,7 +302,7 @@ class PSI_API PetiteList {
         A function in the AO basis is obtained by \f$ X F_so \f$, where
         \f$ F_so \f$ is the function in the SO basis.
         */
-    SharedMatrix aotoso();
+    SharedMatrix<double> aotoso();
 
     /** @return the SO->AO coefficient matrix (the inverse of AO->SO; for Abelian point groups it
         is a transpose of AO->SO matrix). The columns correspond to AOs (see AO_basisdim() )
@@ -315,9 +316,9 @@ class PSI_API PetiteList {
         A function in the SO basis is obtained by \f$ X F_ao \f$, where
         \f$ F_ao \f$ is the function in the AO basis.
         */
-    SharedMatrix sotoao();
+    SharedMatrix<double> sotoao();
 
-    SharedMatrix evecs_to_AO_basis(SharedMatrix soevecs);
+    SharedMatrix<double> evecs_to_AO_basis(SharedMatrix<double> soevecs);
 };
 
 }  // namespace psi

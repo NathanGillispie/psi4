@@ -54,7 +54,7 @@ class CCEnergyWavefunction : public Wavefunction {
     ~CCEnergyWavefunction() override;
     double compute_energy() override;
 
-    std::map<std::string, SharedMatrix> get_amplitudes();
+    std::map<std::string, SharedMatrix<double>> get_amplitudes();
     // (index within irrep, irrep) -> global index
     std::map<std::tuple<int, int>, int> total_indices;
 

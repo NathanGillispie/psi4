@@ -72,13 +72,13 @@ class PSI_API Deriv {
 
     // Results go here.
     /// Reference overlap contribution to the gradient
-    SharedMatrix x_ref_contr_;
+    SharedMatrix<double> x_ref_contr_;
     /// Two-electron contribution to the gradient
-    SharedMatrix tpdm_contr_;
+    SharedMatrix<double> tpdm_contr_;
     /// Reference two-electron contribution to the gradient
-    SharedMatrix tpdm_ref_contr_;
+    SharedMatrix<double> tpdm_ref_contr_;
     /// Final gradient
-    SharedMatrix gradient_;
+    SharedMatrix<double> gradient_;
 
    public:
     /*!
@@ -101,7 +101,7 @@ class PSI_API Deriv {
     // Is the deriv_density already backtransformed? Default: False
     void set_deriv_density_backtransformed(bool val) { deriv_density_backtransformed_ = val; }
 
-    SharedMatrix compute(DerivCalcType deriv_calc_type = DerivCalcType::Default);
+    SharedMatrix<double> compute(DerivCalcType deriv_calc_type = DerivCalcType::Default);
 
     /*!
      * Computes gradients assuming density-fitted two electron integrals.
@@ -111,11 +111,11 @@ class PSI_API Deriv {
      * \param ref_aux_name Name of reference auxiliary basis set, e.g., DF_BASIS_SCF
      * \param cor_aux_name Name of correlated auxiliary basis set, e.g., DF_BASIS_CC
      */
-    SharedMatrix compute_df(const std::string& ref_aux_name, const std::string& cor_aux_name);
+    SharedMatrix<double> compute_df(const std::string& ref_aux_name, const std::string& cor_aux_name);
 
-    const SharedMatrix& two_body() { return tpdm_contr_; }
+    const SharedMatrix<double>& two_body() { return tpdm_contr_; }
 
-    const SharedMatrix& gradient() { return gradient_; }
+    const SharedMatrix<double>& gradient() { return gradient_; }
 };
 
 }  // namespace psi

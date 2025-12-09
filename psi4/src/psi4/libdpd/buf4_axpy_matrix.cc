@@ -37,7 +37,7 @@
 
 namespace psi {
 
-int dpdbuf4::axpy_matrix(const Matrix& MatX, double alpha) {
+int dpdbuf4::axpy_matrix(const Matrix<double>& MatX, double alpha) {
     if (params->nirreps != MatX.nirrep()) {
         throw PSIEXCEPTION("dpdbuf4 and Matrix have different numbers of irreps");
     }

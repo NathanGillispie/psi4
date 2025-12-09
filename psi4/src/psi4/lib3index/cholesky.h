@@ -45,7 +45,7 @@ class Cholesky {
     /// Maximum memory to use, in doubles
     size_t memory_;
     /// Full L (Q x n), if choleskify() called()
-    SharedMatrix L_;
+    SharedMatrix<double> L_;
     /// Number of columns required, if choleskify() called
     size_t Q_;
 
@@ -63,7 +63,7 @@ class Cholesky {
     virtual void choleskify();
 
     /// Shared pointer to decomposition (Q x N), if choleskify() called
-    SharedMatrix L() const { return L_; }
+    SharedMatrix<double> L() const { return L_; }
     /// Number of columns required to reach accuracy delta, if choleskify() called
     size_t Q() const { return Q_; }
     /// Dimension of the original square tensor, provided by the subclass
@@ -79,10 +79,10 @@ class Cholesky {
 
 class CholeskyMatrix : public Cholesky {
    protected:
-    SharedMatrix A_;
+    SharedMatrix<double> A_;
 
    public:
-    CholeskyMatrix(SharedMatrix A, double delta, size_t memory);
+    CholeskyMatrix(SharedMatrix<double> A, double delta, size_t memory);
     ~CholeskyMatrix() override;
 
     size_t N() override;
@@ -108,12 +108,12 @@ class PSI_API CholeskyERI : public Cholesky {
 class CholeskyMP2 : public Cholesky {
    protected:
     bool symmetric_;
-    SharedMatrix Qia_;
+    SharedMatrix<double> Qia_;
     std::shared_ptr<Vector> eps_aocc_;
     std::shared_ptr<Vector> eps_avir_;
 
    public:
-    CholeskyMP2(SharedMatrix Qia, std::shared_ptr<Vector> eps_aocc, std::shared_ptr<Vector> eps_avir, bool symmetric,
+    CholeskyMP2(SharedMatrix<double> Qia, std::shared_ptr<Vector> eps_aocc, std::shared_ptr<Vector> eps_avir, bool symmetric,
                 double delta, size_t memory);
     ~CholeskyMP2() override;
 
@@ -138,10 +138,10 @@ class CholeskyDelta : public Cholesky {
 
 class CholeskyLocal : public Cholesky {
    protected:
-    SharedMatrix C_;
+    SharedMatrix<double> C_;
 
    public:
-    CholeskyLocal(SharedMatrix C, double delta, size_t memory);
+    CholeskyLocal(SharedMatrix<double> C, double delta, size_t memory);
     ~CholeskyLocal() override;
 
     size_t N() override;

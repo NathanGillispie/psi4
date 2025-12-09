@@ -33,6 +33,7 @@
 
 namespace psi {
 
+template <typename T>
 class Matrix;
 class Vector;
 class JK;

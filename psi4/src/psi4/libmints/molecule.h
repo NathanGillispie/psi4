@@ -327,9 +327,9 @@ class PSI_API Molecule {
     void set_reinterpret_coordentry(bool rc);
 
     /// Returns the geometry in a Matrix
-    Matrix geometry() const;
+    Matrix<double> geometry() const;
     /// Returns the full (dummies included) in a Matrix
-    Matrix full_geometry() const;
+    Matrix<double> full_geometry() const;
 
     /**
      * Sets the geometry, given a matrix of coordinates (in Bohr).
@@ -340,7 +340,7 @@ class PSI_API Molecule {
     /**
      * Sets the geometry, given a Matrix of coordinates (in Bohr).
      */
-    void set_geometry(const Matrix& geom);
+    void set_geometry(const Matrix<double>& geom);
 
     /**
      * Sets the full geometry, given a matrix of coordinates (in Bohr).
@@ -350,13 +350,13 @@ class PSI_API Molecule {
     /**
      * Sets the full geometry, given a Matrix of coordinates (in Bohr).
      */
-    void set_full_geometry(const Matrix& geom);
+    void set_full_geometry(const Matrix<double>& geom);
 
     /**
      * Rotates the molecule using rotation matrix R
      */
-    void rotate(const Matrix& R);
-    void rotate_full(const Matrix& R);
+    void rotate(const Matrix<double>& R);
+    void rotate_full(const Matrix<double>& R);
 
     /**
      * Reinterpret the fragments for reals/ghosts and build the atom list
@@ -380,9 +380,9 @@ class PSI_API Molecule {
     Vector3 nuclear_dipole(const Vector3& origin) const;
     /// Computes nuclear repulsion energy derivatives.
     /// The dipole field is a vector of length 3, containing the dipole field strength in the {x,y,z} directions.
-    Matrix nuclear_repulsion_energy_deriv1(const std::array<double, 3>& dipole_field) const;
+    Matrix<double> nuclear_repulsion_energy_deriv1(const std::array<double, 3>& dipole_field) const;
     /// Computes nuclear repulsion energy second derivatives.
-    Matrix nuclear_repulsion_energy_deriv2() const;
+    Matrix<double> nuclear_repulsion_energy_deriv2() const;
 
     /// Computes the nuclear repuslion energy between this and another Molecule
     double pairwise_nuclear_repulsion_energy(std::shared_ptr<Molecule> other) const;
@@ -399,10 +399,10 @@ class PSI_API Molecule {
     //    void reorient();
 
     /// Computes and returns a matrix depicting distances between atoms.
-    Matrix distance_matrix() const;
+    Matrix<double> distance_matrix() const;
 
     /// Compute inertia tensor.
-    Matrix* inertia_tensor() const;
+    Matrix<double>* inertia_tensor() const;
 
     /// Compute the rotational constants and return them in wavenumbers
     Vector rotational_constants(double tol = FULL_PG_TOL) const;
@@ -490,7 +490,7 @@ class PSI_API Molecule {
     std::shared_ptr<PointGroup> find_highest_point_group(double tol = DEFAULT_SYM_TOL) const;
     /// Determine symmetry reference frame. If noreorient is set, this is the rotation matrix
     /// applied to the geometry in update_geometry.
-    std::shared_ptr<Matrix> symmetry_frame(double tol = DEFAULT_SYM_TOL);
+    std::shared_ptr<Matrix<double>> symmetry_frame(double tol = DEFAULT_SYM_TOL);
     /// Release symmetry information
     void release_symmetry_information();
     /// Initialize molecular specific symemtry information

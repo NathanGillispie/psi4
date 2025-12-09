@@ -42,6 +42,7 @@
 namespace psi {
 
 class BasisSet;
+template <typename T>
 class Matrix;
 class Vector;
 class BasisExtents;
@@ -90,7 +91,7 @@ class MolecularGrid {
     // ==> Clean Grid Specification <== //
 
     /// Orientation matrix
-    std::shared_ptr<Matrix> orientation_;
+    std::shared_ptr<Matrix<double>> orientation_;
     /// Radial grids, per atom
     std::vector<std::shared_ptr<RadialGrid>> radial_grids_;
     /// Spherical grids, per atom and radial point
@@ -152,7 +153,7 @@ class MolecularGrid {
     void print_details(std::string out_fname = "outfile", int print = 2) const;
 
     /// Orientation matrix
-    std::shared_ptr<Matrix> orientation() const { return orientation_; }
+    std::shared_ptr<Matrix<double>> orientation() const { return orientation_; }
     /// Radial grids, per atom
     const std::vector<std::shared_ptr<RadialGrid>>& radial_grids() const { return radial_grids_; }
     /// Spherical grids, per atom and radial point

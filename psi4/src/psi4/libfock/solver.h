@@ -190,7 +190,7 @@ class CGRSolver : public RSolver {
     /// Diagonal M, for guess and Jacobi preconditioning
     std::shared_ptr<Vector> diag_;
     /// A subspace matrix, for preconditioning
-    SharedMatrix A_;
+    SharedMatrix<double> A_;
     /// A subspace indices
     std::vector<std::vector<int> > A_inds_;
     /// Shifts [to solve (A-mI)]; Outer vector indexes irreps, inner indexes basis vectors of that irrep
@@ -230,7 +230,7 @@ class CGRSolver : public RSolver {
     void finalize() override;
 
     void set_shifts(const std::vector<std::vector<double> >& shifts) { shifts_ = shifts; }
-    void set_A(SharedMatrix A, const std::vector<std::vector<int> > inds) {
+    void set_A(SharedMatrix<double> A, const std::vector<std::vector<int> > inds) {
         A_ = A;
         A_inds_ = inds;
     }

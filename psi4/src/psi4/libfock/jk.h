@@ -45,6 +45,7 @@ PRAGMA_WARNING_POP
 namespace psi {
 class MinimalInterface;
 class BasisSet;
+template <typename T>
 class Matrix;
 class TwoBodyAOInt;
 class Options;
@@ -281,36 +282,36 @@ class PSI_API JK {
     // => Architecture-Level State Variables (Spatial Symmetry) <= //
 
     /// Pseudo-occupied C matrices, left side
-    std::vector<SharedMatrix> C_left_;
+    std::vector<SharedMatrix<double>> C_left_;
     /// Pseudo-occupied C matrices, right side
-    std::vector<SharedMatrix> C_right_;
+    std::vector<SharedMatrix<double>> C_right_;
     /// Pseudo-density matrices \f$D_{ls}=C_{li}^{left}C_{si}^{right}\f$
-    std::vector<SharedMatrix> D_;
+    std::vector<SharedMatrix<double>> D_;
     /// J matrices: \f$J_{mn}=(mn|ls)C_{li}^{left}C_{si}^{right}\f$
-    std::vector<SharedMatrix> J_;
+    std::vector<SharedMatrix<double>> J_;
     /// K matrices: \f$K_{mn}=(ml|ns)C_{li}^{left}C_{si}^{right}\f$
-    std::vector<SharedMatrix> K_;
+    std::vector<SharedMatrix<double>> K_;
     /// wK matrices: \f$K_{mn}(\omega)=(ml|\omega|ns)C_{li}^{left}C_{si}^{right}\f$
-    std::vector<SharedMatrix> wK_;
+    std::vector<SharedMatrix<double>> wK_;
 
     // => Microarchitecture-Level State Variables (No Spatial Symmetry) <= //
 
     /// Primary basis set
     std::shared_ptr<BasisSet> primary_;
     /// AO2USO transformation matrix
-    SharedMatrix AO2USO_;
+    SharedMatrix<double> AO2USO_;
     /// Pseudo-occupied C matrices, left side
-    std::vector<SharedMatrix> C_left_ao_;
+    std::vector<SharedMatrix<double>> C_left_ao_;
     /// Pseudo-occupied C matrices, right side
-    std::vector<SharedMatrix> C_right_ao_;
+    std::vector<SharedMatrix<double>> C_right_ao_;
     /// Pseudo-density matrices
-    std::vector<SharedMatrix> D_ao_;
+    std::vector<SharedMatrix<double>> D_ao_;
     /// J matrices: J_mn = (mn|ls) C_li^left C_si^right
-    std::vector<SharedMatrix> J_ao_;
+    std::vector<SharedMatrix<double>> J_ao_;
     /// K matrices: K_mn = (ml|ns) C_li^left C_si^right
-    std::vector<SharedMatrix> K_ao_;
+    std::vector<SharedMatrix<double>> K_ao_;
     /// wK matrices: wK_mn = (ml|w|ns) C_li^left C_si^right
-    std::vector<SharedMatrix> wK_ao_;
+    std::vector<SharedMatrix<double>> wK_ao_;
 
     // => Per-Iteration Setup/Finalize Routines <= //
 
@@ -515,7 +516,7 @@ class PSI_API JK {
      * Only available in DF-type JK integrals
      * Throws by default
      */
-    virtual SharedVector iaia(SharedMatrix Ci, SharedMatrix Ca);
+    virtual SharedVector iaia(SharedMatrix<double> Ci, SharedMatrix<double> Ca);
 
     // => Accessors <= //
 
@@ -528,13 +529,13 @@ class PSI_API JK {
      * Reference to C_left queue. It is YOUR job to
      * allocate and fill this object out
      */
-    std::vector<SharedMatrix>& C_left() { return C_left_; }
+    std::vector<SharedMatrix<double>>& C_left() { return C_left_; }
     /**
      * Reference to C_right queue. It is YOUR job to
      * allocate and fill this object out. Only fill
      * C_left if symmetric.
      */
-    std::vector<SharedMatrix>& C_right() { return C_right_; }
+    std::vector<SharedMatrix<double>>& C_right() { return C_right_; }
 
     /**
      * Reference to J results. The reference to the
@@ -544,7 +545,7 @@ class PSI_API JK {
      * may be changed in each call of compute();
      * @return J vector of J matrices
      */
-    const std::vector<SharedMatrix>& J() const { return J_; }
+    const std::vector<SharedMatrix<double>>& J() const { return J_; }
     /**
      * Reference to K results. The reference to the
      * std::vector<SharedMatrix > is valid
@@ -553,7 +554,7 @@ class PSI_API JK {
      * may be changed in each call of compute();
      * @return K vector of K matrices
      */
-    const std::vector<SharedMatrix>& K() const { return K_; }
+    const std::vector<SharedMatrix<double>>& K() const { return K_; }
     /**
      * Reference to wK results. The reference to the
      * std::vector<SharedMatrix > is valid
@@ -562,7 +563,7 @@ class PSI_API JK {
      * may be changed in each call of compute();
      * @return wK vector of wK matrices
      */
-    const std::vector<SharedMatrix>& wK() const { return wK_; }
+    const std::vector<SharedMatrix<double>>& wK() const { return wK_; }
     /**
      * Reference to D results. The reference to the
      * std::vector<SharedMatrix > is valid
@@ -571,7 +572,7 @@ class PSI_API JK {
      * may be changed in each call of compute();
      * @return D vector of D matrices
      */
-    const std::vector<SharedMatrix>& D() const { return D_; }
+    const std::vector<SharedMatrix<double>>& D() const { return D_; }
 
     /**
     * Return number of ERI shell n-lets (triplets, quartets) computed per SCF iteration during the JK build process.
@@ -743,10 +744,10 @@ class PSI_API DirectJK : public JK {
     bool do_incfock_iter_;
 
     /// Previous iteration pseudo-density matrix
-    std::vector<SharedMatrix> D_prev_;
+    std::vector<SharedMatrix<double>> D_prev_;
 
     /// Pseudo-density matrix to be used this iteration
-    std::vector<SharedMatrix> D_ref_;
+    std::vector<SharedMatrix<double>> D_ref_;
 
     // Is the JK currently on the first SCF iteration of this SCF cycle?
     bool initial_iteration_ = true;
@@ -778,8 +779,8 @@ class PSI_API DirectJK : public JK {
      * @param J The list of AO J matrices to build (Same size as D, 0 if no matrices are to be built)
      * @param K The list of AO K matrices to build (Same size as D, 0 if no matrices are to be built)
      */
-    void build_JK_matrices(std::vector<std::shared_ptr<TwoBodyAOInt>>& ints, const std::vector<SharedMatrix>& D,
-                  std::vector<SharedMatrix>& J, std::vector<SharedMatrix>& K);
+    void build_JK_matrices(std::vector<std::shared_ptr<TwoBodyAOInt>>& ints, const std::vector<SharedMatrix<double>>& D,
+                  std::vector<SharedMatrix<double>>& J, std::vector<SharedMatrix<double>>& K);
 
     /// Common initialization
     void common_init();
@@ -924,21 +925,21 @@ class PSI_API DiskDFJK : public JK {
     std::vector<std::shared_ptr<TwoBodyAOInt>> erf_eri_;
 
     /// Main (Q|mn) Tensor (or chunk for disk-based)
-    SharedMatrix Qmn_;
+    SharedMatrix<double> Qmn_;
     /// (Q|P)^-1 (P|mn) for wK (or chunk for disk-based)
-    SharedMatrix Qlmn_;
+    SharedMatrix<double> Qlmn_;
     /// (Q|w|mn) for wK (or chunk for disk-based)
-    SharedMatrix Qrmn_;
+    SharedMatrix<double> Qrmn_;
 
     // => Temps (built/destroyed in compute_JK) <= //
     std::shared_ptr<Vector> J_temp_;
     std::shared_ptr<Vector> D_temp_;
     std::shared_ptr<Vector> d_temp_;
 
-    SharedMatrix E_left_;
-    SharedMatrix E_right_;
-    std::vector<SharedMatrix> C_temp_;
-    std::vector<SharedMatrix> Q_temp_;
+    SharedMatrix<double> E_left_;
+    SharedMatrix<double> E_right_;
+    std::vector<SharedMatrix<double>> C_temp_;
+    std::vector<SharedMatrix<double>> Q_temp_;
 
     // => Required Algorithm-Specific Methods <= //
 
@@ -1001,7 +1002,7 @@ class PSI_API DiskDFJK : public JK {
      * Only available in DF-type JK integrals
      * Throws by default
      */
-    SharedVector iaia(SharedMatrix Ci, SharedMatrix Ca) override;
+    SharedVector iaia(SharedMatrix<double> Ci, SharedMatrix<double> Ca) override;
 
     // => Knobs <= //
 
@@ -1233,10 +1234,10 @@ class PSI_API CompositeJK : public JK {
     bool do_incfock_iter_;
 
     /// Previous iteration pseudo-density matrix
-    std::vector<SharedMatrix> D_prev_;
+    std::vector<SharedMatrix<double>> D_prev_;
 
     /// Pseudo-density matrix to be used this iteration
-    std::vector<SharedMatrix> D_ref_;
+    std::vector<SharedMatrix<double>> D_ref_;
 
     // Is the JK currently on the first SCF iteration of this SCF cycle?
     bool initial_iteration_ = true;

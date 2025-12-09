@@ -48,15 +48,15 @@ class THC_Computer {
     Options& options_;
 
     // THC Factor for first index
-    SharedMatrix x1_;
+    SharedMatrix<double> x1_;
     // THC Factor for second index
-    SharedMatrix x2_;
+    SharedMatrix<double> x2_;
     // THC Factor for third index
-    SharedMatrix x3_;
+    SharedMatrix<double> x3_;
     // THC Factor for fourth index
-    SharedMatrix x4_;
+    SharedMatrix<double> x4_;
     // THC connecting factor
-    SharedMatrix Z_PQ_;
+    SharedMatrix<double> Z_PQ_;
 
    public:
     THC_Computer(std::shared_ptr<Molecule> molecule, std::shared_ptr<BasisSet> primary, Options& options);
@@ -68,15 +68,15 @@ class THC_Computer {
     /// Returns the molecule the THC factors are evaluated on
     std::shared_ptr<Molecule> molecule() const { return molecule_; }
     /// Returns the THC factor for the first index
-    SharedMatrix get_x1() const { return x1_; }
+    SharedMatrix<double> get_x1() const { return x1_; }
     /// Returns the THC factor for the second index
-    SharedMatrix get_x2() const { return x2_; }
+    SharedMatrix<double> get_x2() const { return x2_; }
     /// Returns the THC factor for the third index
-    SharedMatrix get_x3() const { return x3_; }
+    SharedMatrix<double> get_x3() const { return x3_; }
     /// Returns the THC factor for the fourth index
-    SharedMatrix get_x4() const { return x4_; }
+    SharedMatrix<double> get_x4() const { return x4_; }
     /// Returns the THC connecting factor
-    SharedMatrix get_Z() const { return Z_PQ_; }
+    SharedMatrix<double> get_Z() const { return Z_PQ_; }
 
 };
 
@@ -94,12 +94,12 @@ class LS_THC_Computer : public THC_Computer {
     void print_header();
 
     /// Parrish LS-THC Procedure 2
-    SharedMatrix build_E_exact();
+    SharedMatrix<double> build_E_exact();
     /// Parrish LS-THC Procedure 3
-    SharedMatrix build_E_df();
+    SharedMatrix<double> build_E_df();
     /// Matthews 2020 SI Page 5 (returns S matrix using rank-reduced grid)
     /// doi: 10.1021/acs.jctc.9b01205
-    SharedMatrix prune_grid();
+    SharedMatrix<double> prune_grid();
 
    public:
     LS_THC_Computer(std::shared_ptr<Molecule> molecule, std::shared_ptr<BasisSet> primary, Options& options);

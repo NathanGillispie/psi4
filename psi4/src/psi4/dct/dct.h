@@ -112,15 +112,15 @@ class DCTSolver : public Wavefunction {
     void update_fock();
     void dump_density();
     void dpd_buf4_add(dpdbuf4* A, dpdbuf4* B, double alpha);
-    void half_transform(dpdbuf4* A, dpdbuf4* B, SharedMatrix& C1, SharedMatrix& C2, int* mospi_left, int* mospi_right,
+    void half_transform(dpdbuf4* A, dpdbuf4* B, SharedMatrix<double>& C1, SharedMatrix<double>& C2, int* mospi_left, int* mospi_right,
                         int** so_row, int** mo_row, bool backwards, double alpha, double beta);
-    void file2_transform(dpdfile2* A, dpdfile2* B, SharedMatrix C, bool backwards);
+    void file2_transform(dpdfile2* A, dpdfile2* B, SharedMatrix<double> C, bool backwards);
     void AO_contribute(dpdbuf4* tau1_AO, dpdbuf4* tau2_AO, int p, int q, int r, int s, double value,
                        dpdfile2* = nullptr, dpdfile2* = nullptr, dpdfile2* = nullptr);
     // void AO_contribute(dpdfile2 *tau1_AO, dpdfile2 *tau2_AO, int p, int q,
     //        int r, int s, double value);
     bool correct_mo_phases(bool dieOnError = true);
-    bool correct_mo_phase_spincase(Matrix& temp, Matrix& overlap, const Matrix& old_C, Matrix& C, bool dieOnError = true) const;
+    bool correct_mo_phase_spincase(Matrix<double>& temp, Matrix<double>& overlap, const Matrix<double>& old_C, Matrix<double>& C, bool dieOnError = true) const;
     double compute_cumulant_residual();
     double compute_scf_error_vector();
     double update_scf_density(bool damp = false);
@@ -130,7 +130,7 @@ class DCTSolver : public Wavefunction {
     void run_simult_dct();
     void run_simult_dct_oo();
     // DCT analytic gradient subroutines
-    SharedMatrix compute_gradient() override;
+    SharedMatrix<double> compute_gradient() override;
     void dc06_response_init();
     void response_guess();
     void dc06_response();
@@ -211,9 +211,9 @@ class DCTSolver : public Wavefunction {
     void compute_orbital_gradient_VO(bool separate_gbargamma);
     void compute_orbital_rotation_jacobi();
     /// target = old * exp(X)
-    void rotate_matrix(const Matrix& X, const Matrix& old, Matrix& target);
+    void rotate_matrix(const Matrix<double>& X, const Matrix<double>& old, Matrix<double>& target);
     void rotate_orbitals();
-    Matrix construct_oo_density(const Matrix& occtau, const Matrix& virtau, const Matrix& kappa, const Matrix& C);
+    Matrix<double> construct_oo_density(const Matrix<double>& occtau, const Matrix<double>& virtau, const Matrix<double>& kappa, const Matrix<double>& C);
     // Three-particle cumulant contributions
     double compute_three_particle_energy();
     void dct_semicanonicalize();
@@ -411,72 +411,72 @@ class DCTSolver : public Wavefunction {
     double energy_level_shift_;
 
     /// The alpha occupied eigenvectors, per irrep
-    SharedMatrix aocc_c_;
+    SharedMatrix<double> aocc_c_;
     /// The beta occupied eigenvectors, per irrep
-    SharedMatrix bocc_c_;
+    SharedMatrix<double> bocc_c_;
     /// The alpha virtual eigenvectors, per irrep
-    SharedMatrix avir_c_;
+    SharedMatrix<double> avir_c_;
     /// The beta virtual eigenvectors, per irrep
-    SharedMatrix bvir_c_;
+    SharedMatrix<double> bvir_c_;
     /// The Tau matrix in the AO basis, stored by irrep, to perturb the alpha Fock matrix
-    SharedMatrix tau_so_a_;
+    SharedMatrix<double> tau_so_a_;
     /// The Tau matrix in the AO basis, stored by irrep, to perturb the beta Fock matrix
-    SharedMatrix tau_so_b_;
+    SharedMatrix<double> tau_so_b_;
     /// The Tau matrix in the MO basis (alpha occupied)
-    Matrix aocc_tau_;
+    Matrix<double> aocc_tau_;
     /// The Tau matrix in the MO basis (beta occupied)
-    Matrix bocc_tau_;
+    Matrix<double> bocc_tau_;
     /// The Tau matrix in the MO basis (alpha virtual)
-    Matrix avir_tau_;
+    Matrix<double> avir_tau_;
     /// The Tau matrix in the MO basis (beta virtual)
-    Matrix bvir_tau_;
+    Matrix<double> bvir_tau_;
     /// The perturbed Tau matrix in the MO basis (alpha occupied)
-    Matrix aocc_ptau_;
+    Matrix<double> aocc_ptau_;
     /// The perturbed Tau matrix in the MO basis (beta occupied)
-    Matrix bocc_ptau_;
+    Matrix<double> bocc_ptau_;
     /// The perturbed Tau matrix in the MO basis (alpha virtual)
-    Matrix avir_ptau_;
+    Matrix<double> avir_ptau_;
     /// The perturbed Tau matrix in the MO basis (beta virtual)
-    Matrix bvir_ptau_;
+    Matrix<double> bvir_ptau_;
     /// The Kappa in the MO basis (alpha occupied)
-    SharedMatrix kappa_mo_a_;
+    SharedMatrix<double> kappa_mo_a_;
     /// The Kappa in the MO basis (beta occupied)
-    SharedMatrix kappa_mo_b_;
+    SharedMatrix<double> kappa_mo_b_;
     /// The overlap matrix in the AO basis
-    SharedMatrix ao_s_;
+    SharedMatrix<double> ao_s_;
     /// The one-electron integrals in the SO basis
-    Matrix so_h_;
+    Matrix<double> so_h_;
     /// The alpha Fock matrix in the SO basis
-    SharedMatrix Fa_;
+    SharedMatrix<double> Fa_;
     /// The beta Fock matrix in the SO basis
-    SharedMatrix Fb_;
+    SharedMatrix<double> Fb_;
     /// The alpha Fock matrix in the MO basis
-    SharedMatrix moFa_;
+    SharedMatrix<double> moFa_;
     /// The beta Fock matrix in the MO basis
-    SharedMatrix moFb_;
+    SharedMatrix<double> moFb_;
     /// The alpha density-weighted Fock matrix in the MO basis
-    SharedMatrix Ftilde_a_;
+    SharedMatrix<double> Ftilde_a_;
     /// The beta density-weighted Fock matrix in the MO basis
-    SharedMatrix Ftilde_b_;
+    SharedMatrix<double> Ftilde_b_;
     /// The inverse square root overlap matrix in the SO basis
-    SharedMatrix s_half_inv_;
+    SharedMatrix<double> s_half_inv_;
     /// The old full alpha MO coefficients
-    SharedMatrix old_ca_;
+    SharedMatrix<double> old_ca_;
     /// The old full beta MO coefficients
-    SharedMatrix old_cb_;
+    SharedMatrix<double> old_cb_;
     /// The alpha kappa matrix in the SO basis
-    SharedMatrix kappa_so_a_;
+    SharedMatrix<double> kappa_so_a_;
     /// The beta kappa matrix in the SO basis
-    SharedMatrix kappa_so_b_;
+    SharedMatrix<double> kappa_so_b_;
     /// The alpha SCF error vector
-    SharedMatrix scf_error_a_;
+    SharedMatrix<double> scf_error_a_;
     /// The beta SCF error vector
-    SharedMatrix scf_error_b_;
+    SharedMatrix<double> scf_error_b_;
     // Quadratically-convergent DCT
     /// The orbital gradient in the MO basis (Alpha spin)
-    SharedMatrix orbital_gradient_a_;
+    SharedMatrix<double> orbital_gradient_a_;
     /// The orbital gradient in the MO basis (Beta spin)
-    SharedMatrix orbital_gradient_b_;
+    SharedMatrix<double> orbital_gradient_b_;
     /// Orbital and cumulant gradient in the basis of IDP
     SharedVector gradient_;
     /// Contribution of the Fock matrix to the diagonal part of the Hessian. Used as preconditioner for conjugate
@@ -495,11 +495,11 @@ class DCTSolver : public Wavefunction {
     /// The new element of Krylov subspace vector in the IDP basis for conjugate gradient procedure
     SharedVector Q_;
     /// The subspace vector in the Davidson diagonalization procedure
-    SharedMatrix b_;
+    SharedMatrix<double> b_;
     /// Orbital parameters. Specifically, the generators of the orbital rotations with respect to
     /// the reference orbitals. Dimension: nmo_ x nmo_.
-    SharedMatrix Xtotal_a_;
-    SharedMatrix Xtotal_b_;
+    SharedMatrix<double> Xtotal_a_;
+    SharedMatrix<double> Xtotal_b_;
 
     /// Used to align things in the output
     std::string indent;
@@ -512,16 +512,16 @@ class DCTSolver : public Wavefunction {
     /// Construct b(Q|mn) = Sum_P (mn|P) [J^-1/2]_PQ
     void build_df_b();
     /// Form AO basis b(Q|mu,nu)
-    Matrix formb_ao(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary,
-                    std::shared_ptr<BasisSet> zero, const Matrix& Jm12, const std::string& name);
+    Matrix<double> formb_ao(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary,
+                    std::shared_ptr<BasisSet> zero, const Matrix<double>& Jm12, const std::string& name);
     /// Form J(P|Q)^-1/2 and write to disk
-    Matrix formJm12(std::shared_ptr<BasisSet> auxiliary, const std::string& name);
+    Matrix<double> formJm12(std::shared_ptr<BasisSet> auxiliary, const std::string& name);
     /// Transform SO-basis b(Q, mn) to MO-basis b(Q, pq)
     void transform_b_so2mo();
     /// Transform b(Q|mu,nu) from AO basis to SO basis
-    DFTensor transform_b_ao2so(const Matrix& bQmn_ao) const;
+    DFTensor transform_b_ao2so(const Matrix<double>& bQmn_ao) const;
     /// Transform b(Q|mu,nu) from AO basis to SO basis
-    Matrix transform_b_so2ao(const DFTensor& bQmn_so) const;
+    Matrix<double> transform_b_so2ao(const DFTensor& bQmn_so) const;
     /// Build density-fitted <VV||VV>, <vv||vv>, and <Vv|Vv> tensors in G intermediate
     void build_DF_tensors_RHF();
     void build_DF_tensors_UHF();
@@ -529,8 +529,8 @@ class DCTSolver : public Wavefunction {
     void three_idx_cumulant_density();
     void three_idx_cumulant_density_RHF();
     void three_idx_separable_density();
-    DFTensor three_idx_cumulant_helper(DFTensor& temp, const Matrix& J, const Matrix& bt1, const Matrix& bt2);
-    DFTensor three_idx_separable_helper(const Matrix& Q, const Matrix& J, const Matrix& RDM, const Matrix& C_subset);
+    DFTensor three_idx_cumulant_helper(DFTensor& temp, const Matrix<double>& J, const Matrix<double>& bt1, const Matrix<double>& bt2);
+    DFTensor three_idx_separable_helper(const Matrix<double>& Q, const Matrix<double>& J, const Matrix<double>& RDM, const Matrix<double>& C_subset);
 
     /// Form density-fitted MO-basis TEI g(OV|OV) in chemists' notation
     void form_df_g_ovov();
@@ -580,14 +580,14 @@ class DCTSolver : public Wavefunction {
     DFTensor bQabB_mo_;
 
     /// The Tau in the MO basis (All)
-    Matrix mo_tauA_;
-    Matrix mo_tauB_;
+    Matrix<double> mo_tauA_;
+    Matrix<double> mo_tauB_;
     /// MO-based (Gbar Tau + Gbar Kappa)
-    Matrix mo_gbarGamma_A_;
-    Matrix mo_gbarGamma_B_;
+    Matrix<double> mo_gbarGamma_A_;
+    Matrix<double> mo_gbarGamma_B_;
     /// MO-based Gamma <r|s>
-    Matrix mo_gammaA_;
-    Matrix mo_gammaB_;
+    Matrix<double> mo_gammaA_;
+    Matrix<double> mo_gammaB_;
 
     std::map<std::string, Slice> slices_;
 };

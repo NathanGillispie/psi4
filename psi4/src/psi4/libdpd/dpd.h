@@ -47,6 +47,7 @@
 
 namespace psi {
 
+template <typename T>
 class Matrix;
 
 #define T3_TIMER_ON (0)
@@ -118,7 +119,7 @@ struct dpdbuf4 {
     int **col_offset;
     double ***matrix;
 
-    int axpy_matrix(const Matrix& MatX, double alpha);
+    int axpy_matrix(const Matrix<double>& MatX, double alpha);
     int zero();
 };
 
@@ -156,7 +157,7 @@ struct dpdfile2 {
     bool incore;
     double ***matrix;
 
-    int axpy_matrix(const Matrix& MatX, double alpha);
+    int axpy_matrix(const Matrix<double>& MatX, double alpha);
     int zero();
 };
 

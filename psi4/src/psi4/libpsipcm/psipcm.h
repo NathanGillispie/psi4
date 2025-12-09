@@ -56,8 +56,8 @@ class PCM final {
      *  \param[in] D density matrix
      *  \param[in] type how to treat MEP and ASC
      */
-    std::pair<double, SharedMatrix> compute_PCM_terms(const SharedMatrix &D, CalcType type = CalcType::Total) const;
-    SharedMatrix compute_V(const SharedMatrix &D);
+    std::pair<double, SharedMatrix<double>> compute_PCM_terms(const SharedMatrix<double> &D, CalcType type = CalcType::Total) const;
+    SharedMatrix<double> compute_V(const SharedMatrix<double> &D);
 
    private:
     /// The number of tesserae in PCMSolver.
@@ -66,11 +66,11 @@ class PCM final {
     int ntessirr_;
     Dimension tesspi_;
     /// Charges and {x,y,z} coordinates of the cavity points
-    SharedMatrix tess_Zxyz_;
+    SharedMatrix<double> tess_Zxyz_;
     /// Nucler MEP at cavity points
     SharedVector MEP_n_;
     /// Computes electronic MEP at cavity points
-    SharedVector compute_electronic_MEP(const SharedMatrix &D) const;
+    SharedVector compute_electronic_MEP(const SharedMatrix<double> &D) const;
     /// Calculate energy using total charges and potentials
     double compute_E_total(const SharedVector &MEP_e) const;
     /// Calculate energy separating between charges and potentials
@@ -81,14 +81,14 @@ class PCM final {
      *  \param[in] ASC the apparent surface charge to contract with
      *  charge-attraction integrals
      */
-    SharedMatrix compute_Vpcm(const SharedVector &ASC) const;
+    SharedMatrix<double> compute_Vpcm(const SharedVector &ASC) const;
 
     /// Current basis set (for puream and nao/nso info)
     std::shared_ptr<BasisSet> basisset_;
 
     /// The AO->SO transformation matrix, which is used for transforming
     /// matrices between pure and Cartesian representations.
-    SharedMatrix my_aotoso_;
+    SharedMatrix<double> my_aotoso_;
 
     /// Factory for the electrostatic integrals
     PCMPotentialInt *potential_int_;

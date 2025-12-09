@@ -45,7 +45,7 @@ class DFMP2 : public Wavefunction {
     // Auxiliary basis
     std::shared_ptr<BasisSet> ribasis_;
     // Gradients map
-    std::map<std::string, SharedMatrix> gradients_;
+    std::map<std::string, SharedMatrix<double>> gradients_;
 
     // Same-spin scale
     double sss_;
@@ -95,11 +95,11 @@ class DFMP2 : public Wavefunction {
     // Compute singles correction [nonzero for ROHF-MBPT(2) or dual-basis]
     virtual void form_singles();
     // Apply the fitting and transposition to a given disk entry Aia tensor
-    virtual void apply_fitting(SharedMatrix Jm12, size_t file, size_t naux, size_t nia);
+    virtual void apply_fitting(SharedMatrix<double> Jm12, size_t file, size_t naux, size_t nia);
     // Apply the fitting again to a given disk entry Qia tensor
-    virtual void apply_fitting_grad(SharedMatrix Jm12, size_t file, size_t naux, size_t nia);
+    virtual void apply_fitting_grad(SharedMatrix<double> Jm12, size_t file, size_t naux, size_t nia);
     // Form the inverse square root of the fitting metric, or read it off disk
-    virtual SharedMatrix form_inverse_metric();
+    virtual SharedMatrix<double> form_inverse_metric();
     // Form an abstract gamma
     virtual void apply_gamma(size_t file, size_t naux, size_t nia);
     // Form a transposed copy of G_ia^P
@@ -111,22 +111,22 @@ class DFMP2 : public Wavefunction {
     void block_status(std::vector<int> inds, const char* file, int line);
     void block_status(std::vector<size_t> inds, const char* file, int line);
 
-    void compute_opdm_and_nos(const SharedMatrix Dnosym, SharedMatrix Dso, SharedMatrix Cno, SharedVector occ);
+    void compute_opdm_and_nos(const SharedMatrix<double> Dnosym, SharedMatrix<double> Dso, SharedMatrix<double> Cno, SharedVector occ);
 
    public:
     DFMP2(SharedWavefunction ref_wfn, Options& options, std::shared_ptr<PSIO> psio);
     ~DFMP2() override;
 
     double compute_energy() override;
-    SharedMatrix compute_gradient() override;
+    SharedMatrix<double> compute_gradient() override;
 };
 
 class RDFMP2 : public DFMP2 {
    protected:
-    SharedMatrix Cfocc_;
-    SharedMatrix Caocc_;
-    SharedMatrix Cavir_;
-    SharedMatrix Cfvir_;
+    SharedMatrix<double> Cfocc_;
+    SharedMatrix<double> Caocc_;
+    SharedMatrix<double> Cavir_;
+    SharedMatrix<double> Cfvir_;
 
     SharedVector eps_focc_;
     SharedVector eps_aocc_;
@@ -177,10 +177,10 @@ class RDFMP2 : public DFMP2 {
 
 class UDFMP2 : public DFMP2 {
    protected:
-    SharedMatrix Caocc_a_;
-    SharedMatrix Cavir_a_;
-    SharedMatrix Caocc_b_;
-    SharedMatrix Cavir_b_;
+    SharedMatrix<double> Caocc_a_;
+    SharedMatrix<double> Cavir_a_;
+    SharedMatrix<double> Caocc_b_;
+    SharedMatrix<double> Cavir_b_;
 
     SharedVector eps_aocc_a_;
     SharedVector eps_avir_a_;

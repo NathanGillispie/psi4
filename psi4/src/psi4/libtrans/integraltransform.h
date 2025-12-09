@@ -44,6 +44,7 @@
 namespace psi {
 
 struct dpdbuf4;
+template <typename T>
 class Matrix;
 class Dimension;
 class Wavefunction;
@@ -139,7 +140,7 @@ class PSI_API IntegralTransform {
                       OutputType outputType = OutputType::DPDOnly, MOOrdering moOrdering = MOOrdering::QTOrder,
                       FrozenOrbitals frozenOrbitals = FrozenOrbitals::OccAndVir, bool initialize = true);
 
-    IntegralTransform(SharedMatrix H, SharedMatrix c, SharedMatrix i, SharedMatrix a, SharedMatrix v, SpaceVec spaces,
+    IntegralTransform(SharedMatrix<double> H, SharedMatrix<double> c, SharedMatrix<double> i, SharedMatrix<double> a, SharedMatrix<double> v, SpaceVec spaces,
                       TransformationType transformationType = TransformationType::Restricted,
                       OutputType outputType = OutputType::DPDOnly, MOOrdering moOrdering = MOOrdering::QTOrder,
                       FrozenOrbitals frozenOrbitals = FrozenOrbitals::OccAndVir, bool initialize = true);
@@ -161,7 +162,7 @@ class PSI_API IntegralTransform {
     void backtransform_tpdm_restricted();
     void backtransform_tpdm_unrestricted();
     void print_dpd_lookup();
-    std::vector<SharedMatrix> compute_fock_like_matrices(SharedMatrix Hcore, std::vector<SharedMatrix> Cmats);
+    std::vector<SharedMatrix<double>> compute_fock_like_matrices(SharedMatrix<double> Hcore, std::vector<SharedMatrix<double>> Cmats);
 
     int DPD_ID(const char c);
     int DPD_ID(char *str);
@@ -179,7 +180,7 @@ class PSI_API IntegralTransform {
     void set_print(int n) { print_ = n; }
     /// Sets the orbitals to the given C matrix. This is a hack for MCSCF wavefunctions.
     /// Use with caution.
-    void set_orbitals(SharedMatrix C);
+    void set_orbitals(SharedMatrix<double> C);
 
     /// The level of printing used during transformations
     int get_print() const { return print_; }
@@ -293,9 +294,9 @@ class PSI_API IntegralTransform {
     // The beta orbitals per irrep for each space
     std::map<char, int *> bOrbsPI_;
     // The alpha MO coefficients for all unique spaces needed
-    std::map<char, SharedMatrix> aMOCoefficients_;
+    std::map<char, SharedMatrix<double>> aMOCoefficients_;
     // The beta MO coefficients for all unique spaces needed
-    std::map<char, SharedMatrix> bMOCoefficients_;
+    std::map<char, SharedMatrix<double>> bMOCoefficients_;
     // The alpha orbital indexing arrays
     std::map<char, int *> aIndices_;
     // The beta orbital indexing arrays
@@ -391,11 +392,11 @@ class PSI_API IntegralTransform {
     // The cache files used by libDPD
     int *cacheFiles_, **cacheList_;
     // The alpha MO coefficients for each irrep
-    std::shared_ptr<Matrix> Ca_;
+    std::shared_ptr<Matrix<double>> Ca_;
     // The alpha MO coefficients for each irrep
-    std::shared_ptr<Matrix> Cb_;
+    std::shared_ptr<Matrix<double>> Cb_;
     // The one electron Hamiltonian matrix for each irrep
-    std::shared_ptr<Matrix> H_;
+    std::shared_ptr<Matrix<double>> H_;
     // Whether to keep the IWL SO integral file after processing
     bool keepIwlSoInts_;
     // Whether to keep the IWL MO two particle density matrix

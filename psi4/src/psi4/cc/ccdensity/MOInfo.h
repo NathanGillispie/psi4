@@ -94,21 +94,21 @@ struct MOInfo {
     double eref;                     /* Reference energy */
     double ecc;                      /* CC energy (CC2, CCSD, or CC3) from ccenergy */
     double et;                       /* (T) energy from cctriples */
-    Matrix opdm;                     /* Onepdm in the full (fzc+clsd+socc+uocc) space */
-    Matrix opdm_a;                   /* Alpha Onepdm in the full (fzc+clsd+socc+uocc) space */
-    Matrix opdm_b;                   /* Beta Onepdm in the full (fzc+clsd+socc+uocc) space */
-    Matrix ltd_mat;                  /* <0|O|n> Left transition density */
-    Matrix ltd_a_mat;                /* <0|O|n> Left transition alpha density */
-    Matrix ltd_b_mat;                /* <0|O|n> Left transition beta density */
-    Matrix rtd_mat;                  /* <n|O|0> Right transition density */
-    Matrix rtd_a_mat;                /* <n|O|0> Right transition alpha density */
-    Matrix rtd_b_mat;                /* <n|O|0> Right transition beta density */
+    Matrix<double> opdm;                     /* Onepdm in the full (fzc+clsd+socc+uocc) space */
+    Matrix<double> opdm_a;                   /* Alpha Onepdm in the full (fzc+clsd+socc+uocc) space */
+    Matrix<double> opdm_b;                   /* Beta Onepdm in the full (fzc+clsd+socc+uocc) space */
+    Matrix<double> ltd_mat;                  /* <0|O|n> Left transition density */
+    Matrix<double> ltd_a_mat;                /* <0|O|n> Left transition alpha density */
+    Matrix<double> ltd_b_mat;                /* <0|O|n> Left transition beta density */
+    Matrix<double> rtd_mat;                  /* <n|O|0> Right transition density */
+    Matrix<double> rtd_a_mat;                /* <n|O|0> Right transition alpha density */
+    Matrix<double> rtd_b_mat;                /* <n|O|0> Right transition beta density */
     std::vector<int> pitzer2qt;      /* Pitzer to QT re-ordering array */
     std::vector<int> qt2pitzer;      /* QT to Pitzer re-ordering array */
-    SharedMatrix Ca;                 /* SCF orbitals (standard ordering) */
-    std::vector<SharedMatrix> L;
-    std::vector<SharedMatrix> nabla;
-    std::vector<SharedMatrix> dip;
+    SharedMatrix<double> Ca;                 /* SCF orbitals (standard ordering) */
+    std::vector<SharedMatrix<double>> L;
+    std::vector<SharedMatrix<double>> nabla;
+    std::vector<SharedMatrix<double>> dip;
 };
 
 }  // namespace ccdensity

@@ -464,58 +464,58 @@ class OCCWave : public Wavefunction {
     double **C_pitzerA;
     double **C_pitzerB;
 
-    SharedMatrix Ca_new;  // New Alpha MO coeff.
-    SharedMatrix Cb_new;  // New Beta MO coeff.
-    SharedMatrix Tso;
-    SharedMatrix Vso;
-    SharedMatrix Hso;
-    SharedMatrix HmoA;
-    SharedMatrix HmoB;
-    SharedMatrix FsoA;
-    SharedMatrix FsoB;
-    SharedMatrix FockA;
-    SharedMatrix FockB;
-    SharedMatrix GFock;
-    SharedMatrix GFockA;
-    SharedMatrix GFockB;
-    SharedMatrix Ftilde;
-    SharedMatrix FtildeA;
-    SharedMatrix FtildeB;
+    SharedMatrix<double> Ca_new;  // New Alpha MO coeff.
+    SharedMatrix<double> Cb_new;  // New Beta MO coeff.
+    SharedMatrix<double> Tso;
+    SharedMatrix<double> Vso;
+    SharedMatrix<double> Hso;
+    SharedMatrix<double> HmoA;
+    SharedMatrix<double> HmoB;
+    SharedMatrix<double> FsoA;
+    SharedMatrix<double> FsoB;
+    SharedMatrix<double> FockA;
+    SharedMatrix<double> FockB;
+    SharedMatrix<double> GFock;
+    SharedMatrix<double> GFockA;
+    SharedMatrix<double> GFockB;
+    SharedMatrix<double> Ftilde;
+    SharedMatrix<double> FtildeA;
+    SharedMatrix<double> FtildeB;
     SharedMatrix UorbA;
-    SharedMatrix UorbB;
-    SharedMatrix UorbrotA;
-    SharedMatrix UorbrotB;
-    SharedMatrix KorbA;
-    SharedMatrix KorbB;
-    SharedMatrix HG1;
-    SharedMatrix HG1A;
-    SharedMatrix HG1B;
-    SharedMatrix gamma1corr;   // Correlation contribution to 1PDM, for RHF
-    SharedMatrix gamma1corrA;  // Correlation contribution to alpha 1PDM, for UHF
-    SharedMatrix gamma1corrB;  // Correlation contribution to beta 1PDM, for UHF
-    SharedMatrix g1symm;       // 1PDM, for RHF
-    SharedMatrix g1symmA;      // Alpha 1PDM, for UHF
-    SharedMatrix g1symmB;      // Beta 1PDM, for UHF
-    SharedMatrix G1tilde;
-    SharedMatrix G1tildeA;
-    SharedMatrix G1tildeB;
-    SharedMatrix Worb;
-    SharedMatrix WorbA;
-    SharedMatrix WorbB;
-    SharedMatrix HCA;
-    SharedMatrix HCB;
-    SharedMatrix FCA;
-    SharedMatrix FCB;
-    SharedMatrix GooA;  // -1 * OO block of the correlation contribution to alpha 1PDM
-    SharedMatrix GooB;  // -1 * OO block of the correlation contribution to beta 1PDM
-    SharedMatrix GvvA;  // -1 * VV block of the correlation contribution to alpha 1PDM
-    SharedMatrix GvvB;  // -1 * VV block of the correlation contribution to beta 1PDM
-    SharedMatrix ZmatA;
-    SharedMatrix ZmatB;
-    SharedMatrix t1A;
-    SharedMatrix t1B;
-    SharedMatrix t1newA;
-    SharedMatrix t1newB;
+    SharedMatrix<double> UorbB;
+    SharedMatrix<double> UorbrotA;
+    SharedMatrix<double> UorbrotB;
+    SharedMatrix<double> KorbA;
+    SharedMatrix<double> KorbB;
+    SharedMatrix<double> HG1;
+    SharedMatrix<double> HG1A;
+    SharedMatrix<double> HG1B;
+    SharedMatrix<double> gamma1corr;   // Correlation contribution to 1PDM, for RHF
+    SharedMatrix<double> gamma1corrA;  // Correlation contribution to alpha 1PDM, for UHF
+    SharedMatrix<double> gamma1corrB;  // Correlation contribution to beta 1PDM, for UHF
+    SharedMatrix<double> g1symm;       // 1PDM, for RHF
+    SharedMatrix<double> g1symmA;      // Alpha 1PDM, for UHF
+    SharedMatrix<double> g1symmB;      // Beta 1PDM, for UHF
+    SharedMatrix<double> G1tilde;
+    SharedMatrix<double> G1tildeA;
+    SharedMatrix<double> G1tildeB;
+    SharedMatrix<double> Worb;
+    SharedMatrix<double> WorbA;
+    SharedMatrix<double> WorbB;
+    SharedMatrix<double> HCA;
+    SharedMatrix<double> HCB;
+    SharedMatrix<double> FCA;
+    SharedMatrix<double> FCB;
+    SharedMatrix<double> GooA;  // -1 * OO block of the correlation contribution to alpha 1PDM
+    SharedMatrix<double> GooB;  // -1 * OO block of the correlation contribution to beta 1PDM
+    SharedMatrix<double> GvvA;  // -1 * VV block of the correlation contribution to alpha 1PDM
+    SharedMatrix<double> GvvB;  // -1 * VV block of the correlation contribution to beta 1PDM
+    SharedMatrix<double> ZmatA;
+    SharedMatrix<double> ZmatB;
+    SharedMatrix<double> t1A;
+    SharedMatrix<double> t1B;
+    SharedMatrix<double> t1newA;
+    SharedMatrix<double> t1newB;
 
     // Variables with different spin types
     std::map<SpinType, Dimension> idp_dimensions_;
@@ -525,8 +525,8 @@ class OCCWave : public Wavefunction {
     std::map<SpinType, int *> idpcol_;
     std::map<SpinType, int *> occpi_;
     std::map<SpinType, int> idp_count_;
-    std::map<SpinType, SharedMatrix> C_;
-    std::map<SpinType, SharedMatrix> C_ref_;
+    std::map<SpinType, SharedMatrix<double>> C_;
+    std::map<SpinType, SharedMatrix<double>> C_ref_;
 };
 }
 }

@@ -51,13 +51,13 @@ class PSI_API CubeProperties {
     /// Orbital Basis Set
     std::shared_ptr<BasisSet> basisset_;
     /// AO-basis (C1) OPDM for alpha electrons
-    std::shared_ptr<Matrix> Da_;
+    std::shared_ptr<Matrix<double>> Da_;
     /// AO-basis (C1) OPDM for beta electrons
-    std::shared_ptr<Matrix> Db_;
+    std::shared_ptr<Matrix<double>> Db_;
     /// AO-basis (C1) SCF orbital coefficients for alpha electrons
-    std::shared_ptr<Matrix> Ca_;
+    std::shared_ptr<Matrix<double>> Ca_;
     /// AO-basis (C1) SCF orbital coefficients for beta electrons
-    std::shared_ptr<Matrix> Cb_;
+    std::shared_ptr<Matrix<double>> Cb_;
     /// Info for alpha electrons (epsilon,rel. index,irrep)
     std::vector<std::tuple<double, int, int> > info_a_;
     /// Info for beta electrons (epsilon,rel. index,irrep)
@@ -97,21 +97,21 @@ class PSI_API CubeProperties {
     /// Obligatory title info
     void print_header();
     /// Compute a density grid task (key.cube)
-    void compute_density(std::shared_ptr<Matrix> D, const std::string& key);
+    void compute_density(std::shared_ptr<Matrix<double>> D, const std::string& key);
     /// Compute an ESP grid task (Dt.cube and ESP.cube)
-    void compute_esp(std::shared_ptr<Matrix> Dt, const std::vector<double>& nuc_weights = std::vector<double>());
+    void compute_esp(std::shared_ptr<Matrix<double>> Dt, const std::vector<double>& nuc_weights = std::vector<double>());
     /// Compute an orbital task (key_N.cube, for 0-based indices of C)
-    void compute_orbitals(std::shared_ptr<Matrix> C, const std::vector<int>& indices,
+    void compute_orbitals(std::shared_ptr<Matrix<double>> C, const std::vector<int>& indices,
                           const std::vector<std::string>& labels, const std::string& key);
     /// Compute a difference task between two indices of matrix C
-    void compute_difference(std::shared_ptr<Matrix> C, const std::vector<int>& indices,
+    void compute_difference(std::shared_ptr<Matrix<double>> C, const std::vector<int>& indices,
                           const std::string& label, bool square);
     /// Compute a basis function task (key_N.cube, for 0-based indices of basisset_)
     void compute_basis_functions(const std::vector<int>& indices, const std::string& key);
     /// Compute a LOL grid task (key.cube)
-    void compute_LOL(std::shared_ptr<Matrix> D, const std::string& key);
+    void compute_LOL(std::shared_ptr<Matrix<double>> D, const std::string& key);
     /// Compute an ELF grid task (key.cube)
-    void compute_ELF(std::shared_ptr<Matrix> D, const std::string& key);
+    void compute_ELF(std::shared_ptr<Matrix<double>> D, const std::string& key);
 
     /// Returns Orbital Basis Set
     std::shared_ptr<BasisSet> basisset() { return basisset_; }

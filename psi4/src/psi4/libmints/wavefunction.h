@@ -69,6 +69,7 @@ class Molecule;
 class BasisSet;
 class IntegralFactory;
 class MintsHelper;
+template <typename T>
 class Matrix;
 class Vector;
 class MatrixFactory;
@@ -98,7 +99,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     std::shared_ptr<SOBasisSet> sobasisset_;
 
     /// AO2SO conversion matrix (AO in rows, SO in cols)
-    SharedMatrix AO2SO_;
+    SharedMatrix<double> AO2SO_;
 
     /// Molecule that this wavefunction is run on
     std::shared_ptr<Molecule> molecule_;
@@ -170,27 +171,27 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     int nirrep_;
 
     /// Overlap matrix
-    SharedMatrix S_;
+    SharedMatrix<double> S_;
 
     /// Core Hamiltonian matrix
-    SharedMatrix H_;
+    SharedMatrix<double> H_;
 
     /// Alpha MO coefficients
-    SharedMatrix Ca_;
+    SharedMatrix<double> Ca_;
     /// Beta MO coefficients
-    SharedMatrix Cb_;
+    SharedMatrix<double> Cb_;
 
     /// Alpha density matrix
-    SharedMatrix Da_;
+    SharedMatrix<double> Da_;
     /// Beta density matrix
-    SharedMatrix Db_;
+    SharedMatrix<double> Db_;
     /// Lagrangian matrix
-    SharedMatrix Lagrangian_;
+    SharedMatrix<double> Lagrangian_;
 
     /// Alpha Fock matrix
-    SharedMatrix Fa_;
+    SharedMatrix<double> Fa_;
     /// Beta Fock matrix
-    SharedMatrix Fb_;
+    SharedMatrix<double> Fb_;
 
     /// Alpha orbital eneriges
     SharedVector epsilon_a_;
@@ -198,13 +199,13 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     SharedVector epsilon_b_;
 
     /// gradient, if available, as natom_ x 3 SharedMatrix
-    SharedMatrix gradient_;
+    SharedMatrix<double> gradient_;
 
     /// Hessian, if available, as natom_*3 x natom_*3 SharedMatrix (NOT mass-weighted!)
-    SharedMatrix hessian_;
+    SharedMatrix<double> hessian_;
 
     /// Helpers for C/D/epsilon transformers
-    SharedMatrix C_subset_helper(SharedMatrix C, const Dimension& noccpi, SharedVector epsilon,
+    SharedMatrix<double> C_subset_helper(SharedMatrix<double> C, const Dimension& noccpi, SharedVector epsilon,
                                  const std::string& basis, const std::string& subset) const;
     // Return the desired subset of orbital energies.
     // @param epsilon The vector of orbital energies
@@ -249,7 +250,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     // * any '<mtd> GRADIENT' is an energy derivative w.r.t. nuclear perturbations (a.u.) as a (nat, 3) Matrix
     // * any '<mtd> DIPOLE GRADIENT' is a dipole derivative w.r.t. nuclear perturbations (a.u.) as a degree-of-freedom
     //   by dipole component (3 * nat, 3) Matrix
-    std::map<std::string, SharedMatrix> arrays_;
+    std::map<std::string, SharedMatrix<double>> arrays_;
 
     // Collection of external potentials; this member variable is provisional and might be removed in the future.
     // This member variable is currently used for passing ExternalPotential objects to the F/I-SAPT code
@@ -278,7 +279,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     /// Constructor for a wavefunction deserialized from a file and initialized in the form of maps to all member
     /// variables
     Wavefunction(std::shared_ptr<Molecule> molecule, std::shared_ptr<BasisSet> basisset,
-                 std::map<std::string, std::shared_ptr<Matrix>> matrices,
+                 std::map<std::string, std::shared_ptr<Matrix<double>>> matrices,
                  std::map<std::string, std::shared_ptr<Vector>> vectors, std::map<std::string, Dimension> dimensions,
                  std::map<std::string, int> ints, std::map<std::string, std::string> strings,
                  std::map<std::string, bool> booleans, std::map<std::string, double> floats);
@@ -327,12 +328,12 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     }
 
     /// Compute gradient.  Subclasses override this function to compute the gradient.
-    virtual SharedMatrix compute_gradient() {
+    virtual SharedMatrix<double> compute_gradient() {
         throw PSIEXCEPTION("Analytic gradients are not available for this wavefunction.");
     }
 
     /// Compute Hessian.  Subclasses override this function to compute the Hessian.
-    virtual SharedMatrix compute_hessian() {
+    virtual SharedMatrix<double> compute_hessian() {
         throw PSIEXCEPTION("Analytic Hessians are not available for this wavefunction.");
     }
 
@@ -431,30 +432,30 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     void set_efzc(double efzc) { efzc_ = efzc; }
 
     /// Returns the overlap matrix
-    SharedMatrix S() const { return S_; }
+    SharedMatrix<double> S() const { return S_; }
 
     /// Returns the core Hamiltonian matrix
-    SharedMatrix H() const { return H_; }
+    SharedMatrix<double> H() const { return H_; }
 
     /// Returns the alpha electrons MO coefficients
-    SharedMatrix Ca() const;
+    SharedMatrix<double> Ca() const;
     /// Returns the beta electrons MO coefficients
-    SharedMatrix Cb() const;
+    SharedMatrix<double> Cb() const;
     /// Returns the (SO basis) alpha Fock matrix
-    SharedMatrix Fa() const;
+    SharedMatrix<double> Fa() const;
     /// Returns the (SO basis) beta Fock matrix
-    SharedMatrix Fb() const;
+    SharedMatrix<double> Fb() const;
     /// Returns the alpha orbital energies
     SharedVector epsilon_a() const;
     /// Returns the beta orbital energies
     SharedVector epsilon_b() const;
 
-    SharedMatrix aotoso() const { return AO2SO_; }
+    SharedMatrix<double> aotoso() const { return AO2SO_; }
 
     /// Returns the alpha OPDM for the wavefunction
-    const SharedMatrix Da() const;
+    const SharedMatrix<double> Da() const;
     /// Returns the beta OPDM for the wavefunction
-    const SharedMatrix Db() const;
+    const SharedMatrix<double> Db() const;
 
     /**
      * Return a subset of the Ca matrix in a desired basis
@@ -465,7 +466,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      * @return the matrix in Pitzer order in the desired basis
      *  Pitzer ordering is in c1 symmetry if AO is selected
      **/
-    SharedMatrix Ca_subset(const std::string& basis = "SO", const std::string& subset = "ALL") const;
+    SharedMatrix<double> Ca_subset(const std::string& basis = "SO", const std::string& subset = "ALL") const;
 
     /**
      * Return a subset of the Cb matrix in a desired basis
@@ -476,7 +477,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      * @return the matrix in Pitzer order in the desired basis
      *  Pitzer ordering is in c1 symmetry if AO is selected
      **/
-    SharedMatrix Cb_subset(const std::string& basis = "SO", const std::string& subset = "ALL") const;
+    SharedMatrix<double> Cb_subset(const std::string& basis = "SO", const std::string& subset = "ALL") const;
 
     /**
      * @brief Creates an OrbitalSpace object containing information about the request alpha orbital space.
@@ -507,7 +508,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      *  AO, SO, MO
      * @return the matrix in the desired basis
      **/
-    SharedMatrix Da_subset(const std::string& basis = "SO") const;
+    SharedMatrix<double> Da_subset(const std::string& basis = "SO") const;
 
     /**
      * Return the Db matrix in the desired basis
@@ -515,7 +516,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      *  AO, SO, MO
      * @return the matrix in the desired basis
      **/
-    SharedMatrix Db_subset(const std::string& basis = "SO") const;
+    SharedMatrix<double> Db_subset(const std::string& basis = "SO") const;
 
     /**
      * Return the Fa matrix in the desired basis
@@ -523,7 +524,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      *  AO, SO, MO
      * @return the matrix in the desired basis
      **/
-    SharedMatrix Fa_subset(const std::string& basis = "SO") const;
+    SharedMatrix<double> Fa_subset(const std::string& basis = "SO") const;
 
     /**
      * Return the Fb matrix in the desired basis
@@ -531,7 +532,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      *  AO, SO, MO
      * @return the matrix in the desired basis
      **/
-    SharedMatrix Fb_subset(const std::string& basis = "SO") const;
+    SharedMatrix<double> Fb_subset(const std::string& basis = "SO") const;
 
     /**
      * Transform a matrix M into the desired basis
@@ -543,7 +544,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      *   Only used when MO basis requested.
      * @return the matrix M in the desired basis
      **/
-    SharedMatrix matrix_subset_helper(SharedMatrix M, SharedMatrix C, const std::string& basis,
+    SharedMatrix<double> matrix_subset_helper(SharedMatrix<double> M, SharedMatrix<double> C, const std::string& basis,
                                       const std::string matrix_basename, bool MO_as_overlap = true) const;
 
     /**
@@ -572,23 +573,23 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
      * @param  new_basis The new basis set
      * @return           The projected basis (nso x noccpi)
      */
-    SharedMatrix basis_projection(SharedMatrix Cold, Dimension noccpi, std::shared_ptr<BasisSet> old_basis,
+    SharedMatrix<double> basis_projection(SharedMatrix<double> Cold, Dimension noccpi, std::shared_ptr<BasisSet> old_basis,
                                   std::shared_ptr<BasisSet> new_basis);
 
     /// Returns the SO basis Lagrangian
-    SharedMatrix lagrangian() const;
+    SharedMatrix<double> lagrangian() const;
     /// Set Lagrangian matrix in SO basis
-    void set_lagrangian(SharedMatrix X);
+    void set_lagrangian(SharedMatrix<double> X);
 
     /// Returns the gradient
-    SharedMatrix gradient() const;
+    SharedMatrix<double> gradient() const;
     /// Set the gradient for the wavefunction
-    void set_gradient(SharedMatrix grad);
+    void set_gradient(SharedMatrix<double> grad);
 
     /// Returns the Hessian
-    SharedMatrix hessian() const;
+    SharedMatrix<double> hessian() const;
     /// Set the Hessian for the wavefunction
-    void set_hessian(SharedMatrix hess);
+    void set_hessian(SharedMatrix<double> hess);
 
     /// Returns electrostatic potentials at nuclei
     std::shared_ptr<std::vector<double>> esp_at_nuclei() const { return esp_at_nuclei_; }
@@ -660,11 +661,11 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     // The function below is provisional and might be removed in the future
     bool has_potential_variable(const std::string& key);
     double scalar_variable(const std::string& key);
-    SharedMatrix array_variable(const std::string& key);
+    SharedMatrix<double> array_variable(const std::string& key);
     // The function below is provisional and might be removed in the future
     std::shared_ptr<ExternalPotential> potential_variable(const std::string& key);
     void set_scalar_variable(const std::string& key, double value);
-    void set_array_variable(const std::string& key, SharedMatrix value);
+    void set_array_variable(const std::string& key, SharedMatrix<double> value);
     // The function below is provisional and might be removed in the future
     void set_potential_variable(const std::string& key, std::shared_ptr<ExternalPotential> value);
     int del_scalar_variable(const std::string& key);
@@ -672,7 +673,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     // The function below is provisional and might be removed in the future
     int del_potential_variable(const std::string& key);
     std::map<std::string, double> scalar_variables();
-    std::map<std::string, SharedMatrix> array_variables();
+    std::map<std::string, SharedMatrix<double>> array_variables();
     // The function below is provisional and might be removed in the future
     std::map<std::string, std::shared_ptr<ExternalPotential>> potential_variables();
 
@@ -688,7 +689,7 @@ class PSI_API Wavefunction : public std::enable_shared_from_this<Wavefunction> {
     /// This is public because `ccdensity` doesn't subclass wfn like it should, so we need
     /// SOME way to let it get/set.
     /// Vector of density matrices
-    std::map<std::string, SharedMatrix> density_map_;
+    std::map<std::string, SharedMatrix<double>> density_map_;
 
 };
 

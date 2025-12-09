@@ -80,7 +80,7 @@ struct MOInfo {
     int *vir_off;                    /* virtual orbital offsets within each irrep */
     int *avir_off;                   /* virtual alpha orbital offsets within each irrep */
     int *bvir_off;                   /* virtual beta orbital offsets within each irrep */
-    std::shared_ptr<Matrix> Ca;
+    std::shared_ptr<Matrix<double>> Ca;
     int *mu_irreps;                  /* irreps of x,y,z dipole components */
     int *l_irreps;                   /* irreps of x,y,z angular momentum components */
     int natom;                       /* number of atoms */

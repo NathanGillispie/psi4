@@ -66,7 +66,7 @@ class SOMCSCF {
      * @param AOTOSO  AOTOSO object
      * @param H       Core hamiltonian in the SO basis.
      */
-    SOMCSCF(std::shared_ptr<JK> jk, SharedMatrix AOTOSO, SharedMatrix H);
+    SOMCSCF(std::shared_ptr<JK> jk, SharedMatrix<double> AOTOSO, SharedMatrix<double> H);
 
     virtual ~SOMCSCF();
 
@@ -86,7 +86,7 @@ class SOMCSCF {
      * Sets the frozen core orbitals, these orbitals do not rotate.
      * @param Cfzc The frozen core orbitals
      */
-    void set_frozen_orbitals(SharedMatrix Cfzc);
+    void set_frozen_orbitals(SharedMatrix<double> Cfzc);
 
     /**
      * Sets the AO based IFock matrix. It should be noted that SOMCSCF will never compute
@@ -94,13 +94,13 @@ class SOMCSCF {
      * Frozen core orbitals should be included
      * @param IFock The AO based IFock matrix
      */
-    void set_AO_IFock(SharedMatrix IFock);
+    void set_AO_IFock(SharedMatrix<double> IFock);
     /**
      * Forms the rotation matrix exp(U).
      * @param  x The [oa, av] non-redundant orbital rotation parameters.
      * @return   The rotation matrix.
      */
-    SharedMatrix form_rotation_matrix(SharedMatrix x, size_t order = 2);
+    SharedMatrix<double> form_rotation_matrix(SharedMatrix<double> x, size_t order = 2);
 
     /**
      * Rotate the current orbitals for a given rotation matrix.
@@ -108,14 +108,14 @@ class SOMCSCF {
      * @param  x The [oa, av] non-redundant orbital rotation parameters.
      * @return   The rotated orbitals.
      */
-    SharedMatrix Ck(SharedMatrix C, SharedMatrix x);
+    SharedMatrix<double> Ck(SharedMatrix<double> C, SharedMatrix<double> x);
 
     /**
      * Computes the RHF energy for a given C matrix
      * @param  C The desired orbitals
      * @return   The RHF energy
      */
-    double rhf_energy(SharedMatrix C);
+    double rhf_energy(SharedMatrix<double> C);
 
     /**
      * Updates all internal variables to the new reference frame and builds
@@ -126,50 +126,50 @@ class SOMCSCF {
      * @param OPDM Current active one-particle density matrix
      * @param TPDM Current active two-particle density matrix (symmetrized, dense)
     */
-    void update(SharedMatrix Cocc, SharedMatrix Cact, SharedMatrix Cvir, SharedMatrix OPDM, SharedMatrix TPDM);
+    void update(SharedMatrix<double> Cocc, SharedMatrix<double> Cact, SharedMatrix<double> Cvir, SharedMatrix<double> OPDM, SharedMatrix<double> TPDM);
 
     /**
      * Sets the occupied Fock Matrix
      * @param occ_Fock The current doubly occupied Fock matrix
      */
-    void set_occ_fock(SharedMatrix occ_Fock);
+    void set_occ_fock(SharedMatrix<double> occ_Fock);
 
     /**
      * Returns the approximate diagonal hessian.
      * @return Hdiag The [oa, av] block of the diagonal hessian.
      */
-    SharedMatrix H_approx_diag();
+    SharedMatrix<double> H_approx_diag();
 
     /**
      * Returns the hessian times a trial vector or, in effect, the rotated inactive Fock matrix.
      * @param  x  The [oa, av] matrix of non-redundant orbital rotations.
      * @return Hx The [oa, av] block of the rotated Fock matrix.
      */
-    SharedMatrix Hk(SharedMatrix x);
+    SharedMatrix<double> Hk(SharedMatrix<double> x);
 
     /**
      * Uses the approximate H diagonal hessian for an update.
      * @return x         The [oa, av] matrix of non-redundant orbital rotation parameters.
      */
-    SharedMatrix approx_solve();
+    SharedMatrix<double> approx_solve();
 
     /**
      * Solves the set of linear equations Hx = gradient using CG.
      * @return x The [oa, av] matrix of non-redundant orbital rotation parameters.
      */
-    SharedMatrix solve(int max_iter = 5, double conv = 1.e-10, bool print = true);
+    SharedMatrix<double> solve(int max_iter = 5, double conv = 1.e-10, bool print = true);
 
     /**
      * @return gradient Returns the MO gradient.
      */
-    SharedMatrix gradient();
+    SharedMatrix<double> gradient();
 
     /**
      * Computes the Q matrix Q_pw = (pt|uv) \Gamma_{tuvw}
      * @param  TPDM Dense nact*nact by nact*nact symmetrized TPDM
      * @return      The symmetry blocked Q matrix
      */
-    virtual SharedMatrix compute_Q(SharedMatrix TPDM);
+    virtual SharedMatrix<double> compute_Q(SharedMatrix<double> TPDM);
 
     /**
      * Computes the Qk matrix Q_pw = (pt|uv)^k \Gamma_{tuvw} with rotated integrals
@@ -178,14 +178,14 @@ class SOMCSCF {
      * @param  Uact The active portion of the matrix U
      * @return      The symmetry blocked Q matrix
      */
-    virtual SharedMatrix compute_Qk(SharedMatrix TPDM, SharedMatrix U, SharedMatrix Uact);
+    virtual SharedMatrix<double> compute_Qk(SharedMatrix<double> TPDM, SharedMatrix<double> U, SharedMatrix<double> Uact);
 
     /**
      * Computes the Q matrix AFock_pq = (pq|uv) - 0.5 (pu|qv) \gamma_{uv}
      * @param  OPDM Dense nact*nact by nact*nact symmetrized OPDM
      * @return      The symmetry AFock matrix
      */
-    SharedMatrix compute_AFock(SharedMatrix OPDM);
+    SharedMatrix<double> compute_AFock(SharedMatrix<double> OPDM);
 
     /**
      * @return gradient_rms Returns the RMS of the gradient.
@@ -196,14 +196,14 @@ class SOMCSCF {
      * Zeros out the redundant rotations
      * @param vector Zero redundant rotations
      */
-    void zero_redundant(SharedMatrix vector);
+    void zero_redundant(SharedMatrix<double> vector);
 
     double current_total_energy() { return (energy_drc_ + energy_ci_); }
     double current_docc_energy() { return energy_drc_; }
     double current_ci_energy() { return energy_ci_; }
-    SharedMatrix current_AFock() { return matrices_["AFock"]; }
-    SharedMatrix current_IFock() { return matrices_["IFock"]; }
-    virtual void set_eri_tensors(SharedMatrix, SharedMatrix) {}
+    SharedMatrix<double> current_AFock() { return matrices_["AFock"]; }
+    SharedMatrix<double> current_IFock() { return matrices_["IFock"]; }
+    virtual void set_eri_tensors(SharedMatrix<double>, SharedMatrix<double>) {}
 
    protected:
     /// Parameters
@@ -239,15 +239,15 @@ class SOMCSCF {
     std::shared_ptr<JK> jk_;
 
     /// Map of matrices
-    std::map<std::string, SharedMatrix> matrices_;
+    std::map<std::string, SharedMatrix<double>> matrices_;
 
     /// RAS arrays
     std::vector<Dimension> ras_spaces_;
     void check_ras();
 
     /// Zero's out redundant rotations, will chose act or ras.
-    void zero_act(SharedMatrix vector);
-    void zero_ras(SharedMatrix vector);
+    void zero_act(SharedMatrix<double> vector);
+    void zero_ras(SharedMatrix<double> vector);
 
     // Transform the integrals
     virtual void transform(bool approx_only);
@@ -270,7 +270,7 @@ class DFSOMCSCF : public SOMCSCF {
      * @param df      DFHelper object to use.
      * @param H       Core hamiltonian in the SO basis.
      */
-    DFSOMCSCF(std::shared_ptr<JK> jk, std::shared_ptr<DFHelper> df, SharedMatrix AOTOSO, SharedMatrix H);
+    DFSOMCSCF(std::shared_ptr<JK> jk, std::shared_ptr<DFHelper> df, SharedMatrix<double> AOTOSO, SharedMatrix<double> H);
 
     ~DFSOMCSCF() override;
 
@@ -278,8 +278,8 @@ class DFSOMCSCF : public SOMCSCF {
     std::shared_ptr<DFHelper> dfh_;
     void transform(bool approx_only) override;
     void set_act_MO() override;
-    SharedMatrix compute_Q(SharedMatrix TPDM) override;
-    SharedMatrix compute_Qk(SharedMatrix TPDM, SharedMatrix U, SharedMatrix Uact) override;
+    SharedMatrix<double> compute_Q(SharedMatrix<double> TPDM) override;
+    SharedMatrix<double> compute_Qk(SharedMatrix<double> TPDM, SharedMatrix<double> U, SharedMatrix<double> Uact) override;
 
 };  // DFSOMCSCF class
 
@@ -295,7 +295,7 @@ class DiskSOMCSCF : public SOMCSCF {
      * @param jk      JK object to use.
      * @param H       Core hamiltonian in the SO basis.
      */
-    DiskSOMCSCF(std::shared_ptr<JK> jk, std::shared_ptr<IntegralTransform> ints, SharedMatrix AOTOSO, SharedMatrix H);
+    DiskSOMCSCF(std::shared_ptr<JK> jk, std::shared_ptr<IntegralTransform> ints, SharedMatrix<double> AOTOSO, SharedMatrix<double> H);
 
     ~DiskSOMCSCF() override;
 
@@ -304,8 +304,8 @@ class DiskSOMCSCF : public SOMCSCF {
     std::shared_ptr<PSIO> psio_;
     void transform(bool approx_only) override;
     void set_act_MO() override;
-    SharedMatrix compute_Q(SharedMatrix TPDM) override;
-    SharedMatrix compute_Qk(SharedMatrix TPDM, SharedMatrix U, SharedMatrix Uact) override;
+    SharedMatrix<double> compute_Q(SharedMatrix<double> TPDM) override;
+    SharedMatrix<double> compute_Qk(SharedMatrix<double> TPDM, SharedMatrix<double> U, SharedMatrix<double> Uact) override;
 
 };  // DiskSOMCSCF class
 
@@ -322,19 +322,19 @@ class IncoreSOMCSCF : public SOMCSCF {
      * @param jk      JK object to use.
      * @param H       Core hamiltonian in the SO basis.
      */
-    IncoreSOMCSCF(std::shared_ptr<JK> jk, SharedMatrix AOTOSO, SharedMatrix H);
+    IncoreSOMCSCF(std::shared_ptr<JK> jk, SharedMatrix<double> AOTOSO, SharedMatrix<double> H);
 
     ~IncoreSOMCSCF() override;
-    void set_eri_tensors(SharedMatrix aaaa, SharedMatrix aaar) override;
+    void set_eri_tensors(SharedMatrix<double> aaaa, SharedMatrix<double> aaar) override;
 
    protected:
     void set_act_MO() override;
-    SharedMatrix compute_Q(SharedMatrix TPDM) override;
-    SharedMatrix compute_Qk(SharedMatrix TPDM, SharedMatrix U, SharedMatrix Uact) override;
+    SharedMatrix<double> compute_Q(SharedMatrix<double> TPDM) override;
+    SharedMatrix<double> compute_Qk(SharedMatrix<double> TPDM, SharedMatrix<double> U, SharedMatrix<double> Uact) override;
 
     bool eri_tensor_set_;
-    SharedMatrix mo_aaaa_;
-    SharedMatrix mo_aaar_;
+    SharedMatrix<double> mo_aaaa_;
+    SharedMatrix mo_aaar_<double>;
 
 };  /// Incore SOMCSCF
 

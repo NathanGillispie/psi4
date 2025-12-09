@@ -79,7 +79,7 @@ class PotentialSOInt : public OneBodySOInt {
      * \param result Where the integral derivatives are going.
      * \param cdsalcs The Cartesian displacement SALCs that you are interested in.
      */
-    void compute_deriv1(std::vector<SharedMatrix> result, const CdSalcList& cdsalcs) override;
+    void compute_deriv1(std::vector<SharedMatrix<double>> result, const CdSalcList& cdsalcs) override;
 };
 
 }  // namespace psi

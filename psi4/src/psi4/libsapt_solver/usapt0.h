@@ -118,22 +118,22 @@ class USAPT0 {
     std::array<double, 3> monomer_B_field_;
 
     // Monomer A C matrix (full occ), alpha spin
-    std::shared_ptr<Matrix> Cocca_A_;
+    std::shared_ptr<Matrix<double>> Cocca_A_;
     // Monomer B C matrix (full occ), alpha spin
-    std::shared_ptr<Matrix> Cocca_B_;
+    std::shared_ptr<Matrix<double>> Cocca_B_;
     // Monomer A C matrix (full vir), alpha spin
-    std::shared_ptr<Matrix> Cvira_A_;
+    std::shared_ptr<Matrix<double>> Cvira_A_;
     // Monomer B C matrix (full vir), alpha spin
-    std::shared_ptr<Matrix> Cvira_B_;
+    std::shared_ptr<Matrix<double>> Cvira_B_;
 
     // Monomer A C matrix (full occ), beta spin
-    std::shared_ptr<Matrix> Coccb_A_;
+    std::shared_ptr<Matrix<double>> Coccb_A_;
     // Monomer B C matrix (full occ), beta spin
-    std::shared_ptr<Matrix> Coccb_B_;
+    std::shared_ptr<M<double>atrix> Coccb_B_;
     // Monomer A C matrix (full vir), beta spin
-    std::shared_ptr<Matrix> Cvirb_A_;
+    std::shared_ptr<Matrix<double>> Cvirb_A_;
     // Monomer B C matrix (full vir), beta spin
-    std::shared_ptr<Matrix> Cvirb_B_;
+    std::shared_ptr<Matrix<double>> Cvirb_B_;
 
     // Monomer A eps vector (full occ), alpha spin
     std::shared_ptr<Vector> eps_occa_A_;
@@ -154,40 +154,40 @@ class USAPT0 {
     std::shared_ptr<Vector> eps_virb_B_;
 
     // Monomer A C matrix (active occ), alpha spin
-    std::shared_ptr<Matrix> Caocca_A_;
+    std::shared_ptr<Matrix<double>> Caocca_A_;
     // Monomer B C matrix (active occ), alpha spin
-    std::shared_ptr<Matrix> Caocca_B_;
+    std::shared_ptr<Matrix<double>> Caocca_B_;
     // Monomer A C matrix (active vir), alpha spin
-    std::shared_ptr<Matrix> Cavira_A_;
+    std::shared_ptr<Matrix<double>> Cavira_A_;
     // Monomer B C matrix (active vir), alpha spin
-    std::shared_ptr<Matrix> Cavira_B_;
+    std::shared_ptr<Matrix<double>> Cavira_B_;
 
     // Monomer A C matrix (active occ), beta spin
-    std::shared_ptr<Matrix> Caoccb_A_;
+    std::shared_ptr<Matrix<double>> Caoccb_A_;
     // Monomer B C matrix (active occ), beta spin
-    std::shared_ptr<Matrix> Caoccb_B_;
+    std::shared_ptr<Matrix<double>> Caoccb_B_;
     // Monomer A C matrix (active vir), beta spin
-    std::shared_ptr<Matrix> Cavirb_A_;
+    std::shared_ptr<Matrix<double>> Cavirb_A_;
     // Monomer B C matrix (active vir), beta spin
-    std::shared_ptr<Matrix> Cavirb_B_;
+    std::shared_ptr<Matrix<double>> Cavirb_B_;
 
     // Monomer A C matrix (frozen occ), alpha spin
-    std::shared_ptr<Matrix> Cfocca_A_;
+    std::shared_ptr<Matrix<double>> Cfocca_A_;
     // Monomer B C matrix (frozen occ), alpha spin
-    std::shared_ptr<Matrix> Cfocca_B_;
+    std::shared_ptr<Matrix<double>> Cfocca_B_;
     // Monomer A C matrix (frozen vir), alpha spin
-    std::shared_ptr<Matrix> Cfvira_A_;
+    std::shared_ptr<Matrix<double>> Cfvira_A_;
     // Monomer B C matrix (frozen vir), alpha spin
-    std::shared_ptr<Matrix> Cfvira_B_;
+    std::shared_ptr<Matrix<double>> Cfvira_B_;
 
     // Monomer A C matrix (frozen occ), beta spin
-    std::shared_ptr<Matrix> Cfoccb_A_;
+    std::shared_ptr<Matrix<double>> Cfoccb_A_;
     // Monomer B C matrix (frozen occ), beta spin
-    std::shared_ptr<Matrix> Cfoccb_B_;
+    std::shared_ptr<Matrix<double>> Cfoccb_B_;
     // Monomer A C matrix (frozen vir), beta spin
-    std::shared_ptr<Matrix> Cfvirb_A_;
+    std::shared_ptr<Matrix<double>> Cfvirb_A_;
     // Monomer B C matrix (frozen vir), beta spin
-    std::shared_ptr<Matrix> Cfvirb_B_;
+    std::shared_ptr<Matrix<double>> Cfvirb_B_;
 
     // Monomer A eps vector (active occ), alpha spin
     std::shared_ptr<Vector> eps_aocca_A_;
@@ -231,7 +231,7 @@ class USAPT0 {
     bool beta_exchange_;
 
     // Shared matrices (Fock-like)
-    std::map<std::string, std::shared_ptr<Matrix> > vars_;
+    std::map<std::string, std::shared_ptr<Matrix<double>> > vars_;
 
     // Print author/sizing/spec info
     virtual void print_header() const;
@@ -246,28 +246,28 @@ class USAPT0 {
     // => Helper Methods <= //
 
     // Build the AO-basis dimer overlap matrix
-    std::shared_ptr<Matrix> build_S(std::shared_ptr<BasisSet> basis);
+    std::shared_ptr<Matrix<double>> build_S(std::shared_ptr<BasisSet> basis);
     // Build the potential integral matrix
-    std::shared_ptr<Matrix> build_V(std::shared_ptr<BasisSet> basis);
+    std::shared_ptr<Matrix<double>> build_V(std::shared_ptr<BasisSet> basis);
 
     // Build the alpha and beta S_ij matrices in the dimer occupied space
-    std::shared_ptr<Matrix> build_Sija(std::shared_ptr<Matrix> S);
-    std::shared_ptr<Matrix> build_Sijb(std::shared_ptr<Matrix> S);
+    std::shared_ptr<Matrix<double>> build_Sija(std::shared_ptr<Matrix<double>> S);
+    std::shared_ptr<Matrix<double>> build_Sijb(std::shared_ptr<Matrix<double>> S);
     // Build the S^\infty expansion in the dimer occupied space
-    std::shared_ptr<Matrix> build_Sij_n(std::shared_ptr<Matrix> Sij);
+    std::shared_ptr<Matrix<double>> build_Sij_n(std::shared_ptr<Matrix<double>> Sij);
     // Build the Cbar matrices from S^\infty
-    std::map<std::string, std::shared_ptr<Matrix> > build_Cbar(std::shared_ptr<Matrix> Sa, std::shared_ptr<Matrix> Sb);
+    std::map<std::string, std::shared_ptr<Matrix<double>> > build_Cbar(std::shared_ptr<Matrix<double>> Sa, std::shared_ptr<Matrix<double>> Sb);
 
     // Compute the CPKS solution
-    std::map<std::string, std::shared_ptr<Matrix> > compute_x(std::shared_ptr<JK> jk, std::shared_ptr<Matrix> wa_B,
-                                                              std::shared_ptr<Matrix> wb_B,
-                                                              std::shared_ptr<Matrix> wa_A,
-                                                              std::shared_ptr<Matrix> wb_A);
+    std::map<std::string, std::shared_ptr<Matrix<double>> > compute_x(std::shared_ptr<JK> jk, std::shared_ptr<Matrix<double>> wa_B,
+                                                              std::shared_ptr<Matrix<double>> wb_B,
+                                                              std::shared_ptr<Matrix<double>> wa_A,
+                                                              std::shared_ptr<Matrix<double>> wb_A);
 
     // Build the ExchInd20 potential in the monomer A ov space
-    std::shared_ptr<Matrix> build_exch_ind_pot(std::map<std::string, std::shared_ptr<Matrix> >& vars);
+    std::shared_ptr<Matrix<double>> build_exch_ind_pot(std::map<std::string, std::shared_ptr<Matrix<double>> >& vars);
     // Build the Ind20 potential in the monomer A ov space
-    std::shared_ptr<Matrix> build_ind_pot(std::map<std::string, std::shared_ptr<Matrix> >& vars);
+    std::shared_ptr<Matrix<double>> build_ind_pot(std::map<std::string, std::shared_ptr<Matrix<double>> >& vars);
 
     void initialize(SharedWavefunction mA, SharedWavefunction mB);
 
@@ -351,17 +351,17 @@ class CPKS_USAPT0 {
     // => Monomer A Problem <= //
 
     // Perturbations applied to A
-    std::shared_ptr<Matrix> wa_B_;
-    std::shared_ptr<Matrix> wb_B_;
+    std::shared_ptr<M<double>atrix> wa_B_;
+    std::shared_ptr<Matrix<double>> wb_B_;
     // Response of A
-    std::shared_ptr<Matrix> xa_A_;
-    std::shared_ptr<Matrix> xb_A_;
+    std::shared_ptr<Matrix<double>> xa_A_;
+    std::shared_ptr<Matrix<double>> xb_A_;
     // Active occ orbital coefficients of A
-    std::shared_ptr<Matrix> Cocca_A_;
-    std::shared_ptr<Matrix> Coccb_A_;
+    std::shared_ptr<Matrix<double>> Cocca_A_;
+    std::shared_ptr<Matrix<double>> Coccb_A_;
     // Active vir orbital coefficients of A
-    std::shared_ptr<Matrix> Cvira_A_;
-    std::shared_ptr<Matrix> Cvirb_A_;
+    std::shared_ptr<Matrix<double>> Cvira_A_;
+    std::shared_ptr<Matrix<double>> Cvirb_A_;
     // Active occ orbital eigenvalues of A
     std::shared_ptr<Vector> eps_occa_A_;
     std::shared_ptr<Vector> eps_occb_A_;
@@ -372,17 +372,17 @@ class CPKS_USAPT0 {
     // => Monomer B Problem <= //
 
     // Perturbations applied to B
-    std::shared_ptr<Matrix> wa_A_;
-    std::shared_ptr<Matrix> wb_A_;
+    std::shared_ptr<Matrix<double>> wa_A_;
+    std::shared_ptr<Matrix<double>> wb_A_;
     // Response of B
-    std::shared_ptr<Matrix> xa_B_;
-    std::shared_ptr<Matrix> xb_B_;
+    std::shared_ptr<Matrix<double>> xa_B_;
+    std::shared_ptr<Matrix<double>> xb_B_;
     // Active occ orbital coefficients of B
-    std::shared_ptr<Matrix> Cocca_B_;
-    std::shared_ptr<Matrix> Coccb_B_;
+    std::shared_ptr<Matrix<double>> Cocca_B_;
+    std::shared_ptr<Matrix<double>> Coccb_B_;
     // Active vir orbital coefficients of B
-    std::shared_ptr<Matrix> Cvira_B_;
-    std::shared_ptr<Matrix> Cvirb_B_;
+    std::shared_ptr<Matrix<double>> Cvira_B_;
+    std::shared_ptr<Matrix<double>> Cvirb_B_;
     // Active occ orbital eigenvalues of B
     std::shared_ptr<Vector> eps_occa_B_;
     std::shared_ptr<Vector> eps_occb_B_;
@@ -391,9 +391,9 @@ class CPKS_USAPT0 {
     std::shared_ptr<Vector> eps_virb_B_;
 
     // Form the s = Ab product for the provided vectors b (may or may not need more iterations)
-    std::map<std::string, std::shared_ptr<Matrix> > product(std::map<std::string, std::shared_ptr<Matrix> >& b);
+    std::map<std::string, std::shared_ptr<Matrix<double>> > product(std::map<std::string, std::shared_ptr<Matrix<double>> >& b);
     // Apply the denominator from r into zs
-    void preconditioner(std::shared_ptr<Matrix> r, std::shared_ptr<Matrix> z, std::shared_ptr<Vector> o,
+    void preconditioner(std::shared_ptr<Matrix<double>> r, std::shared_ptr<Matrix<double>> z, std::shared_ptr<Vector> o,
                         std::shared_ptr<Vector> v);
 
    public:

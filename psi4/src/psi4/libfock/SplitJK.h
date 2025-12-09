@@ -61,6 +61,7 @@ PRAGMA_WARNING_POP
 namespace psi {
 class MinimalInterface;
 class BasisSet;
+template <typename T>
 class Matrix;
 class TwoBodyAOInt;
 class Options;
@@ -117,8 +118,8 @@ class PSI_API SplitJK {
 
     /// Build either the coulomb (J) matrix or the exchange (K) matrix
     /// using a given algorithm
-    virtual void build_G_component(std::vector<std::shared_ptr<Matrix> >& D,
-                 std::vector<std::shared_ptr<Matrix> >& G_comp,
+    virtual void build_G_component(std::vector<std::shared_ptr<Matrix<double>> >& D,
+                 std::vector<std::shared_ptr<Matrix<double>> >& G_comp,
          std::vector<std::shared_ptr<TwoBodyAOInt> >& eri_computers) = 0;
 
     // => Knobs <= //
@@ -159,7 +160,7 @@ class PSI_API DirectDFJ : public SplitJK {
     /// Auxiliary basis set
     std::shared_ptr<BasisSet> auxiliary_;
     /// Coulomb Metric
-    SharedMatrix J_metric_;
+    SharedMatrix<double> J_metric_;
 
    public:
     // => Constructors < = //
@@ -175,8 +176,8 @@ class PSI_API DirectDFJ : public SplitJK {
     /// Destructor
     ~DirectDFJ() override;
 
-    void build_G_component(std::vector<std::shared_ptr<Matrix> >& D,
-                 std::vector<std::shared_ptr<Matrix> >& G_comp,
+    void build_G_component(std::vector<std::shared_ptr<Matrix<double>> >& D,
+                 std::vector<std::shared_ptr<Matrix<double>> >& G_comp,
          std::vector<std::shared_ptr<TwoBodyAOInt> >& eri_computers) override;
 
     // => Knobs <= //
@@ -226,8 +227,8 @@ class PSI_API LinK : public SplitJK {
     ~LinK() override;
 
     /// Build the exchange (K) matrix using LinK
-    void build_G_component(std::vector<std::shared_ptr<Matrix> >& D,
-                 std::vector<std::shared_ptr<Matrix> >& G_comp,
+    void build_G_component(std::vector<std::shared_ptr<Matrix<double>> >& D,
+                 std::vector<std::shared_ptr<Matrix<double>> >& G_comp,
          std::vector<std::shared_ptr<TwoBodyAOInt> >& eri_computers) override;
 
     // => Knobs <= //
@@ -267,7 +268,7 @@ class PSI_API COSK : public SplitJK {
     std::string current_grid_;
 
     /// Overlap fitting metric for different COSX grids
-    std::unordered_map<std::string, SharedMatrix> Q_mat_;
+    std::unordered_map<std::string, SharedMatrix<double>> Q_mat_;
 
     // integral cutoff
     double kscreen_;
@@ -295,8 +296,8 @@ class PSI_API COSK : public SplitJK {
     /// Build the exchange (K) matrix using COSX
     /// primary reference is https://doi.org/10.1016/j.chemphys.2008.10.036
     /// overlap fitting is discussed in https://doi.org/10.1063/1.3646921
-    void build_G_component(std::vector<std::shared_ptr<Matrix> >& D,
-                 std::vector<std::shared_ptr<Matrix> >& G_comp,
+    void build_G_component(std::vector<std::shared_ptr<Matrix<double>> >& D,
+                 std::vector<std::shared_ptr<Matrix<double>> >& G_comp,
          std::vector<std::shared_ptr<TwoBodyAOInt> >& eri_computers) override;
 
     // => Knobs <= //
@@ -340,7 +341,7 @@ class PSI_API snLinK : public SplitJK {
     // => Cartesian-Spherical Transformation stuff <= // 
     /// The AO->CartAO transformation matrix, which is used for transforming
     /// matrices between pure and Cartesian representations.
-    SharedMatrix sph_to_cart_matrix_;
+    SharedMatrix<double> sph_to_cart_matrix_;
 
     // => Gaussian-CCA Transformation stuff <= //
     bool is_cca_;
@@ -408,8 +409,8 @@ class PSI_API snLinK : public SplitJK {
 
     /// Build the exchange (K) matrix using sn-LinK 
     /// primary reference is https://doi.org/10.1063/5.0151070 
-    void build_G_component(std::vector<std::shared_ptr<Matrix> >& D,
-                 std::vector<std::shared_ptr<Matrix> >& G_comp,
+    void build_G_component(std::vector<std::shared_ptr<Matrix<double>> >& D,
+                 std::vector<std::shared_ptr<Matrix<double>> >& G_comp,
          std::vector<std::shared_ptr<TwoBodyAOInt> >& eri_computers) override;
 
     // => Knobs <= //

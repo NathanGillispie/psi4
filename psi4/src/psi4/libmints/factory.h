@@ -90,23 +90,23 @@ class PSI_API MatrixFactory {
     int norb() const;
 
     /// Returns a new Matrix object with default dimensions
-    std::unique_ptr<Matrix> create_matrix(int symmetry = 0);
+    std::unique_ptr<Matrix<double>> create_matrix(int symmetry = 0);
 
     /// Returns a new Matrix object with default dimensions
-    SharedMatrix create_shared_matrix() const;
+    SharedMatrix<double> create_shared_matrix() const;
 
-    void create_matrix(Matrix& mat, int symmetry = 0);
+    void create_matrix(Matrix<double>& mat, int symmetry = 0);
 
     /// Returns a new Matrix object named name with default dimensions
-    std::unique_ptr<Matrix> create_matrix(std::string name, int symmetry = 0);
+    std::unique_ptr<Matrix<double>> create_matrix(std::string name, int symmetry = 0);
 
-    SharedMatrix create_shared_matrix(const std::string& name) const;
+    SharedMatrix<double> create_shared_matrix(const std::string& name) const;
 
-    SharedMatrix create_shared_matrix(const std::string& name, int symmetry) const;
+    SharedMatrix<double> create_shared_matrix(const std::string& name, int symmetry) const;
 
-    SharedMatrix create_shared_matrix(const std::string& name, int rows, int cols) const;
+    SharedMatrix<double> create_shared_matrix(const std::string& name, int rows, int cols) const;
 
-    void create_matrix(Matrix& mat, std::string name, int symmetry = 0);
+    void create_matrix(Matrix<double>& mat, std::string name, int symmetry = 0);
 
     /// Returns a new Vector object with default dimensions
     std::unique_ptr<Vector> create_vector();

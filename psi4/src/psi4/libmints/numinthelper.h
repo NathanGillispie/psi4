@@ -57,16 +57,16 @@ class NumIntHelper {
     /// Compute an integral \int -\rho(r) f(r) where f is a vector-valued function.
     /// f is represented for each block of points of the DFT integration grid as
     /// the matrix (n_data, n_points). The output has (n_data)
-    SharedVector density_integral(const std::vector<SharedMatrix>& grid_data, const SharedMatrix& D) const;
+    SharedVector density_integral(const std::vector<SharedMatrix<double>>& grid_data, const SharedMatrix<double>& D) const;
 
     /// Same as density_integral, but don't sum over the atoms. Output is a matrix
     /// (n_atoms, n_data).
-    SharedMatrix dd_density_integral(const std::vector<SharedMatrix>& grid_data, const SharedMatrix& D) const;
+    SharedMatrix<double> dd_density_integral(const std::vector<SharedMatrix<double>>& grid_data, const SharedMatrix<double>& D) const;
 
     /// Compute an integral \int \chi_\mu(r) \chi_\nu(r) f(r) where f is a scalar function.
     /// f is represented for each block of points of the DFT integration grid as
     /// the vector (n_points). The output has (n_bas, n_bas)
-    SharedMatrix potential_integral(const std::vector<SharedVector>& grid_data) const;
+    SharedMatrix<double> potential_integral(const std::vector<SharedVector>& grid_data) const;
 };
 
 }  // namespace psi

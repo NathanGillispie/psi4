@@ -101,9 +101,9 @@ void Denominator::debug() {
 
     auto denp = denominator_->pointer();
 
-    auto true_denom = std::make_shared<Matrix>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
-    auto app_denom = std::make_shared<Matrix>("Approximate Delta Tensor", nocc * nvir, nocc * nvir);
-    auto err_denom = std::make_shared<Matrix>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
+    auto true_denom = std::make_shared<Matrix<double>>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
+    auto app_denom = std::make_shared<Matrix<double>>("Approximate Delta Tensor", nocc * nvir, nocc * nvir);
+    auto err_denom = std::make_shared<Matrix<double>>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
 
     auto tp = true_denom->pointer();
     auto ap = app_denom->pointer();
@@ -170,7 +170,7 @@ void LaplaceDenominator::decompose() {
     auto *R_availp = new double[nR];
     R_avail_file.read((char *)R_availp, nR * sizeof(double));
 
-    auto err_table = std::make_shared<Matrix>("Error Table (nR x nk)", nR, nk);
+    auto err_table = std::make_shared<Matrix<double>>("Error Table (nR x nk)", nR, nk);
     double **err_tablep = err_table->pointer();
     err_table_file.read((char *)err_tablep[0], static_cast<unsigned long> (nR) * nk * sizeof(double));
 
@@ -279,9 +279,9 @@ void LaplaceDenominator::decompose() {
         omega[k] /= A;
     }
 
-    denominator_occ_ = std::make_shared<Matrix>("Occupied Laplace Delta Tensor", nvector_, nocc);
-    denominator_vir_ = std::make_shared<Matrix>("Virtual Laplace Delta Tensor", nvector_, nvir);
-    denominator_ = std::make_shared<Matrix>("OV Laplace Delta Tensor", nvector_, nocc * nvir);
+    denominator_occ_ = std::make_shared<Matrix<double>>("Occupied Laplace Delta Tensor", nvector_, nocc);
+    denominator_vir_ = std::make_shared<Matrix<double>>("Virtual Laplace Delta Tensor", nvector_, nvir);
+    denominator_ = std::make_shared<Matrix<double>>("OV Laplace Delta Tensor", nvector_, nocc * nvir);
 
     double **dop = denominator_occ_->pointer();
     double **dvp = denominator_vir_->pointer();
@@ -324,10 +324,10 @@ void LaplaceDenominator::debug() {
     double **denop = denominator_occ_->pointer();
     double **denvp = denominator_vir_->pointer();
 
-    auto true_denom = std::make_shared<Matrix>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
+    auto true_denom = std::make_shared<Matrix<double>>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
     SharedMatrix app_denom =
-        std::make_shared<Matrix>("Approximate Delta Tensor (Fully Separated)", nocc * nvir, nocc * nvir);
-    auto err_denom = std::make_shared<Matrix>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
+        std::make_shared<Matrix<double>>("Approximate Delta Tensor (Fully Separated)", nocc * nvir, nocc * nvir);
+    auto err_denom = std::make_shared<Matrix<double>>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
 
     double **tp = true_denom->pointer();
     double **ap = app_denom->pointer();
@@ -445,7 +445,7 @@ void CholeskyDenominator::decompose() {
     outfile->Printf("  A %d point partial Cholesky decomposition will be used for the denominator.\n", nvector_);
     outfile->Printf("  The worst-case Chebyshev norm for this quadrature rule is %7.4E.\n\n", max_err);
 
-    denominator_ = std::make_shared<Matrix>("Cholesky Delta Tensor", nvector_, nspan);
+    denominator_ = std::make_shared<Matrix<double>>("Cholesky Delta Tensor", nvector_, nspan);
     double **Lar = denominator_->pointer();
 
     for (int d = 0; d < nvector_; d++) {
@@ -505,9 +505,9 @@ void SAPTDenominator::check_denom(std::shared_ptr<Vector> eps_occ, std::shared_p
     double *e_v = eps_vir->pointer();
     double **denp = denominator->pointer();
 
-    auto true_denom = std::make_shared<Matrix>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
-    auto app_denom = std::make_shared<Matrix>("Approximate Delta Tensor", nocc * nvir, nocc * nvir);
-    auto err_denom = std::make_shared<Matrix>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
+    auto true_denom = std::make_shared<Matrix<double>>("Exact Delta Tensor", nocc * nvir, nocc * nvir);
+    auto app_denom = std::make_shared<Matrix<double>>("Approximate Delta Tensor", nocc * nvir, nocc * nvir);
+    auto err_denom = std::make_shared<Matrix<double>>("Error in Delta Tensor", nocc * nvir, nocc * nvir);
 
     double **tp = true_denom->pointer();
     double **ap = app_denom->pointer();
@@ -586,7 +586,7 @@ void SAPTLaplaceDenominator::decompose() {
     double *R_availp = new double[nR];
     R_avail_file.read((char *)R_availp, nR * sizeof(double));
 
-    auto err_table = std::make_shared<Matrix>("Error Table (nR x nk)", nR, nk);
+    auto err_table = std::make_shared<Matrix<double>>("Error Table (nR x nk)", nR, nk);
     double **err_tablep = err_table->pointer();
     err_table_file.read((char *)err_tablep[0], static_cast<unsigned long> (nR) * nk * sizeof(double));
 
@@ -697,13 +697,13 @@ void SAPTLaplaceDenominator::decompose() {
         omega[k] /= A;
     }
 
-    denominator_occA_ = std::make_shared<Matrix>("Occupied Laplace Delta Tensor (A)", nvector_, noccA);
-    denominator_virA_ = std::make_shared<Matrix>("Virtual Laplace Delta Tensor (A)", nvector_, nvirA);
-    denominatorA_ = std::make_shared<Matrix>("OV Laplace Delta Tensor (A)", nvector_, noccA * nvirA);
+    denominator_occA_ = std::make_shared<Matrix<double>>("Occupied Laplace Delta Tensor (A)", nvector_, noccA);
+    denominator_virA_ = std::make_shared<Matrix<double>>("Virtual Laplace Delta Tensor (A)", nvector_, nvirA);
+    denominatorA_ = std::make_shared<Matrix<double>>("OV Laplace Delta Tensor (A)", nvector_, noccA * nvirA);
 
-    denominator_occB_ = std::make_shared<Matrix>("Occupied Laplace Delta Tensor (B)", nvector_, noccB);
-    denominator_virB_ = std::make_shared<Matrix>("Virtual Laplace Delta Tensor (B)", nvector_, nvirB);
-    denominatorB_ = std::make_shared<Matrix>("OV Laplace Delta Tensor (B)", nvector_, noccB * nvirB);
+    denominator_occB_ = std::make_shared<Matrix<double>>("Occupied Laplace Delta Tensor (B)", nvector_, noccB);
+    denominator_virB_ = std::make_shared<Matrix<double>>("Virtual Laplace Delta Tensor (B)", nvector_, nvirB);
+    denominatorB_ = std::make_shared<Matrix<double>>("OV Laplace Delta Tensor (B)", nvector_, noccB * nvirB);
 
     double **doA = denominator_occA_->pointer();
     double **dvA = denominator_virA_->pointer();

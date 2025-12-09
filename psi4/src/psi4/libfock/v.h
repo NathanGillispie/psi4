@@ -81,25 +81,25 @@ class PSI_API VBase {
     /// Quadrature values obtained during integration
     std::map<std::string, double> quad_values_;
     // Caches collocation grids
-    std::unordered_map<size_t, std::map<std::string, SharedMatrix>> cache_map_;
+    std::unordered_map<size_t, std::map<std::string, SharedMatrix<double>>> cache_map_;
     int cache_map_deriv_;
 
     /// AO2USO matrix (if not C1)
-    SharedMatrix AO2USO_;
-    SharedMatrix USO2AO_;
+    SharedMatrix<double> AO2USO_;
+    SharedMatrix<double> USO2AO_;
 
     /// Vector of C1 D matrices (built by USO2AO)
-    std::vector<SharedMatrix> D_AO_;
+    std::vector<SharedMatrix<double>> D_AO_;
 
     // GRAC data
     bool grac_initialized_;
 
     // VV10 dispersion, return vv10_nlc energy
-    void prepare_vv10_cache(DFTGrid& nlgrid, SharedMatrix D,
+    void prepare_vv10_cache(DFTGrid& nlgrid, SharedMatrix<double> D,
                             std::vector<std::map<std::string, SharedVector>>& vv10_cache,
                             std::vector<std::shared_ptr<PointFunctions>>& nl_point_workers, int ansatz = 1);
-    double vv10_nlc(SharedMatrix D, SharedMatrix ret);
-    SharedMatrix vv10_nlc_gradient(SharedMatrix D);
+    double vv10_nlc(SharedMatrix<double> D, SharedMatrix<double> ret);
+    SharedMatrix<double> vv10_nlc_gradient(SharedMatrix<double> D);
 
     /// Set things up
     void common_init();
@@ -125,20 +125,20 @@ class PSI_API VBase {
     void clear_collocation_cache() { cache_map_.clear(); }
 
     // Set the D matrix, get it back if needed
-    void set_D(std::vector<SharedMatrix> Dvec);
-    const std::vector<SharedMatrix>& Dao() const { return D_AO_; }
+    void set_D(std::vector<SharedMatrix<double>> Dvec);
+    const std::vector<SharedMatrix<double>>& Dao() const { return D_AO_; }
 
     // Set the site of the grac shift
     void set_grac_shift(double value);
 
     /// Throws by default
-    virtual void compute_V(std::vector<SharedMatrix> ret);
+    virtual void compute_V(std::vector<SharedMatrix<double>> ret);
     /// Throws by default. Compute the orbital derivative of the KS potential for each spin,
     /// contract against Dx, and putting the result in ret.
-    virtual void compute_Vx(const std::vector<SharedMatrix> Dx, std::vector<SharedMatrix> ret);
-    virtual std::vector<SharedMatrix> compute_fock_derivatives();
-    virtual SharedMatrix compute_gradient();
-    virtual SharedMatrix compute_hessian();
+    virtual void compute_Vx(const std::vector<SharedMatrix<double>> Dx, std::vector<SharedMatrix<double>> ret);
+    virtual std::vector<SharedMatrix<double>> compute_fock_derivatives();
+    virtual SharedMatrix<double> compute_gradient();
+    virtual SharedMatrix<double> compute_hessian();
 
     void set_print(int print) { print_ = print; }
     void set_debug(int debug) { debug_ = debug; }
@@ -159,7 +159,7 @@ class SAP : public VBase {
     void initialize() override;
     void finalize() override;
 
-    void compute_V(std::vector<SharedMatrix> ret) override;
+    void compute_V(std::vector<SharedMatrix<double>> ret) override;
     void print_header() const override;
 };
 
@@ -173,20 +173,20 @@ class RV : public VBase {
     void finalize() override;
 
     // compute_V assuming same orbitals for different spin. Computes V_alpha, not spin-summed V.
-    void compute_V(std::vector<SharedMatrix> ret) override;
+    void compute_V(std::vector<SharedMatrix<double>> ret) override;
     /// Compute the orbital derivative of the KS potential, contract against Dx, and
     /// putting the result in ret. ret[i] is Vx where x = Dx[i]. The "true" vector has
     /// 2^-0.5 Dx[i] for each input spin case and returns **half** the α component of the output.
     /// The singlet flag controls whether to assume singlet spin-integration (β components
     /// are the α components) or triplet (β components are -α components)
-    void compute_Vx_full(const std::vector<SharedMatrix> Dx, std::vector<SharedMatrix> ret, bool singlet);
+    void compute_Vx_full(const std::vector<SharedMatrix<double>> Dx, std::vector<SharedMatrix<double>> ret, bool singlet);
     /// A convenience function to call compute_Vx_full for singlets.
     /// And no, we can't just make singlet a default argument. Then compute_Vx has different signatures for
     /// different VBase subclasses, so we can't call compute_Vx from VBase, which breaks the hessian code.
-    void compute_Vx(const std::vector<SharedMatrix> Dx, std::vector<SharedMatrix> ret) override { compute_Vx_full(Dx, ret, true); };
-    std::vector<SharedMatrix> compute_fock_derivatives() override;
-    SharedMatrix compute_gradient() override;
-    SharedMatrix compute_hessian() override;
+    void compute_Vx(const std::vector<SharedMatrix<double>> Dx, std::vector<SharedMatrix<double>> ret) override { compute_Vx_full(Dx, ret, true); };
+    std::vector<SharedMatrix<double>> compute_fock_derivatives() override;
+    SharedMatrix<double> compute_gradient() override;
+    SharedMatrix<double> compute_hessian() override;
 
     void print_header() const override;
 };
@@ -200,14 +200,14 @@ class UV : public VBase {
     void initialize() override;
     void finalize() override;
 
-    void compute_V(std::vector<SharedMatrix> ret) override;
+    void compute_V(std::vector<SharedMatrix<double>> ret) override;
     /// Compute the orbital derivative of the KS potential, contract against Dx, and
     /// putting the result in ret. ret[i] is Vx where x = Dx[i].
     /// ret[2n], ret[2n+1] are alpha and beta Vx where x concatenates Dx[2n] (α) and Dx[2n+1] (β).
-    void compute_Vx(const std::vector<SharedMatrix> Dx, std::vector<SharedMatrix> ret) override;
-    std::vector<SharedMatrix> compute_fock_derivatives() override;
-    SharedMatrix compute_gradient() override;
-    SharedMatrix compute_hessian() override;
+    void compute_Vx(const std::vector<SharedMatrix<double>> Dx, std::vector<SharedMatrix<double>> ret) override;
+    std::vector<SharedMatrix<double>> compute_fock_derivatives() override;
+    SharedMatrix<double> compute_gradient() override;
+    SharedMatrix<double> compute_hessian() override;
 
     void print_header() const override;
 };

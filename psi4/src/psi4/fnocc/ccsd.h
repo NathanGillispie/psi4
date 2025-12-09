@@ -42,7 +42,7 @@ PSI_API long int Position(long int i, long int j);
 namespace psi {
 namespace fnocc {
 
-std::tuple<SharedMatrix, SharedMatrix> spin_adapt(SharedMatrix ss, SharedMatrix os);
+std::tuple<SharedMatrix<double>, SharedMatrix<double>> spin_adapt(SharedMatrix<double> ss, SharedMatrix<double> os);
 
 class CoupledCluster : public Wavefunction {
    public:
@@ -263,10 +263,10 @@ class PSI_API DFCoupledCluster : public CoupledCluster {
     /// more 3-index stuff for t1-transformed integrals
     double *Ca_L, *Ca_R, **Ca;
     double *Fij, *Fab, *Fia, *Fai;
-    SharedMatrix H;
+    SharedMatrix<double> H;
 
     /// FNO deltas for pair energies. Should in principle apply in non-DF case as well.
-    SharedMatrix delta_pair_energies_ss, delta_pair_energies_os;
+    SharedMatrix<double> delta_pair_energies_ss, delta_pair_energies_os;
 
     /// generate t1-transformed 3-index integrals
     virtual void T1Integrals();
@@ -276,7 +276,7 @@ class PSI_API DFCoupledCluster : public CoupledCluster {
     /// evaluate cc diagrams
     virtual void CCResidual();
 
-    std::tuple<double, double, SharedMatrix, SharedMatrix> ComputePair(const std::string& name);
+    std::tuple<double, double, SharedMatrix<double>, SharedMatrix<double>> ComputePair(const std::string& name);
 
     /// SCS-MP2 function and variables
     virtual void SCS_MP2();

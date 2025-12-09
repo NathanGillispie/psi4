@@ -75,7 +75,7 @@ class PSI_API Prop {
     std::shared_ptr<MatrixFactory> factory_;
 
     /// The AO to USO matrix
-    SharedMatrix AO2USO_;
+    SharedMatrix<double> AO2USO_;
 
     /**
      * Internally, data is held in the SO basis in Pitzer order
@@ -86,13 +86,13 @@ class PSI_API Prop {
     /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
     SharedVector epsilon_b_;
     /// The alpha density matrix in the SO basis
-    SharedMatrix Da_so_;
+    SharedMatrix<double> Da_so_;
     /// The beta density matrix in the SO basis
-    SharedMatrix Db_so_;
+    SharedMatrix<double> Db_so_;
     /// The alpha C matrix in the SO basis
-    SharedMatrix Ca_so_;
+    SharedMatrix<double> Ca_so_;
     /// The beta C matrix in the SO basis
-    SharedMatrix Cb_so_;
+    SharedMatrix<double> Cb_so_;
 
     /// Common initialization
     void common_init();
@@ -114,20 +114,20 @@ class PSI_API Prop {
     // Set beta eigenvalues, MO pitzer order basis. Throws if restricted
     void set_epsilon_b(SharedVector epsilon_a);
     // Set alpha C matrix, SO/MO pitzer order basis.
-    void set_Ca(SharedMatrix Ca);
+    void set_Ca(SharedMatrix<double> Ca);
     // Set beta C matrix, SO/MO pitzer order basis. Throws if restricted
-    void set_Cb(SharedMatrix Cb);
+    void set_Cb(SharedMatrix<double> Cb);
 
     // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
     // the adding to Dt  <= //
 
     // TODO Add symmetry is irrep number
-    void set_Da_ao(SharedMatrix Da, int symmetry = 0);
-    void set_Db_ao(SharedMatrix Db, int symmetry = 0);
-    void set_Da_so(SharedMatrix Da);
-    void set_Db_so(SharedMatrix Db);
-    void set_Da_mo(SharedMatrix Da);
-    void set_Db_mo(SharedMatrix Db);
+    void set_Da_ao(SharedMatrix<double> Da, int symmetry = 0);
+    void set_Db_ao(SharedMatrix<double> Db, int symmetry = 0);
+    void set_Da_so(SharedMatrix<double> Da);
+    void set_Db_so(SharedMatrix<double> Db);
+    void set_Da_mo(SharedMatrix<double> Da);
+    void set_Db_mo(SharedMatrix<double> Db);
 
     // => Get routines (useful to quickly change bases) <= //
 
@@ -137,50 +137,50 @@ class PSI_API Prop {
     SharedVector epsilon_b();
 
     /// The alpha C matrix in the SO basis
-    SharedMatrix Ca_so();
+    SharedMatrix<double> Ca_so();
     /// The beta C matrix in the SO basis
-    SharedMatrix Cb_so();
+    SharedMatrix<double> Cb_so();
     /// The alpha C matrix in the AO (Spherical Harmonics, C1) basis. Ordered by eigenvalue
-    SharedMatrix Ca_ao();
+    SharedMatrix<double> Ca_ao();
     /// The beta C matrix in the AO (Spherical Harmonics, C1) basis. Ordered by eigenvalue
-    SharedMatrix Cb_ao();
+    SharedMatrix<double> Cb_ao();
 
     /// The alpha density matrix in the AO (Spherical Harmonics, C1) basis
-    SharedMatrix Da_ao();
+    SharedMatrix<double> Da_ao();
     /// The beta density matrix in the AO (Spherical Harmonics, C1) basis
-    SharedMatrix Db_ao();
+    SharedMatrix<double> Db_ao();
     /// The alpha density matrix in the SO basis
-    SharedMatrix Da_so();
+    SharedMatrix<double> Da_so();
     /// The beta density matrix in the SO basis
-    SharedMatrix Db_so();
+    SharedMatrix<double> Db_so();
     /// The alpha density matrix in the MO basis
-    SharedMatrix Da_mo();
+    SharedMatrix<double> Da_mo();
     /// The beta density matrix in the MO basis
-    SharedMatrix Db_mo();
+    SharedMatrix<double> Db_mo();
 
     /// The total/spin density matrix in the ao basis, depending on if true or false
-    SharedMatrix Dt_so(bool total = true);
+    SharedMatrix<double> Dt_so(bool total = true);
     /// The total/spin density matrix in the ao basis, depending on if true or false
-    SharedMatrix Dt_mo(bool total = true);
+    SharedMatrix<double> Dt_mo(bool total = true);
 
     /// The alpha natural orbital occupations and orbitals in the MO basis
-    std::pair<SharedMatrix, SharedVector> Na_mo();
+    std::pair<SharedMatrix<double>, SharedVector> Na_mo();
     /// The beta natural orbital occupations and orbitals in the MO basis. Throws if restricted
-    std::pair<SharedMatrix, SharedVector> Nb_mo();
+    std::pair<SharedMatrix<double>, SharedVector> Nb_mo();
     /// The total natural orbital occupations and orbitals in the MO basis
-    std::pair<SharedMatrix, SharedVector> Nt_mo();
+    std::pair<SharedMatrix<double>, SharedVector> Nt_mo();
     /// The alpha natural orbital occupations and orbitals in the SO basis
-    std::pair<SharedMatrix, SharedVector> Na_so();
+    std::pair<SharedMatrix<double>, SharedVector> Na_so();
     /// The beta natural orbital occupations and orbitals in the SO basis. Throws if restricted
-    std::pair<SharedMatrix, SharedVector> Nb_so();
+    std::pair<SharedMatrix<double>, SharedVector> Nb_so();
     /// The total natural orbital occupations and orbitals in the SO basis
-    std::pair<SharedMatrix, SharedVector> Nt_so();
+    std::pair<SharedMatrix<double>, SharedVector> Nt_so();
     /// The alpha natural orbital occupations and orbitals in the AO basis
-    std::pair<SharedMatrix, SharedVector> Na_ao();
+    std::pair<SharedMatrix<double>, SharedVector> Na_ao();
     /// The beta natural orbital occupations and orbitals in the AO basis. Throws if restricted
-    std::pair<SharedMatrix, SharedVector> Nb_ao();
+    std::pair<SharedMatrix<double>, SharedVector> Nb_ao();
     /// The total natural orbital occupations and orbitals in the AO basis
-    std::pair<SharedMatrix, SharedVector> Nt_ao();
+    std::pair<SharedMatrix<double>, SharedVector> Nt_ao();
 
     /// Density Matrix title, used for fallback naming of OEProp compute jobs
     std::string Da_name() const;
@@ -188,7 +188,7 @@ class PSI_API Prop {
     std::string Db_name() const;
 
     // => Some integral helpers <= //
-    SharedMatrix overlap_so();
+    SharedMatrix<double> overlap_so();
 };
 
 /**
@@ -258,11 +258,11 @@ class PopulationAnalysisCalc : public Prop {
     /// Compute Lowdin Charges
     std::tuple<SharedStdVector, SharedStdVector, SharedStdVector, SharedStdVector> compute_lowdin_charges(bool print_output = false);
     /// Compute MBIS Multipoles (doi:10.1021/acs.jctc.6b00456)
-    std::tuple<SharedMatrix, SharedMatrix, SharedMatrix, SharedMatrix> compute_mbis_multipoles(bool free_atom_volumes = false, bool print_output = false);
+    std::tuple<SharedMatrix<double>, SharedMatrix<double>, SharedMatrix<double>, SharedMatrix<double>> compute_mbis_multipoles(bool free_atom_volumes = false, bool print_output = false);
     /// Compute Mayer Bond Indices (non-orthogoal basis)
-    std::tuple<SharedMatrix, SharedMatrix, SharedMatrix, SharedVector> compute_mayer_indices(bool print_output = false);
+    std::tuple<SharedMatrix<double>, SharedMatrix<double>, SharedMatrix<double>, SharedVector> compute_mayer_indices(bool print_output = false);
     /// Compute Wiberg Bond Indices using Lowdin Orbitals (symmetrically orthogonal basis)
-    std::tuple<SharedMatrix, SharedMatrix, SharedMatrix, SharedVector> compute_wiberg_lowdin_indices(
+    std::tuple<SharedMatrix<double>, SharedMatrix<double>, SharedMatrix<double>, SharedVector> compute_wiberg_lowdin_indices(
         bool print_output = false);
     /// Compute/display natural orbital occupations around the bandgap. Displays max_num above and below the bandgap
     std::shared_ptr<std::vector<std::vector<std::tuple<double, int, int>>>> compute_no_occupations(
@@ -318,9 +318,9 @@ class ESPPropCalc : public Prop {
     /// Compute field at specified grid points
     void compute_field_over_grid(bool print_output = false);
     /// Compute electrostatic potential at grid points based on input grid, OpenMP version. input_grid is Nx3
-    SharedVector compute_esp_over_grid_in_memory(SharedMatrix input_grid) const;
+    SharedVector compute_esp_over_grid_in_memory(SharedMatrix<double> input_grid) const;
     /// Compute field at grid points based on input grid, OpenMP version. input_grid is Nx3
-    SharedMatrix compute_field_over_grid_in_memory(SharedMatrix input_grid) const;
+    SharedMatrix<double> compute_field_over_grid_in_memory(SharedMatrix<double> input_grid) const;
 };
 
 /**
@@ -430,20 +430,20 @@ class PSI_API OEProp {
     // Set beta eigenvalues, MO pitzer order basis. Throws if restricted
     void set_epsilon_b(SharedVector epsilon_a);
     // Set alpha C matrix, SO/MO pitzer order basis.
-    void set_Ca(SharedMatrix Ca);
+    void set_Ca(SharedMatrix<double> Ca);
     // Set beta C matrix, SO/MO pitzer order basis. Throws if restricted
-    void set_Cb(SharedMatrix Cb);
+    void set_Cb(SharedMatrix<double> Cb);
 
     // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
     // the adding to Dt  <= //
 
     // TODO Add symmetry is irrep number
-    void set_Da_ao(SharedMatrix Da, int symmetry = 0);
-    void set_Db_ao(SharedMatrix Db, int symmetry = 0);
-    void set_Da_so(SharedMatrix Da);
-    void set_Db_so(SharedMatrix Db);
-    void set_Da_mo(SharedMatrix Da);
-    void set_Db_mo(SharedMatrix Db);
+    void set_Da_ao(SharedMatrix<double> Da, int symmetry = 0);
+    void set_Db_ao(SharedMatrix<double> Db, int symmetry = 0);
+    void set_Da_so(SharedMatrix<double> Da);
+    void set_Db_so(SharedMatrix<double> Db);
+    void set_Da_mo(SharedMatrix<double> Da);
+    void set_Db_mo(SharedMatrix<double> Db);
 };
 
 /**

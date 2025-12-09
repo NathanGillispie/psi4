@@ -70,13 +70,13 @@ namespace scf {
 
 class CUHF final : public HF {
    protected:
-    SharedMatrix Dt_, Dt_old_;
-    SharedMatrix Da_old_, Db_old_;
-    SharedMatrix J_, Ka_, Kb_;
+    SharedMatrix<double> Dt_, Dt_old_;
+    SharedMatrix<double> Da_old_, Db_old_;
+    SharedMatrix<double> J_, Ka_, Kb_;
     // Contributions to the Fock matrix from charge and spin density
-    SharedMatrix Fp_, Fm_;
+    SharedMatrix<double> Fp_, Fm_;
     // Charge density and natural orbitals (eigenvectors of charge density)
-    SharedMatrix Dp_, Cno_, Cno_temp_;
+    SharedMatrix<double> Dp_, Cno_, Cno_temp_;
     // Natural orbital occupations
     SharedVector No_;
 

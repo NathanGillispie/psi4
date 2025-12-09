@@ -100,24 +100,24 @@ class SAPT2p : public SAPT2 {
                     double *, size_t, size_t, size_t, size_t, size_t, size_t);
     double s_ccd_iterate(const char *, const char *, const char *, const char *, const char *, const char *,
                          const char *, const char *, const char *, const char *, const char *, const char *,
-                         const char *, const char *, const char *, double *, int, int, int, std::shared_ptr<Matrix>);
+                         const char *, const char *, const char *, double *, int, int, int, std::shared_ptr<Matrix<double>>);
     double s_ccd_amplitudes(const char *, const char *, const char *, const char *, const char *, const char *,
                             const char *, const char *, const char *, const char *, const char *, const char *,
-                            const char *, const char *, const char *, double *, size_t, size_t, size_t, std::shared_ptr<Matrix>);
+                            const char *, const char *, const char *, double *, size_t, size_t, size_t, std::shared_ptr<Matrix<double>>);
 
     void ccd_prep(const char *, const char *, const char *, const char *, const char *, const char *, const char *,
                   const char *, const char *, int, const char *, const char *, const char *, double *, size_t, size_t, size_t,
-                  std::shared_ptr<Matrix>, const char *);
+                  std::shared_ptr<Matrix<double>>, const char *);
     double ccd_energy(const char *, const char *, size_t, size_t);
     void ccd_iterate(const char *, const char *, const char *, const char *, const char *, const char *, const char *,
-                     const char *, const char *, const char *, double *, int, int, int, std::shared_ptr<Matrix>);
+                     const char *, const char *, const char *, double *, int, int, int, std::shared_ptr<Matrix<double>>);
     double ccd_amplitudes(const char *, const char *, const char *, const char *, const char *, const char *,
                           const char *, const char *, const char *, const char *, double *, size_t, size_t, size_t,
-                          std::shared_ptr<Matrix>);
+                          std::shared_ptr<Matrix<double>>);
 
-    void vvvv_prep(const char *, const char *, double **, int, int, std::shared_ptr<Matrix>);
-    double **vvvv_ccd(const char *, const char *, const char *, size_t, size_t, std::shared_ptr<Matrix>);
-    std::shared_ptr<Matrix> mo2no(int ampfile, const char *VV_opdm, int nvir, double cutoff);
+    void vvvv_prep(const char *, const char *, double **, int, int, std::shared_ptr<Matrix<double>>);
+    double **vvvv_ccd(const char *, const char *, const char *, size_t, size_t, std::shared_ptr<Matrix<double>>);
+    std::shared_ptr<Matrix<double>> mo2no(int ampfile, const char *VV_opdm, int nvir, double cutoff);
 
     double **read_IJKL(int, char *, int, int);
     void write_IJKL(double **, int, const char *, int, int);

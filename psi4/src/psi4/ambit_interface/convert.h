@@ -44,7 +44,7 @@ namespace helpers {
 
 namespace psi4 {
 
-void convert(const psi::Matrix &matrix, ambit::Tensor *target);
+void convert(const psi::Matrix<double> &matrix, ambit::Tensor *target);
 
 void convert(const psi::Vector &vector, ambit::Tensor *target);
 

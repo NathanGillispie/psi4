@@ -56,29 +56,29 @@ class SADGuess {
     std::shared_ptr<BasisSet> basis_;
     std::vector<std::shared_ptr<BasisSet>> atomic_bases_;
     std::vector<std::shared_ptr<BasisSet>> atomic_fit_bases_;
-    SharedMatrix AO2SO_;
+    SharedMatrix<double> AO2SO_;
 
     Options& options_;
 
-    SharedMatrix Da_;
-    SharedMatrix Db_;
-    SharedMatrix Ca_;
-    SharedMatrix Cb_;
+    SharedMatrix<double> Da_;
+    SharedMatrix<double> Db_;
+    SharedMatrix<double> Ca_;
+    SharedMatrix<double> Cb_;
 
     std::unique_ptr<JK> jk;
 
     void common_init();
 
-    void run_atomic_calculations(SharedMatrix& D_AO, SharedMatrix& Huckel_C, SharedVector& Huckel_E);
-    void form_gradient(SharedMatrix grad, SharedMatrix F, SharedMatrix D, SharedMatrix S, SharedMatrix X);
+    void run_atomic_calculations(SharedMatrix<double>& D_AO, SharedMatrix<double>& Huckel_C, SharedVector& Huckel_E);
+    void form_gradient(SharedMatrix<double> grad, SharedMatrix<double> F, SharedMatrix<double> D, SharedMatrix<double> S, SharedMatrix<double> X);
     void get_uhf_atomic_density(std::shared_ptr<BasisSet> atomic_basis, std::shared_ptr<BasisSet> fit_basis,
-                                SharedVector occ_a, SharedVector occ_b, SharedMatrix D, SharedMatrix Chuckel,
+                                SharedVector occ_a, SharedVector occ_b, SharedMatrix<double> D, SharedMatrix<double> Chuckel,
                                 SharedVector Ehuckel);
     void get_uhf_atomic_density_ooo(std::shared_ptr<BasisSet> atomic_basis, std::shared_ptr<BasisSet> fit_basis,
-                                SharedVector occ_a, SharedVector occ_b, SharedMatrix D, SharedMatrix Chuckel,
+                                SharedVector occ_a, SharedVector occ_b, SharedMatrix<double> D, SharedMatrix<double> Chuckel,
                                 SharedVector Ehuckel);
-    void form_C_and_D(SharedMatrix X, SharedMatrix F, SharedMatrix C, SharedVector E, SharedMatrix Cocc,
-                      SharedVector occ, SharedMatrix D);
+    void form_C_and_D(SharedMatrix<double> X, SharedMatrix<double> F, SharedMatrix<double> C, SharedVector E, SharedMatrix<double> Cocc,
+                      SharedVector occ, SharedMatrix<double> D);
 
     void form_D();
     void form_C();
@@ -93,12 +93,12 @@ class SADGuess {
 
     void compute_guess();
 
-    SharedMatrix Da() const { return Da_; }
-    SharedMatrix Db() const { return Db_; }
-    SharedMatrix Ca() const { return Ca_; }
-    SharedMatrix Cb() const { return Cb_; }
+    SharedMatrix<double> Da() const { return Da_; }
+    SharedMatrix<double> Db() const { return Db_; }
+    SharedMatrix<double> Ca() const { return Ca_; }
+    SharedMatrix<double> Cb() const { return Cb_; }
 
-    SharedMatrix huckel_guess(bool updated_rule);
+    SharedMatrix<double> huckel_guess(bool updated_rule);
 
     void set_atomic_fit_bases(std::vector<std::shared_ptr<BasisSet>> fit_bases) { atomic_fit_bases_ = fit_bases; }
     void set_print(int print) { print_ = print; }

@@ -40,6 +40,7 @@ namespace psi {
 class BasisExtents;
 class BasisSet;
 class BlockOPoints;
+template <typename T>
 class Matrix;
 class Molecule;
 class Options;
@@ -159,40 +160,40 @@ class CubicScalarGrid {
     // => Low-Level Scalar Field Computation (Use only if you know what you are doing) <= //
 
     /// Add a density-type property to the scalar field
-    void add_density(double* v, std::shared_ptr<Matrix> D);
+    void add_density(double* v, std::shared_ptr<Matrix<double>> D);
     /// Add an ESP-type property to the scalar field (total density matrix, must set DF_BASIS_SCF option)
-    void add_esp(double* v, std::shared_ptr<Matrix> D, const std::vector<double>& nuc_weights = std::vector<double>());
+    void add_esp(double* v, std::shared_ptr<Matrix<double>> D, const std::vector<double>& nuc_weights = std::vector<double>());
     /// Add a basis function property for desired indices to the scalar fields in v (rows are basis functions)
     void add_basis_functions(double** v, const std::vector<int>& indices);
     /// Add orbital property for desired indices to the scalar fields in v (rows are orbitals)
-    void add_orbitals(double** v, std::shared_ptr<Matrix> C);
+    void add_orbitals(double** v, std::shared_ptr<Matrix<double>> C);
     /// Add a LOL-type property to the scalar field
-    void add_LOL(double* v, std::shared_ptr<Matrix> D);
+    void add_LOL(double* v, std::shared_ptr<Matrix<double>> D);
     /// Add an ELF-type property to the scalar field
-    void add_ELF(double* v, std::shared_ptr<Matrix> D);
+    void add_ELF(double* v, std::shared_ptr<Matrix<double>> D);
 
     // => High-Level Scalar Field Computation <= //
 
     /// Compute a density-type property and drop a file corresponding to name and type
-    void compute_density(std::shared_ptr<Matrix> D, const std::string& name, const std::string& type = "CUBE");
+    void compute_density(std::shared_ptr<Matrix<double>> D, const std::string& name, const std::string& type = "CUBE");
     /// Compute an ESP-type property and drop a file corresponding to name and type
-    void compute_esp(std::shared_ptr<Matrix> D, const std::vector<double>& nuc_weights, const std::string& name,
+    void compute_esp(std::shared_ptr<Matrix<double>> D, const std::vector<double>& nuc_weights, const std::string& name,
                      const std::string& type = "CUBE");
     /// Compute a set of basis function-type properties and drop files corresponding to name, index, and type
     void compute_basis_functions(const std::vector<int>& indices, const std::string& name,
                                  const std::string& type = "CUBE");
     /// Compute a set of orbital-type properties and drop files corresponding to name, index, symmetry label, and type
-    void compute_orbitals(std::shared_ptr<Matrix> C, const std::vector<int>& indices,
+    void compute_orbitals(std::shared_ptr<Matrix<double>> C, const std::vector<int>& indices,
                           const std::vector<std::string>& labels, const std::string& name,
                           const std::string& type = "CUBE");
     /// Compute a set of orbital-type properties and drop files corresponding to name, index, symmetry label, and type
-    void compute_difference(std::shared_ptr<Matrix> C, const std::vector<int>& indices,
+    void compute_difference(std::shared_ptr<Matrix<double>> C, const std::vector<int>& indices,
                           const std::string& label, bool square = false, const std::string& type = "CUBE");
 
     /// Compute a LOL-type property and drop a file corresponding to name and type
-    void compute_LOL(std::shared_ptr<Matrix> D, const std::string& name, const std::string& type = "CUBE");
+    void compute_LOL(std::shared_ptr<Matrix<double>> D, const std::string& name, const std::string& type = "CUBE");
     /// Compute an ELF-type property and drop a file corresponding to name and type (TODO: this seems very unstable)
-    void compute_ELF(std::shared_ptr<Matrix> D, const std::string& name, const std::string& type = "CUBE");
+    void compute_ELF(std::shared_ptr<Matrix<double>> D, const std::string& name, const std::string& type = "CUBE");
 
     /// Compute the isocountour range that capture a given fraction of a property. Exponent is used
     /// to properly compute the density. E.g. for orbitals exponent = 2, for densities exponent = 1

@@ -44,20 +44,20 @@ class RBase : public Wavefunction {
     int print_;
     int bench_;
 
-    SharedMatrix C_;
+    SharedMatrix<double> C_;
 
-    SharedMatrix Cocc_;
-    SharedMatrix Cfocc_;
-    SharedMatrix Cfvir_;
-    SharedMatrix Caocc_;
-    SharedMatrix Cavir_;
+    SharedMatrix<double> Cocc_;
+    SharedMatrix<double> Cfocc_;
+    SharedMatrix<double> Cfvir_;
+    SharedMatrix<double> Caocc_;
+    SharedMatrix<double> Cavir_;
 
     std::shared_ptr<Vector> eps_focc_;
     std::shared_ptr<Vector> eps_fvir_;
     std::shared_ptr<Vector> eps_aocc_;
     std::shared_ptr<Vector> eps_avir_;
 
-    SharedMatrix AO2USO_;
+    SharedMatrix<double> AO2USO_;
 
     /// How far to converge the two-norm of the residual
     double convergence_;
@@ -102,12 +102,12 @@ class RBase : public Wavefunction {
     void set_convergence(double convergence) { convergence_ = convergence; }
 
     /// Set reference info
-    void set_C(SharedMatrix C) { C_ = C; }
-    void set_Cocc(SharedMatrix Cocc) { Cocc_ = Cocc; }
-    void set_Cfocc(SharedMatrix Cfocc) { Cfocc_ = Cfocc; }
-    void set_Caocc(SharedMatrix Caocc) { Caocc_ = Caocc; }
-    void set_Cavir(SharedMatrix Cavir) { Cavir_ = Cavir; }
-    void set_Cfvir(SharedMatrix Cfvir) { Cfvir_ = Cfvir; }
+    void set_C(SharedMatrix<double> C) { C_ = C; }
+    void set_Cocc(SharedMatrix<double> Cocc) { Cocc_ = Cocc; }
+    void set_Cfocc(SharedMatrix<double> Cfocc) { Cfocc_ = Cfocc; }
+    void set_Caocc(SharedMatrix<double> Caocc) { Caocc_ = Caocc; }
+    void set_Cavir(SharedMatrix<double> Cavir) { Cavir_ = Cavir; }
+    void set_Cfvir(SharedMatrix<double> Cfvir) { Cfvir_ = Cfvir; }
     void set_eps_focc(SharedVector eps) { eps_focc_ = eps; }
     void set_eps_aocc(SharedVector eps) { eps_aocc_ = eps; }
     void set_eps_avir(SharedVector eps) { eps_avir_ = eps; }
@@ -122,10 +122,10 @@ class RBase : public Wavefunction {
 
 class RTDHF : public RBase {
    protected:
-    std::vector<SharedMatrix> singlets_X_;
-    std::vector<SharedMatrix> triplets_X_;
-    std::vector<SharedMatrix> singlets_Y_;
-    std::vector<SharedMatrix> triplets_Y_;
+    std::vector<SharedMatrix<double>> singlets_X_;
+    std::vector<SharedMatrix<double>> triplets_X_;
+    std::vector<SharedMatrix<double>> singlets_Y_;
+    std::vector<SharedMatrix<double>> triplets_Y_;
     std::vector<double> E_singlets_;
     std::vector<double> E_triplets_;
 
@@ -141,9 +141,9 @@ class RTDHF : public RBase {
 class RCPHF : public RBase {
    protected:
     // OV-Rotations
-    std::map<std::string, SharedMatrix> x_;
+    std::map<std::string, SharedMatrix<double>> x_;
     // OV-Perturbations
-    std::map<std::string, SharedMatrix> b_;
+    std::map<std::string, SharedMatrix<double>> b_;
 
     virtual void print_header();
 
@@ -163,9 +163,9 @@ class RCPHF : public RBase {
     double compute_energy() override;
 
     /// Perturbation vector queue, shove tasks onto this guy before compute_energy
-    std::map<std::string, SharedMatrix>& b() { return b_; }
+    std::map<std::string, SharedMatrix<double>>& b() { return b_; }
     /// Resultant solution vectors, available after compute_energy is called
-    std::map<std::string, SharedMatrix>& x() { return x_; }
+    std::map<std::string, SharedMatrix<double>>& x() { return x_; }
 
     /// Add a named task
     void add_task(const std::string& task);

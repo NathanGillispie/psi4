@@ -56,7 +56,7 @@ class PSI_API FittingMetric {
     double omega_;
 
     /// The fitting metric or symmetric inverse
-    SharedMatrix metric_;
+    SharedMatrix<double> metric_;
     /// The indices (per irrep) of pivots
     std::shared_ptr<IntVector> pivots_;
     /// The indices (per irrep) of reverse pivots
@@ -89,7 +89,7 @@ class PSI_API FittingMetric {
     bool is_inverted() const { return is_inverted_; }
 
     /// The fitting metric or symmetric inverse
-    SharedMatrix get_metric() const { return metric_; }
+    SharedMatrix<double> get_metric() const { return metric_; }
     /// The vector of pivots (for stability) (pivoted->global)
     std::shared_ptr<IntVector> get_pivots() const { return pivots_; }
     /// The vector of back pivots (for stability) (global->pivoted)
@@ -133,14 +133,14 @@ class PSI_API DFTensor {
     Options& options_;
 
     /// Symmetric inverse fitting metric
-    SharedMatrix metric_;
+    SharedMatrix<double> metric_;
 
     /// Full C matrix (must provide orthonormal MO basis)
-    SharedMatrix C_;
+    SharedMatrix<double> C_;
     /// Active occupied C Matrix (for convenience)
-    SharedMatrix Caocc_;
+    SharedMatrix<double> Caocc_;
     /// Active virtual C Matrix (for convenience)
-    SharedMatrix Cavir_;
+    SharedMatrix<double> Cavir_;
 
     /// Number of AO primary functions
     int nbf_;
@@ -168,24 +168,24 @@ class PSI_API DFTensor {
     void print_header();
 
    public:
-    DFTensor(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary, SharedMatrix C, int nocc, int nvir,
+    DFTensor(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary, SharedMatrix<double> C, int nocc, int nvir,
              int naocc, int navir, Options& options);
 
     /**
     * Assumes all orbitals are active and pull options from enviroment
     **/
-    DFTensor(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary, SharedMatrix C, int nocc,
+    DFTensor(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary, SharedMatrix<double> C, int nocc,
              int nvir);
     ~DFTensor();
 
-    SharedMatrix Qso();
-    SharedMatrix Qmo();
-    SharedMatrix Qoo();
-    SharedMatrix Qov();
-    SharedMatrix Qvv();
+    SharedMatrix<double> Qso();
+    SharedMatrix<double> Qmo();
+    SharedMatrix<double> Qoo();
+    SharedMatrix<double> Qov();
+    SharedMatrix<double> Qvv();
 
-    SharedMatrix Imo();
-    SharedMatrix Idfmo();
+    SharedMatrix<double> Imo();
+    SharedMatrix<double> Idfmo();
 };
 }
 #endif

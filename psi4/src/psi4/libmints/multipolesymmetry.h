@@ -101,7 +101,7 @@ class PSI_API OperatorSymmetry {
     std::string name_of_component(int i);
     int component_symmetry(int i) const { return component_symmetry_[i]; }
 
-    std::vector<SharedMatrix> create_matrices(const std::string& basename);
+    std::vector<SharedMatrix<double>> create_matrices(const std::string& basename);
 };
 
 class PSI_API MultipoleSymmetry {
@@ -152,7 +152,7 @@ class PSI_API MultipoleSymmetry {
     int address_of_component(int lx, int ly, int lz);
     int component_symmetry(int i) const { return component_symmetry_[i]; }
 
-    std::vector<SharedMatrix> create_matrices(const std::string& basename, bool ignore_symmetry = false);
+    std::vector<SharedMatrix<double>> create_matrices(const std::string& basename, bool ignore_symmetry = false);
 };
 }  // namespace psi
 

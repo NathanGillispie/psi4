@@ -59,9 +59,9 @@ class PSI_API BasisFunctions {
     int deriv_;
     /// Map of value names to Matrices containing values
     /// PHI : values of AOs at points in space
-    std::map<std::string, SharedMatrix> basis_values_;
+    std::map<std::string, SharedMatrix<double>> basis_values_;
     /// Map of temp names to Matrices containing temps
-    std::map<std::string, SharedMatrix> basis_temps_;
+    std::map<std::string, SharedMatrix<double>> basis_temps_;
     /// Allocate registers
     virtual void allocate();
 
@@ -78,8 +78,8 @@ class PSI_API BasisFunctions {
 
     // => Accessors <= //
 
-    SharedMatrix basis_value(const std::string& key) { return basis_values_[key]; }
-    std::map<std::string, SharedMatrix>& basis_values() { return basis_values_; }
+    SharedMatrix<double> basis_value(const std::string& key) { return basis_values_[key]; }
+    std::map<std::string, SharedMatrix<double>>& basis_values() { return basis_values_; }
 
     int max_functions() const { return max_functions_; }
     int max_points() const { return max_points_; }
@@ -111,10 +111,10 @@ class PointFunctions : public BasisFunctions {
     size_t block_index_;
 
     // Contains a map to the cache the global basis_values
-    std::unordered_map<size_t, std::map<std::string, SharedMatrix>>* cache_map_ = nullptr;
+    std::unordered_map<size_t, std::map<std::string, SharedMatrix<double>>>* cache_map_ = nullptr;
 
     // Contains a pointer to the current map to use for basis_values
-    std::map<std::string, SharedMatrix>* current_basis_map_ = nullptr;
+    std::map<std::string, SharedMatrix<double>>* current_basis_map_ = nullptr;
 
     /// Ansatz (0 - LSDA, 1 - GGA, 2 - Meta-GGA)
     int ansatz_;
@@ -124,7 +124,7 @@ class PointFunctions : public BasisFunctions {
     // => Orbital Collocation <= //
 
     /// Map of value names to Matrices containing values
-    std::map<std::string, std::shared_ptr<Matrix>> orbital_values_;
+    std::map<std::string, std::shared_ptr<Matrix<double>>> orbital_values_;
 
    public:
     // => Constructors <= //
@@ -133,7 +133,7 @@ class PointFunctions : public BasisFunctions {
     ~PointFunctions() override;
 
     // => Setters <= //
-    void set_cache_map(std::unordered_map<size_t, std::map<std::string, SharedMatrix>>* cache_map) {
+    void set_cache_map(std::unordered_map<size_t, std::map<std::string, SharedMatrix<double>>>* cache_map) {
         cache_map_ = cache_map;
     }
 
@@ -148,11 +148,11 @@ class PointFunctions : public BasisFunctions {
     std::shared_ptr<Vector> point_value(const std::string& key);
     std::map<std::string, SharedVector>& point_values() { return point_values_; }
 
-    SharedMatrix basis_value(const std::string& key) { return (*current_basis_map_)[key]; }
-    std::map<std::string, SharedMatrix>& basis_values() { return (*current_basis_map_); }
+    SharedMatrix<double> basis_value(const std::string& key) { return (*current_basis_map_)[key]; }
+    std::map<std::string, SharedMatrix<double>>& basis_values() { return (*current_basis_map_); }
 
-    virtual std::vector<SharedMatrix> scratch() = 0;
-    virtual std::vector<SharedMatrix> D_scratch() = 0;
+    virtual std::vector<SharedMatrix<double>> scratch() = 0;
+    virtual std::vector<SharedMatrix<double>> D_scratch() = 0;
 
     int ansatz() const { return ansatz_; }
 
@@ -163,17 +163,17 @@ class PointFunctions : public BasisFunctions {
         deriv_ = ansatz;
         allocate();
     }
-    virtual void set_pointers(SharedMatrix Da_occ_AO) = 0;
-    virtual void set_pointers(SharedMatrix Da_occ_AO, SharedMatrix Db_occ_AO) = 0;
+    virtual void set_pointers(SharedMatrix<double> Da_occ_AO) = 0;
+    virtual void set_pointers(SharedMatrix<double> Da_occ_AO, SharedMatrix<double> Db_occ_AO) = 0;
 
     // => Orbital Collocation <= //
 
-    std::shared_ptr<Matrix> orbital_value(const std::string& key);
-    std::map<std::string, SharedMatrix>& orbital_values() { return orbital_values_; }
+    std::shared_ptr<Matrix<double>> orbital_value(const std::string& key);
+    std::map<std::string, SharedMatrix<double>>& orbital_values() { return orbital_values_; }
 
     virtual void compute_orbitals(std::shared_ptr<BlockOPoints> block, bool force_compute = true) = 0;
-    virtual void set_Cs(SharedMatrix Cocc) = 0;
-    virtual void set_Cs(SharedMatrix Caocc, SharedMatrix Cbocc) = 0;
+    virtual void set_Cs(SharedMatrix<double> Cocc) = 0;
+    virtual void set_Cs(SharedMatrix<double> Caocc, SharedMatrix<double> Cbocc) = 0;
 };
 
 class SAPFunctions : public PointFunctions {
@@ -181,7 +181,7 @@ class SAPFunctions : public PointFunctions {
     // => Temps <= //
 
     /// Buffer for half-transform
-    SharedMatrix temp_;
+    SharedMatrix<double> temp_;
     /// Build temporary work arrays
     void build_temps();
     /// Allocate registers
@@ -191,16 +191,16 @@ class SAPFunctions : public PointFunctions {
     SAPFunctions(std::shared_ptr<BasisSet> primary, int max_points, int max_functions);
     ~SAPFunctions() override;
     void compute_points(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
-    std::vector<SharedMatrix> scratch() override;
+    std::vector<SharedMatrix<double>> scratch() override;
     void print(std::string out_fname = "outfile", int print = 2) const override;
     size_t block_index() { return block_index_; }
     // Dummy functions
-    std::vector<SharedMatrix> D_scratch() override;
+    std::vector<SharedMatrix<double>> D_scratch() override;
     void compute_orbitals(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
-    void set_Cs(SharedMatrix Cocc) override;
-    void set_Cs(SharedMatrix Caocc, SharedMatrix Cbocc) override;
-    void set_pointers(SharedMatrix Da_occ_AO) override;
-    void set_pointers(SharedMatrix Da_occ_AO, SharedMatrix Db_occ_AO) override;
+    void set_Cs(SharedMatrix<double> Cocc) override;
+    void set_Cs(SharedMatrix<double> Caocc, SharedMatrix<double> Cbocc) override;
+    void set_pointers(SharedMatrix<double> Da_occ_AO) override;
+    void set_pointers(SharedMatrix<double> Da_occ_AO, SharedMatrix<double> Db_occ_AO) override;
 };
 
 class RKSFunctions : public PointFunctions {
@@ -208,14 +208,14 @@ class RKSFunctions : public PointFunctions {
     // => Pointers <= //
 
     /// Density matrix, AO
-    SharedMatrix D_AO_;
+    SharedMatrix<double> D_AO_;
 
     // => Temps <= //
 
     /// Buffer for half-transform
-    SharedMatrix temp_;
+    SharedMatrix<double> temp_;
     /// Local D matrix
-    SharedMatrix D_local_;
+    SharedMatrix<double> D_local_;
 
     /// Build temporary work arrays
     void build_temps();
@@ -225,16 +225,16 @@ class RKSFunctions : public PointFunctions {
     // => Orbital Collocation <= //
 
     /// Orbital coefficients, AO
-    SharedMatrix C_AO_;
+    SharedMatrix<double> C_AO_;
     /// Orbital coefficeints, local AO
-    SharedMatrix C_local_;
+    SharedMatrix<double> C_local_;
 
    public:
     RKSFunctions(std::shared_ptr<BasisSet> primary, int max_points, int max_functions);
     ~RKSFunctions() override;
 
-    void set_pointers(SharedMatrix Da_occ_AO) override;
-    void set_pointers(SharedMatrix Da_occ_AO, SharedMatrix Db_occ_AO) override;
+    void set_pointers(SharedMatrix<double> Da_occ_AO) override;
+    void set_pointers(SharedMatrix<double> Da_occ_AO, SharedMatrix<double> Db_occ_AO) override;
 
     /// Compute the needed DFT intermediates at the points in the block.
     /// "Which DFT intermediates are needed?" is determined from ansatz_.
@@ -243,14 +243,14 @@ class RKSFunctions : public PointFunctions {
     /// GAMMA_AA : Spin-summed density gradient dotted with itself
     void compute_points(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
 
-    std::vector<SharedMatrix> scratch() override;
-    std::vector<SharedMatrix> D_scratch() override;
+    std::vector<SharedMatrix<double>> scratch() override;
+    std::vector<SharedMatrix<double>> D_scratch() override;
 
     void print(std::string out_fname = "outfile", int print = 2) const override;
 
     void compute_orbitals(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
-    void set_Cs(SharedMatrix Cocc) override;
-    void set_Cs(SharedMatrix Caocc, SharedMatrix Cbocc) override;
+    void set_Cs(SharedMatrix<double> Cocc) override;
+    void set_Cs(SharedMatrix<double> Caocc, SharedMatrix<double> Cbocc) override;
     size_t block_index() { return block_index_; }
 };
 
@@ -259,20 +259,20 @@ class UKSFunctions : public PointFunctions {
     // => Pointers <= //
 
     /// Density matrix, AO
-    SharedMatrix Da_AO_;
+    SharedMatrix<double> Da_AO_;
     /// Density matrix, AO
-    SharedMatrix Db_AO_;
+    SharedMatrix<double> Db_AO_;
 
     // => Temps <= //
 
     /// Buffer for half-transform
-    SharedMatrix tempa_;
+    SharedMatrix<double> tempa_;
     /// Buffer for half-transform
-    SharedMatrix tempb_;
+    SharedMatrix<double> tempb_;
     /// Local D matrix
-    SharedMatrix Da_local_;
+    SharedMatrix<double> Da_local_;
     /// Local D matrix
-    SharedMatrix Db_local_;
+    SharedMatrix<double> Db_local_;
 
     /// Build temporary work arrays
     void build_temps();
@@ -282,21 +282,21 @@ class UKSFunctions : public PointFunctions {
     // => Orbital Collocation <= //
 
     /// Orbital coefficients, AO
-    SharedMatrix Ca_AO_;
+    SharedMatrix<double> Ca_AO_;
     /// Orbital coefficients, AO
-    SharedMatrix Cb_AO_;
+    SharedMatrix<double> Cb_AO_;
     /// Orbital coefficients, local AO
-    SharedMatrix Ca_local_;
+    SharedMatrix<double> Ca_local_;
     /// Orbital coefficients, local AO
-    SharedMatrix Cb_local_;
+    SharedMatrix<double> Cb_local_;
 
    public:
     UKSFunctions(std::shared_ptr<BasisSet> primary, int max_points, int max_functions);
     ~UKSFunctions() override;
 
-    void set_pointers(SharedMatrix Da_occ_AO) override;
-    void set_pointers(SharedMatrix Da_occ_AO, SharedMatrix Db_occ_AO) override;
-    void set_cache_map(std::unordered_map<size_t, std::map<std::string, SharedMatrix>>* cache_map) {
+    void set_pointers(SharedMatrix<double> Da_occ_AO) override;
+    void set_pointers(SharedMatrix<double> Da_occ_AO, SharedMatrix<double> Db_occ_AO) override;
+    void set_cache_map(std::unordered_map<size_t, std::map<std::string, SharedMatrix<double>>>* cache_map) {
         cache_map_ = cache_map;
     }
 
@@ -307,14 +307,14 @@ class UKSFunctions : public PointFunctions {
     /// GAMMA_AA | GAMMA_AB | GAMMA_BB : Spindensity gradients dotted together
     void compute_points(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
 
-    std::vector<SharedMatrix> scratch() override;
-    std::vector<SharedMatrix> D_scratch() override;
+    std::vector<SharedMatrix<double>> scratch() override;
+    std::vector<SharedMatrix<double>> D_scratch() override;
 
     void print(std::string out_fname = "outfile", int print = 2) const override;
 
     void compute_orbitals(std::shared_ptr<BlockOPoints> block, bool force_compute = true) override;
-    void set_Cs(SharedMatrix Cocc) override;
-    void set_Cs(SharedMatrix Caocc, SharedMatrix Cbocc) override;
+    void set_Cs(SharedMatrix<double> Cocc) override;
+    void set_Cs(SharedMatrix<double> Caocc, SharedMatrix<double> Cbocc) override;
     size_t block_index() { return block_index_; }
 };
 }  // namespace psi

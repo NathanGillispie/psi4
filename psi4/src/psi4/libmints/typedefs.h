@@ -43,12 +43,14 @@
 
 // Forward declare psi
 namespace psi {
+template <typename T>
 class Matrix;
 class Vector;
 class IntVector;
 class Wavefunction;
 class Molecule;
-using SharedMatrix = std::shared_ptr<Matrix>;
+template <typename T>
+using SharedMatrix = std::shared_ptr<Matrix<T>>;
 using SharedVector = std::shared_ptr<Vector>;
 using SharedIntVector = std::shared_ptr<IntVector>;
 using SharedWavefunction = std::shared_ptr<Wavefunction>;

@@ -41,6 +41,7 @@
 namespace psi {
 class Molecule;
 class Wavefunction;
+template <typename T>
 class Matrix;
 
 class PSI_API Process {
@@ -80,7 +81,7 @@ class PSI_API Process {
         std::map<std::string, double> globals;
 
         /// Map containing current arrays
-        std::map<std::string, std::shared_ptr<Matrix> > arrays;
+        std::map<std::string, std::shared_ptr<Matrix<double>> > arrays;
 
         /// Number of threads per process
         int get_n_threads() const;

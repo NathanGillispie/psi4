@@ -40,7 +40,6 @@
 #include "psi4/libpsio/psio.hpp"
 #include "psi4/libiwl/iwl.hpp"
 #include "psi4/libqt/qt.h"
-#include "psi4/libmints/matrix.h"
 #include "psi4/libmints/integral.h"
 #include "psi4/libdpd/dpd.h"
 #include "psi4/libpsi4util/PsiOutStream.h"
@@ -70,16 +69,20 @@ extern int str_to_int(const std::string &s);
 
 extern double str_to_double(const std::string &s);
 
-Matrix::Matrix() {
+
+template <typename T>
+Matrix<T>::Matrix() {
     matrix_ = nullptr;
     nirrep_ = 0;
     symmetry_ = 0;
 }
 
-Matrix::Matrix(const std::string &name, int symmetry)
+template <typename T>
+Matrix<T>::Matrix(const std::string &name, int symmetry)
     : matrix_(nullptr), nirrep_(0), name_(name), symmetry_(symmetry) {}
 
-Matrix::Matrix(const Matrix &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
+template <typename T>
+Matrix<T>::Matrix(const Matrix<T> &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
     matrix_ = nullptr;
     nirrep_ = c.nirrep_;
     symmetry_ = c.symmetry_;
@@ -88,7 +91,8 @@ Matrix::Matrix(const Matrix &c) : rowspi_(c.rowspi_), colspi_(c.colspi_) {
     copy_from(c.matrix_);
 }
 
-Matrix &Matrix::operator=(const Matrix &c) {
+template <typename T>
+Matrix<T> &Matrix<T>::operator=(const Matrix<T> &c) {
     release();
     nirrep_ = c.nirrep_;
     symmetry_ = c.symmetry_;
@@ -101,7 +105,8 @@ Matrix &Matrix::operator=(const Matrix &c) {
     return *this;
 }
 
-Matrix::Matrix(const SharedMatrix &c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
+template <typename T>
+Matrix<T>::Matrix(const SharedMatrix<T> &c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
     matrix_ = nullptr;
     nirrep_ = c->nirrep_;
     symmetry_ = c->symmetry_;
@@ -110,7 +115,8 @@ Matrix::Matrix(const SharedMatrix &c) : rowspi_(c->rowspi_), colspi_(c->colspi_)
     copy_from(c->matrix_);
 }
 
-Matrix::Matrix(const Matrix *c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
+template <typename T>
+Matrix<T>::Matrix(const Matrix<T> *c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
     matrix_ = nullptr;
     nirrep_ = c->nirrep_;
     symmetry_ = c->symmetry_;
@@ -119,7 +125,8 @@ Matrix::Matrix(const Matrix *c) : rowspi_(c->rowspi_), colspi_(c->colspi_) {
     copy_from(c->matrix_);
 }
 
-Matrix::Matrix(int l_nirreps, const int *l_rowspi, const int *l_colspi, int symmetry)
+template <typename T>
+Matrix<T>::Matrix(int l_nirreps, const int *l_rowspi, const int *l_colspi, int symmetry)
     : rowspi_(l_nirreps), colspi_(l_nirreps) {
     matrix_ = nullptr;
     nirrep_ = l_nirreps;
@@ -129,7 +136,8 @@ Matrix::Matrix(int l_nirreps, const int *l_rowspi, const int *l_colspi, int symm
     alloc();
 }
 
-Matrix::Matrix(const std::string &name, int l_nirreps, const int *l_rowspi, const int *l_colspi, int symmetry)
+template <typename T>
+Matrix<T>::Matrix(const std::string &name, int l_nirreps, const int *l_rowspi, const int *l_colspi, int symmetry)
     : rowspi_(l_nirreps), colspi_(l_nirreps), name_(name) {
     matrix_ = nullptr;
     nirrep_ = l_nirreps;
@@ -139,7 +147,8 @@ Matrix::Matrix(const std::string &name, int l_nirreps, const int *l_rowspi, cons
     alloc();
 }
 
-Matrix::Matrix(const std::string &name, int rows, int cols) : rowspi_(1), colspi_(1), name_(name) {
+template <typename T>
+Matrix<T>::Matrix(const std::string &name, int rows, int cols) : rowspi_(1), colspi_(1), name_(name) {
     matrix_ = nullptr;
     nirrep_ = 1;
     symmetry_ = 0;
@@ -148,7 +157,8 @@ Matrix::Matrix(const std::string &name, int rows, int cols) : rowspi_(1), colspi
     alloc();
 }
 
-Matrix::Matrix(int rows, int cols) : rowspi_(1), colspi_(1) {
+template <typename T>
+Matrix<T>::Matrix(int rows, int cols) : rowspi_(1), colspi_(1) {
     matrix_ = nullptr;
     nirrep_ = 1;
     symmetry_ = 0;
@@ -157,7 +167,8 @@ Matrix::Matrix(int rows, int cols) : rowspi_(1), colspi_(1) {
     alloc();
 }
 
-Matrix::Matrix(int nirrep, int rows, const int *colspi) : rowspi_(nirrep), colspi_(nirrep) {
+template <typename T>
+Matrix<T>::Matrix(int nirrep, int rows, const int *colspi) : rowspi_(nirrep), colspi_(nirrep) {
     matrix_ = nullptr;
     symmetry_ = 0;
     nirrep_ = nirrep;
@@ -168,7 +179,8 @@ Matrix::Matrix(int nirrep, int rows, const int *colspi) : rowspi_(nirrep), colsp
     alloc();
 }
 
-Matrix::Matrix(int nirrep, const int *rowspi, int cols) : rowspi_(nirrep), colspi_(nirrep) {
+template <typename T>
+Matrix<T>::Matrix(int nirrep, const int *rowspi, int cols) : rowspi_(nirrep), colspi_(nirrep) {
     matrix_ = nullptr;
     symmetry_ = 0;
     nirrep_ = nirrep;
@@ -179,7 +191,8 @@ Matrix::Matrix(int nirrep, const int *rowspi, int cols) : rowspi_(nirrep), colsp
     alloc();
 }
 
-Matrix::Matrix(const std::string &name, const Dimension &rows, const Dimension &cols, int symmetry) {
+template <typename T>
+Matrix<T>::Matrix(const std::string &name, const Dimension &rows, const Dimension &cols, int symmetry) {
     name_ = name;
     matrix_ = nullptr;
     symmetry_ = symmetry;
@@ -206,7 +219,8 @@ Matrix::Matrix(const std::string &name, const Dimension &rows, const Dimension &
     alloc();
 }
 
-Matrix::Matrix(const Dimension &rows, const Dimension &cols, int symmetry) {
+template <typename T>
+Matrix<T>::Matrix(const Dimension &rows, const Dimension &cols, int symmetry) {
     matrix_ = nullptr;
     symmetry_ = symmetry;
 
@@ -232,7 +246,8 @@ Matrix::Matrix(const Dimension &rows, const Dimension &cols, int symmetry) {
     alloc();
 }
 
-Matrix::Matrix(dpdfile2 *inFile)
+template <typename T>
+Matrix<T>::Matrix(dpdfile2 *inFile)
     : rowspi_(inFile->params->nirreps), colspi_(inFile->params->nirreps), name_(inFile->label) {
     global_dpd_->file2_mat_init(inFile);
     global_dpd_->file2_mat_rd(inFile);
@@ -248,7 +263,8 @@ Matrix::Matrix(dpdfile2 *inFile)
     global_dpd_->file2_mat_close(inFile);
 }
 
-Matrix::Matrix(dpdbuf4 *inBuf)
+template <typename T>
+Matrix<T>::Matrix(dpdbuf4 *inBuf)
     : rowspi_(inBuf->params->nirreps), colspi_(inBuf->params->nirreps), name_(inBuf->file.label) {
     if (inBuf->file.my_irrep != 0) {
         // In theory, this check isn't necessary, but not totally symmetric cases aren't currently tested.
@@ -278,9 +294,11 @@ Matrix::Matrix(dpdbuf4 *inBuf)
     }
 }
 
-Matrix::~Matrix() { release(); }
+template <typename T>
+Matrix<T>::~Matrix() { release(); }
 
-void Matrix::init(int l_nirreps, const int *l_rowspi, const int *l_colspi, const std::string &name, int symmetry) {
+template <typename T>
+void Matrix<T>::init(int l_nirreps, const int *l_rowspi, const int *l_colspi, const std::string &name, int symmetry) {
     name_ = name;
     symmetry_ = symmetry;
     nirrep_ = l_nirreps;
@@ -293,7 +311,8 @@ void Matrix::init(int l_nirreps, const int *l_rowspi, const int *l_colspi, const
     alloc();
 }
 
-void Matrix::init(const Dimension &l_rowspi, const Dimension &l_colspi, const std::string &name, int symmetry) {
+template <typename T>
+void Matrix<T>::init(const Dimension &l_rowspi, const Dimension &l_colspi, const std::string &name, int symmetry) {
     if (l_rowspi.n() != l_colspi.n()) throw PSIEXCEPTION("Matrix rows and columns have different numbers of irreps!\n");
 
     name_ = name;
@@ -308,12 +327,14 @@ void Matrix::init(const Dimension &l_rowspi, const Dimension &l_colspi, const st
     alloc();
 }
 
-SharedMatrix Matrix::clone() const {
-    auto temp = std::make_shared<Matrix>(this);
+template <typename T>
+SharedMatrix<T> Matrix<T>::clone() const {
+    auto temp = std::make_shared<Matrix<T>>(this);
     return temp;
 }
 
-void Matrix::copy(const Matrix *cp) {
+template <typename T>
+void Matrix<T>::copy(const Matrix<T> *cp) {
     // Make sure we are the same size as cp
     bool same = true;
     if (nirrep_ != cp->nirrep_ || symmetry_ != cp->symmetry_) {
@@ -344,7 +365,8 @@ void Matrix::copy(const Matrix *cp) {
     }
 }
 
-SharedMatrix Matrix::matrix_3d_rotation(Vector3 axis, double phi, bool Sn) {
+template <typename T>
+SharedMatrix<T> Matrix<T>::matrix_3d_rotation(Vector3 axis, double phi, bool Sn) {
     if (ncol() != 3) throw PSIEXCEPTION("Can only rotate matrix with 3d vectors");
 
     // Normalize rotation vector
@@ -359,7 +381,7 @@ SharedMatrix Matrix::matrix_3d_rotation(Vector3 axis, double phi, bool Sn) {
     wz = axis[2];
     cp = 1.0 - cos(phi);
 
-    Matrix R("Rotation Matrix", 3, 3);
+    Matrix<T> R("Rotation Matrix", 3, 3);
     R(0, 0) = cos(phi) + wx * wx * cp;
     R(0, 1) = -wz * sin(phi) + wx * wy * cp;
     R(0, 2) = wy * sin(phi) + wx * wz * cp;
@@ -371,7 +393,7 @@ SharedMatrix Matrix::matrix_3d_rotation(Vector3 axis, double phi, bool Sn) {
     R(2, 2) = cos(phi) + wz * wz * cp;
 
     //  R * coord^t = R_coord^t or coord * R^t = R_coord
-    Matrix rotated_coord(nrow(), 3);
+    Matrix<T> rotated_coord(nrow(), 3);
     rotated_coord.gemm(false, true, 1.0, *this, R, 0.0);
 
     if (Sn) {  // delta_ij - 2 a_i a_j / ||a||^2
@@ -382,28 +404,32 @@ SharedMatrix Matrix::matrix_3d_rotation(Vector3 axis, double phi, bool Sn) {
         R(1, 0) = R(0, 1) = 2 * wx * wy;
         R(2, 0) = R(0, 2) = 2 * wx * wz;
         R(2, 1) = R(1, 2) = 2 * wy * wz;
-        Matrix tmp(nrow(), 3);
+        Matrix<T> tmp(nrow(), 3);
         tmp.gemm(false, true, 1.0, rotated_coord, R, 0.0);
         rotated_coord.copy(tmp);
     }
 
-    SharedMatrix to_return = rotated_coord.clone();
+    SharedMatrix<T> to_return = rotated_coord.clone();
     return to_return;
 }
 
-void Matrix::copy_to_row(int h, int row, double const *const data) {
+template <typename T>
+void Matrix<T>::copy_to_row(int h, int row, T const *const data) {
     if (h >= nirrep_ || row >= rowspi_[h]) throw PSIEXCEPTION("Matrix::copy_to_row: Out of bounds.");
 
-    memcpy(matrix_[h][row], data, sizeof(double) * colspi_[h]);
+    memcpy(matrix_[h][row], data, sizeof(T) * colspi_[h]);
 }
 
-void Matrix::copy(const Matrix &cp) { copy(&cp); }
+template <typename T>
+void Matrix<T>::copy(const Matrix<T> &cp) { copy(&cp); }
 
-void Matrix::copy(const SharedMatrix &cp) { copy(cp.get()); }
+template <typename T>
+void Matrix<T>::copy(const SharedMatrix<T> &cp) { copy(cp.get()); }
 
 // produces an Eigen::Map object mapping to the matrix data buffer
 // of a matrix with a single irrep
-Eigen::Map<Eigen::MatrixXd> Matrix::eigen_map() {
+template <typename T>
+Eigen::Map<Eigen::MatrixXd> Matrix<T>::eigen_map() {
     // this function only works with matrices with a single irrep
     if (nirrep() != 1) {
         std::string message = "Matrix::eigen_map() called, but matrix only has one irrep! ";
@@ -425,7 +451,8 @@ Eigen::Map<Eigen::MatrixXd> Matrix::eigen_map() {
 // NOTE: this impl for mapping Psi4 matrices to Eigen maps
 // is currently experimental, as it is unused in the code
 // currently
-std::vector<Eigen::Map<Eigen::MatrixXd>> Matrix::eigen_maps() {
+template <typename T>
+std::vector<Eigen::Map<Eigen::MatrixXd>> Matrix<T>::eigen_maps() {
     std::vector<Eigen::Map<Eigen::MatrixXd>> eigen_maps;
     eigen_maps.reserve(nirrep());
 
@@ -439,7 +466,8 @@ std::vector<Eigen::Map<Eigen::MatrixXd>> Matrix::eigen_maps() {
 }
 
 #ifdef USING_OpenOrbitalOptimizer
-arma::mat Matrix::to_armadillo_matrix(int h) {
+template <typename T>
+arma::mat Matrix<T>::to_armadillo_matrix(int h) {
     int nc = coldim(h);
     int nr = rowdim(h);
     arma::mat m(nr, nc);
@@ -449,7 +477,8 @@ arma::mat Matrix::to_armadillo_matrix(int h) {
     return m;
 }
 
-void Matrix::from_armadillo_matrix(const arma::mat & m, int h) {
+template <typename T>
+void Matrix<T>::from_armadillo_matrix(const arma::mat & m, int h) {
     int nc = coldim(h);
     int nr = rowdim(h);
     for(int ir=0;ir<nr;ir++)
@@ -458,7 +487,8 @@ void Matrix::from_armadillo_matrix(const arma::mat & m, int h) {
 }
 #endif
 
-void Matrix::alloc() {
+template <typename T>
+void Matrix<T>::alloc() {
     if (matrix_) release();
 
     // This is probably a default constructor matrix
@@ -484,7 +514,8 @@ void Matrix::alloc() {
     }
 }
 
-void Matrix::release() {
+template <typename T>
+void Matrix<T>::release() {
     if (!matrix_) return;
 
     for (int h = 0; h < nirrep_; ++h) {
@@ -494,15 +525,17 @@ void Matrix::release() {
     matrix_ = nullptr;
 }
 
-void Matrix::copy_from(double ***c) {
+template <typename T>
+void Matrix<T>::copy_from(T ***c) {
     for (int h = 0; h < nirrep_; ++h) {
-        size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_] * sizeof(double);
+        size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_] * sizeof(T);
         if (size) memcpy(&(matrix_[h][0][0]), &(c[h][0][0]), size);
     }
 }
 
 // Sets all elements of matrix to val
-void Matrix::set(double val) {
+template <typename T>
+void Matrix<T>::set(T val) {
     for (int h = 0; h < nirrep_; ++h) {
         size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_];
 
@@ -512,7 +545,8 @@ void Matrix::set(double val) {
     }
 }
 
-void Matrix::set(const double *const tri) {
+template <typename T>
+void Matrix<T>::set(const T *const tri) {
     int h, i, j, ii, jj;
     int row_offset;
 
@@ -541,7 +575,8 @@ void Matrix::set(const double *const tri) {
     }
 }
 
-void Matrix::set(const double *const *const sq) {
+template <typename T>
+void Matrix<T>::set(const T *const *const sq) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::set called on a non-totally symmetric matrix.");
     }
@@ -565,14 +600,20 @@ void Matrix::set(const double *const *const sq) {
     }
 }
 
-void Matrix::set(const double *const *const sq, int h) {
+template <typename T>
+void Matrix<T>::set(const T *const *const sq, int h) {
     if (sq == nullptr) throw PSIEXCEPTION("Matrix::set: Set call with a nullptr double** matrix");
 
     for (int i = 0; i < rowspi_[h]; i++)
         for (int j = 0; j < colspi_[h]; j++) matrix_[h][i][j] = sq[i][j];
 }
 
-void Matrix::set_diagonal(const Vector *const vec) {
+
+template <typename T>
+void Matrix<T>::set_diagonal(const Vector *const vec) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::set_diagonal(const Vector *const vec) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::set_diagonal called on a non-totally symmetric matrix.");
     }
@@ -587,7 +628,11 @@ void Matrix::set_diagonal(const Vector *const vec) {
     }
 }
 
-void Matrix::set_diagonal(const Vector &vec) {
+template <typename T>
+void Matrix<T>::set_diagonal(const Vector &vec) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::set_diagonal(const Vector &vec) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::set_diagonal called on a non-totally symmetric matrix.");
     }
@@ -602,7 +647,8 @@ void Matrix::set_diagonal(const Vector &vec) {
     }
 }
 
-void Matrix::set_diagonal(const std::shared_ptr<Vector> &vec) {
+template <typename T>
+void Matrix<T>::set_diagonal(const std::shared_ptr<Vector> &vec) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::set_diagonal called on a non-totally symmetric matrix.");
     }
@@ -617,7 +663,8 @@ void Matrix::set_diagonal(const std::shared_ptr<Vector> &vec) {
     }
 }
 
-SharedVector Matrix::get_row(int h, int m) {
+template <typename T>
+SharedVector Matrix<T>::get_row(int h, int m) {
     if (m >= rowspi_[h]) {
         throw PSIEXCEPTION("Matrix::set_row: index is out of bounds.");
     }
@@ -625,12 +672,13 @@ SharedVector Matrix::get_row(int h, int m) {
     vec->zero();
     size_t size = colspi_[h];
     for (size_t i = 0; i < size; ++i) {
-        vec->set(h, i, matrix_[h][m][i]);
+        vec->set(h, i, (T)(matrix_[h][m][i]));
     }
     return vec;
 }
 
-SharedVector Matrix::get_column(int h, int m) {
+template <typename T>
+SharedVector Matrix<T>::get_column(int h, int m) {
     if (m >= colspi_[h]) {
         throw PSIEXCEPTION("Matrix::get_column: index is out of bounds.");
     }
@@ -638,12 +686,16 @@ SharedVector Matrix::get_column(int h, int m) {
     vec->zero();
     size_t size = rowspi_[h];
     for (size_t i = 0; i < size; ++i) {
-        vec->set(h, i, matrix_[h][i][m]);
+        vec->set(h, i, (double)(matrix_[h][i][m]));
     }
     return vec;
 }
 
-void Matrix::set_row(int h, int m, SharedVector vec) {
+template <typename T>
+void Matrix<T>::set_row(int h, int m, SharedVector vec) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::set_row(int h, int m, SharedVector vec) {
     if (m >= rowspi_[h]) {
         throw PSIEXCEPTION("Matrix::set_row: index is out of bounds.");
     }
@@ -653,7 +705,11 @@ void Matrix::set_row(int h, int m, SharedVector vec) {
     }
 }
 
-void Matrix::set_column(int h, int m, SharedVector vec) {
+template <typename T>
+void Matrix<T>::set_column(int h, int m, SharedVector vec) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::set_column(int h, int m, SharedVector vec) {
     if (m >= colspi_[h]) {
         throw PSIEXCEPTION("Matrix::set_column: index is out of bounds.");
     }
@@ -663,7 +719,8 @@ void Matrix::set_column(int h, int m, SharedVector vec) {
     }
 }
 
-SharedMatrix Matrix::get_block(const Slice &rows, const Slice &cols) const {
+template <typename T>
+SharedMatrix<T> Matrix<T>::get_block(const Slice &rows, const Slice &cols) const {
     // check if slices are within bounds
     for (int h = 0; h < nirrep_; h++) {
         if (rows.end()[h] > rowspi_[h]) {
@@ -681,7 +738,7 @@ SharedMatrix Matrix::get_block(const Slice &rows, const Slice &cols) const {
     const auto &cols_begin = cols.begin();
     Dimension block_rows = rows.end() - rows.begin();
     Dimension block_cols = cols.end() - cols.begin();
-    auto block = std::make_shared<Matrix>("Block", block_rows, block_cols, symmetry_);
+    auto block = std::make_shared<Matrix<T>>("Block", block_rows, block_cols, symmetry_);
     for (int h = 0; h < nirrep_; h++) {
         int max_p = block_rows[h];
         int max_q = block_cols[h ^ symmetry_];
@@ -695,19 +752,23 @@ SharedMatrix Matrix::get_block(const Slice &rows, const Slice &cols) const {
     return block;
 }
 
-SharedMatrix Matrix::get_block(const Slice &slice) const {
+template <typename T>
+SharedMatrix<T> Matrix<T>::get_block(const Slice &slice) const {
     return get_block(slice, slice);
 }
 
-void Matrix::set_block(const Slice &rows, const Slice &cols, SharedMatrix block) {
+template <typename T>
+void Matrix<T>::set_block(const Slice &rows, const Slice &cols, SharedMatrix<T> block) {
     set_block(rows, cols, *block);
 }
 
-void Matrix::set_block(const Slice &slice, const Matrix& block) {
+template <typename T>
+void Matrix<T>::set_block(const Slice &slice, const Matrix<T>& block) {
     set_block(slice, slice, block);
 }
 
-void Matrix::set_block(const Slice &rows, const Slice &cols, const Matrix& block) {
+template <typename T>
+void Matrix<T>::set_block(const Slice &rows, const Slice &cols, const Matrix<T>& block) {
     // check if slices are within bounds
     for (int h = 0; h < nirrep_; h++) {
         if (rows.end()[h] > rowspi_[h]) {
@@ -739,7 +800,7 @@ void Matrix::set_block(const Slice &rows, const Slice &cols, const Matrix& block
         int max_q = block_cols[h ^ symmetry_];
         for (int p = 0; p < max_p; p++) {
             for (int q = 0; q < max_q; q++) {
-                double value = block.get(h, p, q);
+                T value = block.get(h, p, q);
                 set(h, p + rows_begin[h], q + cols_begin[h ^ symmetry_], value);
             }
         }
@@ -753,9 +814,11 @@ void Matrix::set_block(const Slice &rows, const Slice &cols, const Matrix& block
  * @param cols Columns slice
  * @return SharedMatrix object
  */
-void set_block(Slice rows, Slice cols, SharedMatrix block);
+template <typename T>
+void set_block(Slice rows, Slice cols, SharedMatrix<T> block);
 
-double *Matrix::to_lower_triangle() const {
+template <typename T>
+T *Matrix<T>::to_lower_triangle() const {
     int sizer = 0, sizec = 0;
     for (int h = 0; h < nirrep_; ++h) {
         sizer += rowspi_[h];
@@ -763,14 +826,15 @@ double *Matrix::to_lower_triangle() const {
     }
     if (sizer != sizec) return nullptr;
 
-    auto *tri = new double[ioff[sizer]];
-    double **temp = to_block_matrix();
+    auto *tri = new T[ioff[sizer]];
+    T **temp = to_block_matrix();
     sq_to_tri(temp, tri, sizer);
     free_block(temp);
     return tri;
 }
 
-double **Matrix::to_block_matrix() const {
+template <typename T>
+T **Matrix<T>::to_block_matrix() const {
     int sizer = 0, sizec = 0;
     for (int h = 0; h < nirrep_; ++h) {
         sizer += rowspi_[h];
@@ -783,7 +847,7 @@ double **Matrix::to_block_matrix() const {
         col_offset[h] = col_offset[h - 1] + colspi_[h - 1];
     }
 
-    double **temp = block_matrix(sizer, sizec);
+    T **temp = block_matrix(sizer, sizec);
     int offsetr = 0, offsetc = 0;
     for (int h = 0; h < nirrep_; ++h) {
         offsetc = col_offset[h ^ symmetry_];
@@ -799,20 +863,22 @@ double **Matrix::to_block_matrix() const {
     return temp;
 }
 
-SharedMatrix Matrix::to_block_sharedmatrix() const {
+template <typename T>
+SharedMatrix<T> Matrix<T>::to_block_sharedmatrix() const {
     int sizer = 0, sizec = 0;
     for (int h = 0; h < nirrep_; ++h) {
         sizer += rowspi_[h];
         sizec += colspi_[h ^ symmetry_];
     }
     auto ret = std::make_shared<Matrix>(name_ + " Block Copy", sizer, sizec);
-    double **temp = to_block_matrix();
+    T **temp = to_block_matrix();
     ret->set(temp, 0);
     free_block(temp);
     return ret;
 }
 
-void Matrix::print_mat(const double *const *const a, int m, int n, std::string out) const {
+template <typename T>
+void Matrix<T>::print_mat(const T *const *const a, int m, int n, std::string out) const {
     std::shared_ptr<psi::PsiOutStream> printer = (out == "outfile" ? outfile : std::make_shared<PsiOutStream>(out));
 
     const int print_ncol = Process::environment.options.get_int("MAT_NUM_COLUMN_PRINT");
@@ -871,7 +937,8 @@ void Matrix::print_mat(const double *const *const a, int m, int n, std::string o
     // R.I.P. goto statements - Aug 4th 2010 - MSM
 }
 
-void Matrix::print(std::string out, const char *extra) const {
+template <typename T>
+void Matrix<T>::print(std::string out, const char *extra) const {
     std::shared_ptr<psi::PsiOutStream> printer = (out == "outfile" ? outfile : std::make_shared<PsiOutStream>(out));
     if (name_.length()) {
         if (extra == nullptr)
@@ -890,7 +957,8 @@ void Matrix::print(std::string out, const char *extra) const {
     }
 }
 
-void Matrix::print_to_mathematica() {
+template <typename T>
+void Matrix<T>::print_to_mathematica() {
     if (name_.length())
         outfile->Printf("  ## %s in Mathematica form ##\n", name_.c_str());
     else
@@ -916,7 +984,8 @@ void Matrix::print_to_mathematica() {
     outfile->Printf("}\n");
 }
 
-void Matrix::print_atom_vector(std::string out) {
+template <typename T>
+void Matrix<T>::print_atom_vector(std::string out) {
     int i;
     std::shared_ptr<psi::PsiOutStream> printer = (out == "outfile" ? outfile : std::make_shared<PsiOutStream>(out));
     if (name_.length()) {
@@ -933,7 +1002,8 @@ void Matrix::print_atom_vector(std::string out) {
     printer->Printf("\n");
 }
 
-void Matrix::eivprint(const Vector *const values, std::string out) {
+template <typename T>
+void Matrix<T>::eivprint(const Vector *const values, std::string out) {
     std::shared_ptr<psi::PsiOutStream> printer = (out == "outfile" ? outfile : std::make_shared<PsiOutStream>(out));
     if (symmetry_)
         throw PSIEXCEPTION("Matrix::eivprint: This print does not make sense for non-totally symmetric matrices.");
@@ -949,11 +1019,14 @@ void Matrix::eivprint(const Vector *const values, std::string out) {
     }
 }
 
-void Matrix::eivprint(const Vector &values, std::string out) { eivprint(&values, out); }
+template <typename T>
+void Matrix<T>::eivprint(const Vector &values, std::string out) { eivprint(&values, out); }
 
-void Matrix::eivprint(const std::shared_ptr<Vector> &values, std::string out) { eivprint(values.get(), out); }
+template <typename T>
+void Matrix<T>::eivprint(const std::shared_ptr<Vector> &values, std::string out) { eivprint(values.get(), out); }
 
-void Matrix::symmetrize_gradient(std::shared_ptr<Molecule> molecule) {
+template <typename T>
+void Matrix<T>::symmetrize_gradient(std::shared_ptr<Molecule> molecule) {
     if (nirrep_ > 1 || rowspi_[0] != molecule->natom() || colspi_[0] != 3)
         throw PSIEXCEPTION("Molecule::symmetrize_gradient: Matrix cannot be symmetrized.");
 
@@ -963,9 +1036,9 @@ void Matrix::symmetrize_gradient(std::shared_ptr<Molecule> molecule) {
     // Obtain atom mapping of atom * symm op to atom
     auto atom_map = compute_atom_map(molecule);
 
-    SharedMatrix ret(clone());
+    SharedMatrix<T> ret(clone());
     ret->zero();
-    Matrix temp = *this;
+    Matrix<T> temp = *this;
 
     // Symmetrize the gradients to remove any noise
     for (int atom = 0; atom < molecule->natom(); ++atom) {
@@ -990,7 +1063,8 @@ void Matrix::symmetrize_gradient(std::shared_ptr<Molecule> molecule) {
     copy(ret);
     ret.reset();
 }
-void Matrix::symmetrize_hessian(SharedMolecule molecule) {
+template <typename T>
+void Matrix<T>::symmetrize_hessian(SharedMolecule molecule) {
     if ((nirrep() > 1) || (rowdim() != coldim()) || (rowdim() != 3 * molecule->natom())) {
         throw PSIEXCEPTION("Matrix::symmetrize_hessian: Matrix cannot be symmetrized.");
     }
@@ -999,10 +1073,10 @@ void Matrix::symmetrize_hessian(SharedMolecule molecule) {
 
     auto atom_map = compute_atom_map(molecule);
 
-    auto symm = std::make_shared<Matrix>(clone());
+    auto symm = std::make_shared<Matrix<T>>(clone());
     symm->zero();
-    double **pH = pointer();
-    double **pS = symm->pointer();
+    T **pH = pointer();
+    T **pS = symm->pointer();
 
     // Symmetrize the Hessian's columns to remove any noise
     int dim = 3 * molecule->natom();
@@ -1052,13 +1126,14 @@ void Matrix::symmetrize_hessian(SharedMolecule molecule) {
     }
 }
 
-void Matrix::identity() {
+template <typename T>
+void Matrix<T>::identity() {
     if (symmetry_) return;
 
     size_t size;
 
     for (int h = 0; h < nirrep_; ++h) {
-        size = rowspi_[h] * (size_t)colspi_[h] * sizeof(double);
+        size = rowspi_[h] * (size_t)colspi_[h] * sizeof(T);
 
         if (size) {
             memset(&(matrix_[h][0][0]), 0, size);
@@ -1067,11 +1142,12 @@ void Matrix::identity() {
     }
 }
 
-void Matrix::zero() {
+template <typename T>
+void Matrix<T>::zero() {
     size_t size;
 
     for (int h = 0; h < nirrep_; ++h) {
-        size = rowspi_[h] * ((size_t)colspi_[h ^ symmetry_]) * sizeof(double);
+        size = rowspi_[h] * ((size_t)colspi_[h ^ symmetry_]) * sizeof(T);
 
         if (size) {
             memset(&(matrix_[h][0][0]), 0, size);
@@ -1079,7 +1155,8 @@ void Matrix::zero() {
     }
 }
 
-void Matrix::zero_diagonal() {
+template <typename T>
+void Matrix<T>::zero_diagonal() {
     if (symmetry_) return;
 
     int h, i;
@@ -1091,11 +1168,12 @@ void Matrix::zero_diagonal() {
     }
 }
 
-double Matrix::trace() {
+template <typename T>
+T Matrix<T>::trace() {
     if (symmetry_) return 0.0;
 
     int i, h;
-    double val = (double)0.0;
+    T val = (T)0.0;
 
     for (h = 0; h < nirrep_; ++h) {
         for (i = 0; i < std::min(rowspi_[h], colspi_[h]); ++i) {
@@ -1106,8 +1184,9 @@ double Matrix::trace() {
     return val;
 }
 
-SharedMatrix Matrix::transpose() const {
-    auto temp = std::make_shared<Matrix>(name_, nirrep_, colspi_, rowspi_, symmetry_);
+template <typename T>
+SharedMatrix<T> Matrix<T>::transpose() const {
+    auto temp = std::make_shared<Matrix<T>>(name_, nirrep_, colspi_, rowspi_, symmetry_);
 
     if (symmetry_) {
         for (int rowsym = 0; rowsym < nirrep_; ++rowsym) {
@@ -1133,7 +1212,8 @@ SharedMatrix Matrix::transpose() const {
     return temp;
 }
 
-void Matrix::transpose_this() {
+template <typename T>
+void Matrix<T>::transpose_this() {
     if (symmetry_) {
         for (int rowsym = 0; rowsym < nirrep_; ++rowsym) {
             int colsym = rowsym ^ symmetry_;
@@ -1163,7 +1243,8 @@ void Matrix::transpose_this() {
     }
 }
 
-void Matrix::reshape(const uint64_t nrow, const uint64_t ncol) {
+template <typename T>
+void Matrix<T>::reshape(const uint64_t nrow, const uint64_t ncol) {
     if (nirrep_ != 1) {
         throw PSIEXCEPTION("Matrix::reshape is only defined for Matrix with 1 irrep!");
     }
@@ -1173,7 +1254,7 @@ void Matrix::reshape(const uint64_t nrow, const uint64_t ncol) {
     }
 
     // Make sure the data in matrix is "re-shaped" properly without copying, data remains contiguous
-    double **mat = (double **)malloc(sizeof(double *) * nrow);
+    T **mat = (T **)malloc(sizeof(T *) * nrow);
     mat[0] = &(matrix_[0][0][0]);
     for (int r = 1; r < nrow; ++r) mat[r] = mat[r - 1] + ncol;
 
@@ -1185,7 +1266,13 @@ void Matrix::reshape(const uint64_t nrow, const uint64_t ncol) {
     colspi_[0] = ncol;
 }
 
-void Matrix::add(const Matrix *const plus) {
+template <typename T>
+void Matrix<T>::add(const Matrix<T> *const plus) {
+    throw PSIEXCEPTION("Genereric Matrix Add not available yet");
+}
+
+template <>
+void Matrix<double>::add(const Matrix<double> *const plus) {
     if (symmetry_ != plus->symmetry_) {
         std::ostringstream oss;
         oss << "Trying to add matrices of different symmetry: " << symmetry_ << " and " << plus->symmetry_ << "!";
@@ -1213,11 +1300,19 @@ void Matrix::add(const Matrix *const plus) {
     }
 }
 
-void Matrix::add(const Matrix &plus) { add(&plus); }
+template <typename T>
+void Matrix<T>::add(const Matrix<T> &plus) { add(&plus); }
 
-void Matrix::add(const SharedMatrix &plus) { add(plus.get()); }
+template <typename T>
+void Matrix<T>::add(const SharedMatrix<T> &plus) { add(plus.get()); }
 
-void Matrix::subtract(const Matrix *const plus) {
+template <typename T>
+void Matrix<T>::subtract(const Matrix<T> *const plus) {
+    throw PSIEXCEPTION("Genereric Matrix Add not available yet");
+}
+
+template <>
+void Matrix<double>::subtract(const Matrix<double> *const plus) {
     if (symmetry_ != plus->symmetry_) {
         std::ostringstream oss;
         oss << "Trying to subtract matrices of different symmetry: " << symmetry_ << " and " << plus->symmetry_ << "!";
@@ -1246,12 +1341,15 @@ void Matrix::subtract(const Matrix *const plus) {
     }
 }
 
-void Matrix::subtract(const SharedMatrix &sub) { subtract(sub.get()); }
+template <typename T>
+void Matrix<T>::subtract(const SharedMatrix<T> &sub) { subtract(sub.get()); }
 
-void Matrix::subtract(const Matrix &sub) { subtract(&sub); }
+template <typename T>
+void Matrix<T>::subtract(const Matrix<T> &sub) { subtract(&sub); }
 
-void Matrix::apply_denominator(const Matrix *const plus) {
-    double *lhs, *rhs;
+template <typename T>
+void Matrix<T>::apply_denominator(const Matrix<T> *const plus) {
+    T *lhs, *rhs;
     for (int h = 0; h < nirrep_; ++h) {
         size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_];
         if (size) {
@@ -1265,15 +1363,25 @@ void Matrix::apply_denominator(const Matrix *const plus) {
     }
 }
 
-void Matrix::apply_denominator(const Matrix &plus) { apply_denominator(&plus); }
+template <typename T>
+void Matrix<T>::apply_denominator(const Matrix<T> &plus) { apply_denominator(&plus); }
 
-void Matrix::apply_denominator(const SharedMatrix &plus) { apply_denominator(plus.get()); }
+template <typename T>
+void Matrix<T>::apply_denominator(const SharedMatrix<T> &plus) { apply_denominator(plus.get()); }
 
-void Matrix::accumulate_product(const Matrix *const a, const Matrix *const b) { gemm(false, false, 1.0, a, b, 1.0); }
+template <typename T>
+void Matrix<T>::accumulate_product(const Matrix<T> *const a, const Matrix<T> *const b) { gemm(false, false, 1.0, a, b, 1.0); }
 
-void Matrix::accumulate_product(const SharedMatrix &a, const SharedMatrix &b) { gemm(false, false, 1.0, a, b, 1.0); }
+template <typename T>
+void Matrix<T>::accumulate_product(const SharedMatrix<T> &a, const SharedMatrix<T> &b) { gemm(false, false, 1.0, a, b, 1.0); }
 
-void Matrix::scale(double a) {
+template <typename T>
+void Matrix<T>::scale(T a) {
+    throw PSIEXCEPTION("General matrix scale not implemented.");
+}
+
+template <>
+void Matrix<double>::scale(double a) {
     size_t size;
     for (int h = 0; h < nirrep_; ++h) {
         size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_];
@@ -1281,13 +1389,22 @@ void Matrix::scale(double a) {
     }
 }
 
-void Matrix::scale_row(int h, int m, double a) { C_DSCAL(colspi_[h ^ symmetry_], a, &(matrix_[h][m][0]), 1); }
+template <typename T>
+void Matrix<T>::scale_row(int h, int m, T a) { throw PSIEXCEPTION("General matrix scale_row not implemented"); }
 
-void Matrix::scale_column(int h, int n, double a) {
+template <>
+void Matrix<double>::scale_row(int h, int m, double a) { C_DSCAL(colspi_[h ^ symmetry_], a, &(matrix_[h][m][0]), 1); }
+
+template <typename T>
+void Matrix<T>::scale_column(int h, int n, T a) { throw PSIEXCEPTION("General matrix scale_row not implemented"); }
+
+template <>
+void Matrix<double>::scale_column(int h, int n, double a) {
     C_DSCAL(rowspi_[h], a, &(matrix_[h][0][n]), colspi_[h ^ symmetry_]);
 }
 
-void Matrix::sqrt_this() {
+template <typename T>
+void Matrix<T>::sqrt_this() {
     for (int h = 0; h < nirrep_; ++h) {
         for (int i = 0; i < rowspi_[h]; ++i) {
             for (int j = 0; j < colspi_[h ^ symmetry_]; ++j) {
@@ -1297,7 +1414,13 @@ void Matrix::sqrt_this() {
     }
 }
 
-double Matrix::sum_of_squares() {
+template <typename T>
+double Matrix<T>::sum_of_squares() {
+	throw PSIEXCEPTION("General matrix sum of squares not implemented");
+}
+
+template <>
+double Matrix<double>::sum_of_squares() {
     double sum = (double)0.0;
     for (int h = 0; h < nirrep_; ++h) {
 #pragma omp parallel for reduction(+ : sum)
@@ -1311,7 +1434,13 @@ double Matrix::sum_of_squares() {
     return sum;
 }
 
-double Matrix::rms() {
+template <typename T>
+double Matrix<T>::rms() {
+    throw PSIEXCEPTION("General Matrix rms not implemented!");
+}
+
+template <>
+double Matrix<double>::rms() {
     double sum = (double)0.0;
     long terms = 0;
     for (int h = 0; h < nirrep_; ++h) {
@@ -1327,7 +1456,13 @@ double Matrix::rms() {
     return sqrt(sum / terms);
 }
 
-double Matrix::absmax() {
+template <typename T>
+double Matrix<T>::absmax() {
+    throw PSIEXCEPTION("General Matrix rms not implemented!");
+}
+
+template <>
+double Matrix<double>::absmax() {
     double max = (double)0.0;
     for (int h = 0; h < nirrep_; ++h) {
         for (int i = 0; i < rowspi_[h]; ++i) {
@@ -1341,25 +1476,31 @@ double Matrix::absmax() {
     return max;
 }
 
-void Matrix::transform(const Matrix *const a, const Matrix *const transformer) {
+template <typename T>
+void Matrix<T>::transform(const Matrix<T> *const a, const Matrix<T> *const transformer) {
     transform(*a, *transformer);
 }
 
-void Matrix::transform(const SharedMatrix &a, const SharedMatrix &transformer) {
+template <typename T>
+void Matrix<T>::transform(const SharedMatrix<T> &a, const SharedMatrix<T> &transformer) {
     transform(a.get(), transformer.get());
 }
 
-void Matrix::transform(const Matrix *const transformer) {
+template <typename T>
+void Matrix<T>::transform(const Matrix<T> *const transformer) {
     transform(*transformer, *this, *transformer);
 }
 
-void Matrix::transform(const SharedMatrix &transformer) { transform(transformer.get()); }
+template <typename T>
+void Matrix<T>::transform(const SharedMatrix<T> &transformer) { transform(transformer.get()); }
 
-void Matrix::transform(const SharedMatrix &L, const SharedMatrix &F, const SharedMatrix &R) {
+template <typename T>
+void Matrix<T>::transform(const SharedMatrix<T> &L, const SharedMatrix<T> &F, const SharedMatrix<T> &R) {
     transform(*L, *F, *R);
 }
 
-void Matrix::transform(const Matrix &L, const Matrix &F, const Matrix &R) {
+template <typename T>
+void Matrix<T>::transform(const Matrix<T> &L, const Matrix<T> &F, const Matrix<T> &R) {
     auto temp = linalg::doublet(F, R, false, false);
     if (L.colspi() == rowspi_ && R.colspi() == colspi_ && F.symmetry() == symmetry_) {
         gemm(true, false, 1.0, L, temp, 0.0);
@@ -1369,21 +1510,35 @@ void Matrix::transform(const Matrix &L, const Matrix &F, const Matrix &R) {
     }
 }
 
-void Matrix::back_transform(const Matrix *const a, const Matrix *const transformer) {
+template <typename T>
+void Matrix<T>::back_transform(const Matrix<T> *const a, const Matrix<T> *const transformer) {
     back_transform(*a, *transformer);
 }
 
-void Matrix::back_transform(const SharedMatrix &a, const SharedMatrix &transformer) {
+template <typename T>
+void Matrix<T>::back_transform(const SharedMatrix<T> &a, const SharedMatrix<T> &transformer) {
     back_transform(a.get(), transformer.get());
 }
 
-void Matrix::back_transform(const Matrix *const transformer) { back_transform(*transformer); }
+template <typename T>
+void Matrix<T>::back_transform(const Matrix<T> *const transformer) { back_transform(*transformer); }
 
-void Matrix::back_transform(const SharedMatrix &transformer) { back_transform(transformer.get()); }
+template <typename T>
+void Matrix<T>::back_transform(const SharedMatrix<T> &transformer) { back_transform(transformer.get()); }
 
-void Matrix::gemm(const char &transa, const char &transb, const std::vector<int> &m, const std::vector<int> &n,
-                  const std::vector<int> &k, const double &alpha, const SharedMatrix &a, const std::vector<int> &lda,
-                  const SharedMatrix &b, const std::vector<int> &ldb, const double &beta, const std::vector<int> &ldc,
+template <typename T>
+void Matrix<T>::gemm(const char &transa, const char &transb, const std::vector<int> &m, const std::vector<int> &n,
+                  const std::vector<int> &k, const T &alpha, const SharedMatrix<T> &a, const std::vector<int> &lda,
+                  const SharedMatrix<T> &b, const std::vector<int> &ldb, const T &beta, const std::vector<int> &ldc,
+                  const std::vector<unsigned long> &offset_a, const std::vector<unsigned long> &offset_b,
+                  const std::vector<unsigned long> &offset_c) {
+	throw PSIEXCEPTION("Matrix::Advanced GEMM: Can only handle totally symmetric matrices.");
+}
+
+template <>
+void Matrix<double>::gemm(const char &transa, const char &transb, const std::vector<int> &m, const std::vector<int> &n,
+                  const std::vector<int> &k, const double &alpha, const SharedMatrix<double> &a, const std::vector<int> &lda,
+                  const SharedMatrix<double> &b, const std::vector<int> &ldb, const double &beta, const std::vector<int> &ldc,
                   const std::vector<unsigned long> &offset_a, const std::vector<unsigned long> &offset_b,
                   const std::vector<unsigned long> &offset_c) {
     // For now only handle symmetric matrices right now
@@ -1407,8 +1562,17 @@ void Matrix::gemm(const char &transa, const char &transb, const std::vector<int>
     }
 }
 
-void Matrix::gemm(const char &transa, const char &transb, const int &m, const int &n, const int &k, const double &alpha,
-                  const SharedMatrix &a, const int &lda, const SharedMatrix &b, const int &ldb, const double &beta,
+template <typename T>
+void Matrix<T>::gemm(const char &transa, const char &transb, const int &m, const int &n, const int &k, const T &alpha,
+                  const SharedMatrix<T> &a, const int &lda, const SharedMatrix<T> &b, const int &ldb, const T &beta,
+                  const int &ldc, const unsigned long &offset_a, const unsigned long &offset_b,
+                  const unsigned long &offset_c) {
+    throw PSIEXCEPTION("General Matrix gemm not implemented");
+}
+
+template <>
+void Matrix<double>::gemm(const char &transa, const char &transb, const int &m, const int &n, const int &k, const double &alpha,
+                  const SharedMatrix<double> &a, const int &lda, const SharedMatrix<double> &b, const int &ldb, const double &beta,
                   const int &ldc, const unsigned long &offset_a, const unsigned long &offset_b,
                   const unsigned long &offset_c) {
 #ifdef DEBUG
@@ -1419,7 +1583,13 @@ void Matrix::gemm(const char &transa, const char &transb, const int &m, const in
             &matrix_[0][0][offset_c], ldc);
 }
 
-void Matrix::gemm(bool transa, bool transb, double alpha, const Matrix *const a, const Matrix *const b, double beta) {
+template <typename T>
+void Matrix<T>::gemm(bool transa, bool transb, T alpha, const Matrix<T> *const a, const Matrix<T> *const b, T beta) {
+    throw PSIEXCEPTION("General Matrix gemm not implemented");
+}
+
+template <>
+void Matrix<double>::gemm(bool transa, bool transb, double alpha, const Matrix<double> *const a, const Matrix<double> *const b, double beta) {
     if (nirrep_ != a->nirrep_ || nirrep_ != b->nirrep_)
         throw PSIEXCEPTION("Matrix::gemm error: Number of irreps do not equal.");
 
@@ -1469,23 +1639,33 @@ void Matrix::gemm(bool transa, bool transb, double alpha, const Matrix *const a,
     }
 }
 
-void Matrix::gemm(bool transa, bool transb, double alpha, const SharedMatrix &a, const SharedMatrix &b, double beta) {
+template <typename T>
+void Matrix<T>::gemm(bool transa, bool transb, T alpha, const SharedMatrix<T> &a, const SharedMatrix<T> &b, T beta) {
     gemm(transa, transb, alpha, a.get(), b.get(), beta);
 }
 
-void Matrix::gemm(bool transa, bool transb, double alpha, const Matrix &a, const SharedMatrix &b, double beta) {
+template <typename T>
+void Matrix<T>::gemm(bool transa, bool transb, T alpha, const Matrix<T> &a, const SharedMatrix<T> &b, T beta) {
     gemm(transa, transb, alpha, &a, b.get(), beta);
 }
 
-void Matrix::gemm(bool transa, bool transb, double alpha, const SharedMatrix &a, const Matrix &b, double beta) {
+template <typename T>
+void Matrix<T>::gemm(bool transa, bool transb, T alpha, const SharedMatrix<T> &a, const Matrix<T> &b, T beta) {
     gemm(transa, transb, alpha, a.get(), &b, beta);
 }
 
-void Matrix::gemm(bool transa, bool transb, double alpha, const Matrix &a, const Matrix &b, double beta) {
+template <typename T>
+void Matrix<T>::gemm(bool transa, bool transb, T alpha, const Matrix<T> &a, const Matrix<T> &b, T beta) {
     gemm(transa, transb, alpha, &a, &b, beta);
 }
 
-void Matrix::axpy(double a, SharedMatrix X) {
+template <typename T>
+void Matrix<T>::axpy(T a, SharedMatrix<T> X) {
+    throw PSIEXCEPTION("General Matrix axpy not implemented");
+}
+
+template <>
+void Matrix<double>::axpy(double a, SharedMatrix<double> X) {
     if (nirrep_ != X->nirrep()) {
         throw PSIEXCEPTION("Matrix::axpy: Matrices do not have the same nirreps");
     }
@@ -1503,13 +1683,18 @@ void Matrix::axpy(double a, SharedMatrix X) {
     }
 }
 
-SharedVector Matrix::gemv(bool transa, double alpha, const Vector& A) {
+template <typename T>
+SharedVector Matrix<T>::gemv(bool transa, T alpha, const Vector& A) { throw PSIEXCEPTION("General Matrix axpy not implemented"); }
+
+template <>
+SharedVector Matrix<double>::gemv(bool transa, double alpha, const Vector& A) {
     auto return_vec = std::make_shared<Vector>(transa ? colspi_ : rowspi_);
     return_vec->gemv(transa, alpha, *this, A, 0);
     return return_vec;
 }
 
-SharedVector Matrix::collapse(Dimension dim, int target) const {
+template <typename TemplateType>
+SharedVector Matrix<TemplateType>::collapse(Dimension dim, int target) const {
     if (target < 0 || target > 1) throw PSIEXCEPTION("Matrix::collapse: dim must be 0 (row sum) or 1 (col sum)");
 
     if (symmetry_) {
@@ -1596,14 +1781,16 @@ int mat_schmidt_tol(double **C, double **S, int nrow, int ncol, double tolerance
 }
 }  // namespace
 
-void Matrix::schmidt() {
+template <typename T>
+void Matrix<T>::schmidt() {
     for (int h = 0; h < nirrep(); ++h) {
         if (!rowspi(h) || !colspi(h)) continue;
         psi::schmidt(matrix_[h], rowspi(h), colspi(h), "STUPID");
     }
 }
 
-Dimension Matrix::schmidt_orthog_columns(SharedMatrix S, double tol, double * /*res*/) {
+template <typename T>
+Dimension Matrix<T>::schmidt_orthog_columns(SharedMatrix<T> S, double tol, T * /*res*/) {
     Dimension northog(nirrep());
     std::vector<double> resid(nirrep());
 
@@ -1614,7 +1801,8 @@ Dimension Matrix::schmidt_orthog_columns(SharedMatrix S, double tol, double * /*
     return northog;
 }
 
-bool Matrix::add_and_orthogonalize_row(const SharedVector v) {
+template <typename T>
+bool Matrix<T>::add_and_orthogonalize_row(const SharedVector v) {
     Vector v_copy(*v.get());
     if (v_copy.nirrep() > 1 || nirrep_ > 1)
         throw PSIEXCEPTION("Matrix::schmidt_add_and_orthogonalize: Symmetry not allowed (yet).");
@@ -1632,7 +1820,8 @@ bool Matrix::add_and_orthogonalize_row(const SharedVector v) {
     return ret;
 }
 
-bool Matrix::schmidt_add_row(int h, int rows, Vector &v) {
+template <typename T>
+bool Matrix<T>::schmidt_add_row(int h, int rows, Vector &v) {
     if (v.nirrep() > 1)
         throw PSIEXCEPTION("Matrix::schmidt_add: This function needs to be adapted to handle symmetry blocks.");
 
@@ -1654,7 +1843,11 @@ bool Matrix::schmidt_add_row(int h, int rows, Vector &v) {
         return false;
 }
 
-bool Matrix::schmidt_add_row(int h, int rows, double *v) noexcept {
+template <typename T>
+bool Matrix<T>::schmidt_add_row(int h, int rows, T *v) noexcept { throw PSIEXCEPTION(""); }
+
+template <>
+bool Matrix<double>::schmidt_add_row(int h, int rows, double *v) noexcept {
     double dotval, normval;
     int i, I;
 
@@ -1682,7 +1875,11 @@ bool Matrix::schmidt_add_row(int h, int rows, double *v) noexcept {
         return false;
 }
 
-void Matrix::project_out(Matrix &constraints) {
+template <typename T>
+void Matrix<T>::project_out(Matrix<T> &constraints) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::project_out(Matrix<double> &constraints) {
     // We're going to work through temp and add to this
     Matrix temp = *this;
     zero();
@@ -1746,7 +1943,11 @@ void Matrix::project_out(Matrix &constraints) {
     }
 }
 
-double Matrix::vector_dot(const Matrix *const rhs) {
+template <typename T>
+T Matrix<T>::vector_dot(const Matrix<T> *const rhs) { throw PSIEXCEPTION(""); }
+
+template <>
+double Matrix<double>::vector_dot(const Matrix<double> *const rhs) {
     if (symmetry_ != rhs->symmetry_) return 0.0;
 
     double sum = 0.0;
@@ -1764,9 +1965,11 @@ double Matrix::vector_dot(const Matrix *const rhs) {
     return sum;
 }
 
-double Matrix::vector_dot(const SharedMatrix &rhs) { return vector_dot(rhs.get()); }
+template <typename T>
+T Matrix<T>::vector_dot(const SharedMatrix<T> &rhs) { return vector_dot(rhs.get()); }
 
-void Matrix::diagonalize(Matrix &eigvectors, Vector &eigvalues, diagonalize_order nMatz /* = ascending*/) {
+template <typename T>
+void Matrix<T>::diagonalize(Matrix<T> &eigvectors, Vector &eigvalues, diagonalize_order nMatz /* = ascending*/) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::diagonalize: Matrix is non-totally symmetric.");
     }
@@ -1791,12 +1994,17 @@ void Matrix::diagonalize(Matrix &eigvectors, Vector &eigvalues, diagonalize_orde
     }
 }
 
-void Matrix::diagonalize(SharedMatrix &eigvectors, std::shared_ptr<Vector> &eigvalues,
+template <typename T>
+void Matrix<T>::diagonalize(SharedMatrix<T> &eigvectors, std::shared_ptr<Vector> &eigvalues,
                          diagonalize_order nMatz /* = ascending*/) {
     diagonalize(*eigvectors, *eigvalues, nMatz);
 }
 
-std::tuple<SharedMatrix, SharedVector, SharedMatrix> Matrix::svd_temps() {
+template <typename T>
+std::tuple<SharedMatrix<T>, SharedVector, SharedMatrix<T>> Matrix<T>::svd_temps() { throw PSIEXCEPTION(""); }
+
+template <>
+std::tuple<SharedMatrix<double>, SharedVector, SharedMatrix<double>> Matrix<double>::svd_temps() {
     Dimension rank(nirrep_);
     for (int h = 0; h < nirrep_; h++) {
         int m = rowspi_[h];
@@ -1808,23 +2016,28 @@ std::tuple<SharedMatrix, SharedVector, SharedMatrix> Matrix::svd_temps() {
     auto S = std::make_shared<Vector>("S", rank);
     auto V = std::make_shared<Matrix>("V", rank, colspi_);
 
-    return std::tuple<SharedMatrix, SharedVector, SharedMatrix>(U, S, V);
+    return std::tuple<SharedMatrix<double>, SharedVector, SharedMatrix<double>>(U, S, V);
 }
 
-std::tuple<SharedMatrix, SharedVector, SharedMatrix> Matrix::svd_a_temps() {
+template <typename T>
+std::tuple<SharedMatrix<T>, SharedVector, SharedMatrix<T>> Matrix<T>::svd_a_temps() {
     Dimension rank(nirrep_);
     for (int h = 0; h < nirrep_; h++) {
         int m = rowspi_[h];
         int n = colspi_[h ^ symmetry_];
         rank[h] = std::min(m, n);
     }
-    auto U = std::make_shared<Matrix>("U", rowspi_, rowspi_);
+    auto U = std::make_shared<Matrix<T>>("U", rowspi_, rowspi_);
     auto S = std::make_shared<Vector>("S", rank);
-    auto V = std::make_shared<Matrix>("V", colspi_, colspi_);
-    return std::tuple<SharedMatrix, SharedVector, SharedMatrix>(U, S, V);
+    auto V = std::make_shared<Matrix<T>>("V", colspi_, colspi_);
+    return std::tuple<SharedMatrix<T>, SharedVector, SharedMatrix<T>>(U, S, V);
 }
 
-void Matrix::svd(SharedMatrix &U, SharedVector &S, SharedMatrix &V) {
+template <typename T>
+void Matrix<T>::svd(SharedMatrix<T> &U, SharedVector &S, SharedMatrix<T> &V) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::svd(SharedMatrix<double> &U, SharedVector &S, SharedMatrix<double> &V) {
     // Actually, this routine takes mn + mk + nk
     for (int h = 0; h < nirrep_; h++) {
         if (!rowspi_[h] || !colspi_[h ^ symmetry_]) continue;
@@ -1866,7 +2079,11 @@ void Matrix::svd(SharedMatrix &U, SharedVector &S, SharedMatrix &V) {
     }
 }
 
-void Matrix::svd_a(SharedMatrix &U, SharedVector &S, SharedMatrix &V) {
+template <typename T>
+void Matrix<T>::svd_a(SharedMatrix<T> &U, SharedVector &S, SharedMatrix<T> &V) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::svd_a(SharedMatrix<double> &U, SharedVector &S, SharedMatrix<double> &V) {
     // Actually, this routine takes mn + mk + nk
     for (int h = 0; h < nirrep_; h++) {
         int m = rowspi_[h];
@@ -1927,8 +2144,12 @@ void Matrix::svd_a(SharedMatrix &U, SharedVector &S, SharedMatrix &V) {
     } // End for loop
 }
 
-SharedMatrix Matrix::pseudoinverse(double condition, int &nremoved) {
-    std::tuple<SharedMatrix, SharedVector, SharedMatrix> svd_temp = svd_temps();
+template <typename T>
+SharedMatrix<T> Matrix<T>::pseudoinverse(double condition, int &nremoved) { throw PSIEXCEPTION(""); }
+
+template <>
+SharedMatrix<double> Matrix<double>::pseudoinverse(double condition, int &nremoved) {
+    std::tuple<SharedMatrix<double>, SharedVector, SharedMatrix<double>> svd_temp = svd_temps();
     SharedMatrix U = std::get<0>(svd_temp);
     SharedVector S = std::get<1>(svd_temp);
     SharedMatrix V = std::get<2>(svd_temp);
@@ -1970,7 +2191,11 @@ SharedMatrix Matrix::pseudoinverse(double condition, int &nremoved) {
     return Q;
 }
 
-SharedMatrix Matrix::canonical_orthogonalization(double delta, SharedMatrix eigvec) {
+template <typename T>
+SharedMatrix<T> Matrix<T>::canonical_orthogonalization(double delta, SharedMatrix<T> eigvec) { throw PSIEXCEPTION(""); }
+
+template <>
+SharedMatrix<double> Matrix<double>::canonical_orthogonalization(double delta, SharedMatrix<double> eigvec) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix: canonical orthogonalization only works for totally symmetric matrices");
     }
@@ -2018,7 +2243,8 @@ SharedMatrix Matrix::canonical_orthogonalization(double delta, SharedMatrix eigv
     return X;
 }
 
-void Matrix::sort_cols(const IntVector& idxs) {
+template <typename T>
+void Matrix<T>::sort_cols(const IntVector& idxs) {
     auto orig = clone();
     if (colspi_ != idxs.dimpi()) {
         throw PSIEXCEPTION("Matrix::sort Indexing vector and columns to sort must have the same dimension.");
@@ -2033,15 +2259,18 @@ void Matrix::sort_cols(const IntVector& idxs) {
         }
     }
 }
-void Matrix::swap_rows(int h, int i, int j) {
+template <typename T>
+void Matrix<T>::swap_rows(int h, int i, int j) {
     C_DSWAP(colspi_[h ^ symmetry_], &(matrix_[h][i][0]), 1, &(matrix_[h][j][0]), 1);
 }
 
-void Matrix::swap_columns(int h, int i, int j) {
+template <typename T>
+void Matrix<T>::swap_columns(int h, int i, int j) {
     C_DSWAP(rowspi_[h], &(matrix_[h][0][i]), colspi_[h ^ symmetry_], &(matrix_[h][0][j]), colspi_[h ^ symmetry_]);
 }
 
-void Matrix::cholesky_factorize() {
+template <typename T>
+void Matrix<T>::cholesky_factorize() {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::cholesky_factorize: Matrix is non-totally symmetric.");
     }
@@ -2070,7 +2299,8 @@ void Matrix::cholesky_factorize() {
     zero_upper();
 }
 
-void Matrix::pivoted_cholesky(double tol, std::vector<std::vector<int>> &pivot, bool upper) {
+template <typename T>
+void Matrix<T>::pivoted_cholesky(double tol, std::vector<std::vector<int>> &pivot, bool upper) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::pivoted_cholesky: Matrix is non-totally symmetric.");
     }
@@ -2122,7 +2352,7 @@ void Matrix::pivoted_cholesky(double tol, std::vector<std::vector<int>> &pivot, 
     Dimension zero(nirrep_);
 
     if (upper) {
-        auto U = std::make_shared<Matrix>("Cholesky decomposed matrix", nirrep_, rowspi_, nchol);
+        auto U = std::make_shared<Matrix<T>>("Cholesky decomposed matrix", nirrep_, rowspi_, nchol);
         U->zero();
         for (int h = 0; h < nirrep_; ++h) {
             for (int m = 0; m < rowspi_[h]; ++m) {
@@ -2135,7 +2365,7 @@ void Matrix::pivoted_cholesky(double tol, std::vector<std::vector<int>> &pivot, 
         // Switch to the properly sized matrix
         *this = *U;
     } else {
-        auto L = std::make_shared<Matrix>("Cholesky decomposed matrix", nirrep_, rowspi_, nchol);
+        auto L = std::make_shared<Matrix<T>>("Cholesky decomposed matrix", nirrep_, rowspi_, nchol);
         L->zero();
         for (int h = 0; h < nirrep_; ++h) {
             for (int m = 0; m < rowspi_[h]; ++m) {
@@ -2150,13 +2380,14 @@ void Matrix::pivoted_cholesky(double tol, std::vector<std::vector<int>> &pivot, 
     }
 }
 
-SharedMatrix Matrix::partial_cholesky_factorize(double delta, bool throw_if_negative) {
+template <typename T>
+SharedMatrix<T> Matrix<T>::partial_cholesky_factorize(double delta, bool throw_if_negative) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::partial_cholesky_factorize: Matrix is non-totally symmetric.");
     }
 
     // Temporary cholesky factor (full memory)
-    auto K = std::make_shared<Matrix>("L Temp", nirrep_, rowspi_, rowspi_);
+    auto K = std::make_shared<Matrix<T>>("L Temp", nirrep_, rowspi_, rowspi_);
 
     // Significant Cholesky columns per irrep
     std::vector<int> sigpi(nirrep_, 0);
@@ -2232,7 +2463,7 @@ SharedMatrix Matrix::partial_cholesky_factorize(double delta, bool throw_if_nega
     }
 
     // Copy out to properly sized array
-    auto L = std::make_shared<Matrix>("Partial Cholesky Factor", nirrep_, rowspi_, sigpi.data());
+    auto L = std::make_shared<Matrix<T>>("Partial Cholesky Factor", nirrep_, rowspi_, sigpi.data());
 
     // K->print();
     // L->print();
@@ -2250,12 +2481,13 @@ SharedMatrix Matrix::partial_cholesky_factorize(double delta, bool throw_if_nega
     return L;
 }
 
-std::pair<SharedMatrix, SharedMatrix> Matrix::partial_square_root(double delta) {
+template <typename T>
+std::pair<SharedMatrix<T>, SharedMatrix<T>> Matrix<T>::partial_square_root(double delta) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::partial_square_root: Matrix is non-totally symmetric.");
     }
 
-    auto V = std::make_shared<Matrix>("V", colspi_, colspi_);
+    auto V = std::make_shared<Matrix<T>>("V", colspi_, colspi_);
     auto d = std::make_shared<Vector>("d", colspi_);
 
     diagonalize(V, d);
@@ -2274,8 +2506,8 @@ std::pair<SharedMatrix, SharedMatrix> Matrix::partial_square_root(double delta) 
         }
     }
 
-    auto P = std::make_shared<Matrix>("P", colspi_, Ppi);
-    auto N = std::make_shared<Matrix>("N", colspi_, Npi);
+    auto P = std::make_shared<Matrix<T>>("P", colspi_, Ppi);
+    auto N = std::make_shared<Matrix<T>>("N", colspi_, Npi);
 
     for (int h = 0; h < d->nirrep(); h++) {
         double **Vp = V->pointer(h);
@@ -2301,10 +2533,11 @@ std::pair<SharedMatrix, SharedMatrix> Matrix::partial_square_root(double delta) 
         }
     }
 
-    return std::pair<SharedMatrix, SharedMatrix>(P, N);
+    return std::pair<SharedMatrix<T>, SharedMatrix<T>>(P, N);
 }
 
-void Matrix::invert() {
+template <typename T>
+void Matrix<T>::invert() {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::invert: Matrix is non-totally symmetric.");
     }
@@ -2319,7 +2552,8 @@ void Matrix::invert() {
     free_block(work);
 }
 
-void Matrix::general_invert() {
+template <typename T>
+void Matrix<T>::general_invert() {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::invert: Matrix is non-totally symmetric.");
     }
@@ -2367,7 +2601,11 @@ void Matrix::general_invert() {
     }
 }
 
-Dimension Matrix::power(double alpha, double cutoff) {
+template <typename T>
+Dimension Matrix<T>::power(T alpha, double cutoff) { throw PSIEXCEPTION(""); }
+
+template <>
+Dimension Matrix<double>::power(double alpha, double cutoff) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::power: Matrix is non-totally symmetric.");
     }
@@ -2423,7 +2661,11 @@ Dimension Matrix::power(double alpha, double cutoff) {
     return remaining;
 }
 
-void Matrix::expm(int m, bool scale) {
+template <typename T>
+void Matrix<T>::expm(int m, bool scale) { throw PSIEXCEPTION(""); }
+
+template <>
+void Matrix<double>::expm(int m, bool scale) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::expm: Matrix is non-totally symmetric.");
     }
@@ -2580,7 +2822,8 @@ void Matrix::expm(int m, bool scale) {
     }
 }
 
-void Matrix::zero_lower() {
+template <typename T>
+void Matrix<T>::zero_lower() {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::zero_lower: Matrix is non-totally symmetric.");
     }
@@ -2595,7 +2838,8 @@ void Matrix::zero_lower() {
     }
 }
 
-void Matrix::zero_upper() {
+template <typename T>
+void Matrix<T>::zero_upper() {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::zero_upper: Matrix is non-totally symmetric.");
     }
@@ -2610,7 +2854,8 @@ void Matrix::zero_upper() {
     }
 }
 
-void Matrix::zero_row(int h, int i) {
+template <typename T>
+void Matrix<T>::zero_row(int h, int i) {
     if (i >= rowspi_[h]) {
         throw PSIEXCEPTION("Matrix::zero_row: index is out of bounds.");
     }
@@ -2620,7 +2865,8 @@ void Matrix::zero_row(int h, int i) {
     }
 }
 
-void Matrix::zero_column(int h, int i) {
+template <typename T>
+void Matrix<T>::zero_column(int h, int i) {
     if (i >= colspi_[h ^ symmetry_]) {
         throw PSIEXCEPTION("Matrix::zero_column: index is out of bounds.");
     }
@@ -2630,7 +2876,8 @@ void Matrix::zero_column(int h, int i) {
     }
 }
 
-void Matrix::copy_lower_to_upper() {
+template <typename T>
+void Matrix<T>::copy_lower_to_upper() {
     if (symmetry_) {
         for (int rowsym = 0; rowsym < nirrep_; ++rowsym) {
             int colsym = rowsym ^ symmetry_;
@@ -2654,7 +2901,8 @@ void Matrix::copy_lower_to_upper() {
     }
 }
 
-void Matrix::copy_upper_to_lower() {
+template <typename T>
+void Matrix<T>::copy_upper_to_lower() {
     if (symmetry_) {
         for (int rowsym = 0; rowsym < nirrep_; ++rowsym) {
             int colsym = rowsym ^ symmetry_;
@@ -2678,7 +2926,8 @@ void Matrix::copy_upper_to_lower() {
     }
 }
 
-void Matrix::hermitivitize() {
+template <typename T>
+void Matrix<T>::hermitivitize() {
     if (symmetry_) {
         throw PSIEXCEPTION("Hermitivitize: matrix is not totally symmetric");
     }
@@ -2701,11 +2950,13 @@ void Matrix::hermitivitize() {
 
 // Reference versions of the above functions:
 
-void Matrix::transform(const Matrix &a, const Matrix &transformer) {
+template <typename T>
+void Matrix<T>::transform(const Matrix<T> &a, const Matrix<T> &transformer) {
     transform(transformer, a, transformer);
 }
 
-void Matrix::apply_symmetry(const SharedMatrix &a, const SharedMatrix &transformer) {
+template <typename T>
+void Matrix<T>::apply_symmetry(const SharedMatrix<T> &a, const SharedMatrix<T> &transformer) {
     // Check dimensions of the two matrices and symmetry
     if (a->nirrep() > 1) {
         throw PSIEXCEPTION("Matrix::apply_symmetry: first matrix must have no symmetry.\n");
@@ -2717,7 +2968,7 @@ void Matrix::apply_symmetry(const SharedMatrix &a, const SharedMatrix &transform
     }
 
     // Create temporary matrix of proper size.
-    Matrix temp(nirrep(), a->nrow(), transformer->colspi());
+    Matrix<T> temp(nirrep(), a->nrow(), transformer->colspi());
 
     char ta = 'n';
     char tb = 'n';
@@ -2757,7 +3008,8 @@ void Matrix::apply_symmetry(const SharedMatrix &a, const SharedMatrix &transform
     }
 }
 
-void Matrix::remove_symmetry(const SharedMatrix &a, const SharedMatrix &SO2AO) {
+template <typename T>
+void Matrix<T>::remove_symmetry(const SharedMatrix<T> &a, const SharedMatrix<T> &SO2AO) {
     // Check dimensions of the two matrices and symmetry
     if (a->nirrep() != SO2AO->nirrep()) {
         throw PSIEXCEPTION("Matrix::remove_symmetry: matrices must have same symmetry.\n");
@@ -2775,7 +3027,7 @@ void Matrix::remove_symmetry(const SharedMatrix &a, const SharedMatrix &SO2AO) {
     zero();
 
     // Create temporary matrix of proper size.
-    Matrix temp(SO2AO->nirrep(), a->rowspi(), SO2AO->colspi());
+    Matrix<T> temp(SO2AO->nirrep(), a->rowspi(), SO2AO->colspi());
 
     char ta = 'n';
     char tb = 'n';
@@ -2815,11 +3067,13 @@ void Matrix::remove_symmetry(const SharedMatrix &a, const SharedMatrix &SO2AO) {
     }
 }
 
-void Matrix::transform(const Matrix &transformer) {
+template <typename T>
+void Matrix<T>::transform(const Matrix &transformer) {
     transform(*this, transformer);
 }
 
-void Matrix::back_transform(const Matrix &a, const Matrix &transformer) {
+template <typename T>
+void Matrix<T>::back_transform(const Matrix<T> &a, const Matrix<T> &transformer) {
     auto temp = linalg::doublet(a, transformer, false, true);
     if (transformer.rowspi() == rowspi_ && transformer.rowspi() == colspi_ && a.symmetry() == symmetry_) {
         gemm(false, false, 1.0, transformer, temp, 0.0);
@@ -2829,13 +3083,16 @@ void Matrix::back_transform(const Matrix &a, const Matrix &transformer) {
     }
 }
 
-void Matrix::back_transform(const Matrix &transformer) {
+template <typename T>
+void Matrix<T>::back_transform(const Matrix<T> &transformer) {
     back_transform(*this, transformer);
 }
 
-double Matrix::vector_dot(const Matrix &rhs) { return vector_dot(&rhs); }
+template <typename T>
+T Matrix<T>::vector_dot(const Matrix<T> &rhs) { return vector_dot(&rhs); }
 
-void Matrix::write_to_dpdfile2(dpdfile2 *outFile) {
+template <typename T>
+void Matrix<T>::write_to_dpdfile2(dpdfile2 *outFile) {
     global_dpd_->file2_mat_init(outFile);
 
     if (outFile->params->nirreps != nirrep_) {
@@ -2866,7 +3123,7 @@ void Matrix::write_to_dpdfile2(dpdfile2 *outFile) {
             throw SanityCheckError(msg.str().c_str(), __FILE__, __LINE__);
         }
 
-        size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_] * sizeof(double);
+        size_t size = rowspi_[h] * (size_t)colspi_[h ^ symmetry_] * sizeof(T);
         if (size) memcpy(&(outFile->matrix[h][0][0]), &(matrix_[h][0][0]), size);
     }
 
@@ -2874,7 +3131,8 @@ void Matrix::write_to_dpdfile2(dpdfile2 *outFile) {
     global_dpd_->file2_mat_close(outFile);
 }
 
-void Matrix::write_to_dpdbuf4(dpdbuf4 *outBuf) {
+template <typename T>
+void Matrix<T>::write_to_dpdbuf4(dpdbuf4 *outBuf) {
     if (outBuf->params->nirreps != nirrep_) {
         std::stringstream msg;
         msg << "Irrep count mismatch.  Matrix class has " << nirrep_ << " irreps, but dpdbuf4 has "
@@ -2908,7 +3166,8 @@ void Matrix::write_to_dpdbuf4(dpdbuf4 *outBuf) {
     }
 }
 
-void Matrix::save(const std::string &filename, bool append, bool saveLowerTriangle, bool saveSubBlocks) {
+template <typename T>
+void Matrix<T>::save(const std::string &filename, bool append, bool saveLowerTriangle, bool saveSubBlocks) {
     static const char *str_block_format = "%3d %3d %3d %16.16f\n";
     static const char *str_full_format = "%3d %3d %16.16f\n";
 
@@ -2923,7 +3182,7 @@ void Matrix::save(const std::string &filename, bool append, bool saveLowerTriang
 
     if (saveSubBlocks == false) {
         // Convert the matrix to a full matrix
-        double **fullblock = to_block_matrix();
+        T **fullblock = to_block_matrix();
 
         // Need to know the size
         int sizer = 0, sizec = 0;
@@ -3019,11 +3278,13 @@ void Matrix::save(const std::string &filename, bool append, bool saveLowerTriang
     }
 }
 
-void Matrix::save(std::shared_ptr<psi::PSIO> &psio, size_t fileno, SaveType savetype) {
+template <typename T>
+void Matrix<T>::save(std::shared_ptr<psi::PSIO> &psio, size_t fileno, SaveType savetype) {
     save(psio.get(), fileno, savetype);
 }
 
-void Matrix::save(psi::PSIO *const psio, size_t fileno, SaveType st) {
+template <typename T>
+void Matrix<T>::save(psi::PSIO *const psio, size_t fileno, SaveType st) {
     // Check to see if the file is open
     bool already_open = false;
     if (psio->open_check(fileno)) {
@@ -3084,11 +3345,13 @@ void Matrix::save(psi::PSIO *const psio, size_t fileno, SaveType st) {
     if (!already_open) psio->close(fileno, 1);  // Close and keep
 }
 
-bool Matrix::load(std::shared_ptr<psi::PSIO> &psio, size_t fileno, const std::string &tocentry, int nso) {
+template <typename T>
+bool Matrix<T>::load(std::shared_ptr<psi::PSIO> &psio, size_t fileno, const std::string &tocentry, int nso) {
     return load(psio.get(), fileno, tocentry, nso);
 }
 
-bool Matrix::load(psi::PSIO *const psio, size_t fileno, const std::string &tocentry, int nso) {
+template <typename T>
+bool Matrix<T>::load(psi::PSIO *const psio, size_t fileno, const std::string &tocentry, int nso) {
     if (symmetry_) {
         throw PSIEXCEPTION("Matrix::load: Matrix is non-totally symmetric.");
     }
@@ -3108,7 +3371,8 @@ bool Matrix::load(psi::PSIO *const psio, size_t fileno, const std::string &tocen
     return true;
 }
 
-void Matrix::load(psi::PSIO *const psio, size_t fileno, SaveType st) {
+template <typename T>
+void Matrix<T>::load(psi::PSIO *const psio, size_t fileno, SaveType st) {
     // The matrix must be sized correctly first
     // Check to see if the file is open
     bool already_open = false;
@@ -3172,11 +3436,13 @@ void Matrix::load(psi::PSIO *const psio, size_t fileno, SaveType st) {
     if (!already_open) psio->close(fileno, 1);  // Close and keep // Idempotent, win!
 }
 
-void Matrix::load(std::shared_ptr<psi::PSIO> &psio, size_t fileno, SaveType savetype) {
+template <typename T>
+void Matrix<T>::load(std::shared_ptr<psi::PSIO> &psio, size_t fileno, SaveType savetype) {
     load(psio.get(), fileno, savetype);
 }
 
-void Matrix::load_mpqc(const std::string &filename) {
+template <typename T>
+void Matrix<T>::load_mpqc(const std::string &filename) {
     // Entire file.
     std::vector<std::string> lines;
     std::string text;
@@ -3279,7 +3545,8 @@ void Matrix::load_mpqc(const std::string &filename) {
     }
 }
 
-void Matrix::load(const std::string &filename) {
+template <typename T>
+void Matrix<T>::load(const std::string &filename) {
     // Entire file.
     std::vector<std::string> lines;
     // temp
@@ -3351,11 +3618,14 @@ void Matrix::load(const std::string &filename) {
     }
 }
 
-bool Matrix::equal(const Matrix &rhs, double TOL) { return equal(&rhs, TOL); }
+template <typename T>
+bool Matrix<T>::equal(const Matrix<T> &rhs, double TOL) { return equal(&rhs, TOL); }
 
-bool Matrix::equal(const SharedMatrix &rhs, double TOL) { return equal(rhs.get(), TOL); }
+template <typename T>
+bool Matrix<T>::equal(const SharedMatrix<T> &rhs, double TOL) { return equal(rhs.get(), TOL); }
 
-bool Matrix::equal(const Matrix *rhs, double TOL) {
+template <typename T>
+bool Matrix<T>::equal(const Matrix<T> *rhs, double TOL) {
     // Check dimensions
     if (rhs->nirrep() != nirrep()) return false;
 
@@ -3376,13 +3646,16 @@ bool Matrix::equal(const Matrix *rhs, double TOL) {
     return true;
 }
 
-bool Matrix::equal_but_for_row_order(const Matrix &rhs, double TOL) { return equal_but_for_row_order(&rhs, TOL); }
+template <typename T>
+bool Matrix<T>::equal_but_for_row_order(const Matrix<T> &rhs, double TOL) { return equal_but_for_row_order(&rhs, TOL); }
 
-bool Matrix::equal_but_for_row_order(const SharedMatrix &rhs, double TOL) {
+template <typename T>
+bool Matrix<T>::equal_but_for_row_order(const SharedMatrix<T> &rhs, double TOL) {
     return equal_but_for_row_order(rhs.get(), TOL);
 }
 
-bool Matrix::equal_but_for_row_order(const Matrix *rhs, double TOL) {
+template <typename T>
+bool Matrix<T>::equal_but_for_row_order(const Matrix<T> *rhs, double TOL) {
     if (rhs->nirrep() != nirrep()) return false;
 
     if (symmetry_ != rhs->symmetry_) return false;
@@ -3409,7 +3682,8 @@ bool Matrix::equal_but_for_row_order(const Matrix *rhs, double TOL) {
     return true;
 }
 
-void Matrix::rotate_columns(int h, int i, int j, double theta) {
+template <typename T>
+void Matrix<T>::rotate_columns(int h, int i, int j, double theta) {
     if (h > nirrep_) throw PSIEXCEPTION("In rotate columns: Invalid Irrep");
     if (!colspi_[h] || !rowspi_[h]) return;
     if (i > colspi_[h]) throw PSIEXCEPTION("In rotate columns: Invalid column number for i");
@@ -3420,7 +3694,8 @@ void Matrix::rotate_columns(int h, int i, int j, double theta) {
 }
 
 namespace linalg {
-SharedMatrix horzcat(const std::vector<SharedMatrix> &mats) {
+template <typename T>
+SharedMatrix<T> horzcat(const std::vector<SharedMatrix<T>> &mats) {
     int nirrep = mats[0]->nirrep();
     for (size_t a = 0; a < mats.size(); ++a) {
         if (nirrep != mats[a]->nirrep()) {
@@ -3442,7 +3717,7 @@ SharedMatrix horzcat(const std::vector<SharedMatrix> &mats) {
         colspi += mats[a]->colspi();
     }
 
-    auto cat = std::make_shared<Matrix>("", nirrep, mats[0]->rowspi(), colspi);
+    auto cat = std::make_shared<Matrix<T>>("", nirrep, mats[0]->rowspi(), colspi);
 
     for (int h = 0; h < nirrep; ++h) {
         if (mats[0]->rowspi()[h] == 0 || colspi[h] == 0) continue;
@@ -3466,7 +3741,8 @@ SharedMatrix horzcat(const std::vector<SharedMatrix> &mats) {
     return cat;
 }
 
-SharedMatrix vertcat(const std::vector<SharedMatrix> &mats) {
+template <typename T>
+SharedMatrix<T> vertcat(const std::vector<SharedMatrix<T>> &mats) {
     int nirrep = mats[0]->nirrep();
     for (size_t a = 0; a < mats.size(); ++a) {
         if (nirrep != mats[a]->nirrep()) {
@@ -3488,7 +3764,7 @@ SharedMatrix vertcat(const std::vector<SharedMatrix> &mats) {
         rowspi += mats[a]->rowspi();
     }
 
-    auto cat = std::make_shared<Matrix>("", nirrep, rowspi, mats[0]->colspi());
+    auto cat = std::make_shared<Matrix<T>>("", nirrep, rowspi, mats[0]->colspi());
 
     for (int h = 0; h < nirrep; ++h) {
         if (mats[0]->colspi()[h] == 0 || rowspi[h] == 0) continue;
@@ -3512,25 +3788,29 @@ SharedMatrix vertcat(const std::vector<SharedMatrix> &mats) {
     return cat;
 }
 
-Matrix doublet(const Matrix& A, const Matrix& B, bool transA, bool transB) {
+template <typename T>
+Matrix<T> doublet(const Matrix<T>& A, const Matrix<T>& B, bool transA, bool transB) {
     Dimension m = (transA ? A.colspi() : A.rowspi());
     Dimension n = (transB ? B.rowspi() : B.colspi());
 
-    auto T = Matrix("T", m, n, A.symmetry() ^ B.symmetry());
-    T.gemm(transA, transB, 1.0, A, B, 0.0);
+    auto tmp = Matrix<T>("T", m, n, A.symmetry() ^ B.symmetry());
+    tmp.gemm(transA, transB, 1.0, A, B, 0.0);
 
-    return T;
+    return tmp;
 }
 
-SharedMatrix doublet(const SharedMatrix &A, const SharedMatrix &B, bool transA, bool transB) {
-    return std::make_shared<Matrix>(std::move(doublet(*A, *B, transA, transB)));
+template <typename T>
+SharedMatrix<T> doublet(const SharedMatrix<T> &A, const SharedMatrix<T> &B, bool transA, bool transB) {
+    return std::make_shared<Matrix<T>>(std::move(doublet(*A, *B, transA, transB)));
 }
 
-Matrix triplet(const Matrix &A, const Matrix &B, const Matrix &C, bool transA, bool transB, bool transC) {
+template <typename TemplateType>
+Matrix<TemplateType> triplet(const Matrix<TemplateType> &A, const Matrix<TemplateType> &B,
+		const Matrix<TemplateType> &C, bool transA, bool transB, bool transC) {
     bool same_symmetry = (A.symmetry() == B.symmetry() && A.symmetry() == C.symmetry());
 
-    Matrix T;
-    Matrix S;
+    Matrix<TemplateType> T;
+    Matrix<TemplateType> S;
 
     if (!same_symmetry) {
         T = doublet(A, B, transA, transB);
@@ -3576,9 +3856,10 @@ Matrix triplet(const Matrix &A, const Matrix &B, const Matrix &C, bool transA, b
     return S;
 }
 
-SharedMatrix triplet(const SharedMatrix &A, const SharedMatrix &B, const SharedMatrix &C, bool transA, bool transB,
+template <typename T>
+SharedMatrix<T> triplet(const SharedMatrix<T> &A, const SharedMatrix<T> &B, const SharedMatrix<T> &C, bool transA, bool transB,
                      bool transC) {
-    return std::make_shared<Matrix>(std::move(triplet(*A, *B, *C, transA, transB, transC)));
+    return std::make_shared<Matrix<T>>(std::move(triplet(*A, *B, *C, transA, transB, transC)));
 }
 
 namespace detail {

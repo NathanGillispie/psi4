@@ -102,13 +102,13 @@ class SAPT : public Wavefunction {
     double **vAAB_;
     double **vBAB_;
 
-    std::shared_ptr<Matrix> Smat_;
-    std::shared_ptr<Matrix> VAmat_;
-    std::shared_ptr<Matrix> VBmat_;
-    std::shared_ptr<Matrix> CoccA_;
-    std::shared_ptr<Matrix> CoccB_;
-    std::shared_ptr<Matrix> CvirA_;
-    std::shared_ptr<Matrix> CvirB_;
+    std::shared_ptr<Matrix<double>> Smat_;
+    std::shared_ptr<Matrix<double>> VAmat_;
+    std::shared_ptr<Matrix<double>> VBmat_;
+    std::shared_ptr<Matrix<double>> CoccA_;
+    std::shared_ptr<Matrix<double>> CoccB_;
+    std::shared_ptr<Matrix<double>> CvirA_;
+    std::shared_ptr<Matrix<double>> CvirB_;
 
     std::shared_ptr<SAPTDenominator> denom_;
 
@@ -118,7 +118,7 @@ class SAPT : public Wavefunction {
     double **dBS_;
 
     void zero_disk(int, const char *, int, int);
-    SharedMatrix get_metric(std::shared_ptr<BasisSet> basis) const;
+    SharedMatrix<double> get_metric(std::shared_ptr<BasisSet> basis) const;
 
    public:
     SAPT(SharedWavefunction Dimer, SharedWavefunction MonomerA, SharedWavefunction MonomerB, Options &options,

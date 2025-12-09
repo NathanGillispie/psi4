@@ -179,7 +179,7 @@ std::string Dispersion::print_energy(std::shared_ptr<Molecule> m) {
 }
 
 std::string Dispersion::print_gradient(std::shared_ptr<Molecule> m) {
-    SharedMatrix G = compute_gradient(m);
+    SharedMatrix<double> G = compute_gradient(m);
     double *g = G->pointer()[0];
     std::stringstream s;
     s.setf(std::ios::scientific);
@@ -201,7 +201,7 @@ std::string Dispersion::print_gradient(std::shared_ptr<Molecule> m) {
 }
 
 std::string Dispersion::print_hessian(std::shared_ptr<Molecule> m) {
-    SharedMatrix H = compute_hessian(m);
+    SharedMatrix<double> H = compute_hessian(m);
     double **h = H->pointer();
 
     std::stringstream s;
@@ -364,8 +364,8 @@ double Dispersion::compute_energy(std::shared_ptr<Molecule> m) {
     return E;
 }
 
-SharedMatrix Dispersion::compute_gradient(std::shared_ptr<Molecule> m) {
-    auto G = std::make_shared<Matrix>("Dispersion Gradient", m->natom(), 3);
+SharedMatrix<double> Dispersion::compute_gradient(std::shared_ptr<Molecule> m) {
+    auto G = std::make_shared<Matrix<double>>("Dispersion Gradient", m->natom(), 3);
     double **Gp = G->pointer();
 
     if (Damping_type_ == Damping_TT) {
@@ -437,7 +437,7 @@ SharedMatrix Dispersion::compute_gradient(std::shared_ptr<Molecule> m) {
     return G;
 }
 
-SharedMatrix Dispersion::compute_hessian(std::shared_ptr<Molecule> m) {
+SharedMatrix<double> Dispersion::compute_hessian(std::shared_ptr<Molecule> m) {
     throw PSIEXCEPTION("Dispersion: Hessians not implemented");
 }
 

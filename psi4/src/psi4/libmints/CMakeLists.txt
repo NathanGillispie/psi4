@@ -37,7 +37,6 @@ list(APPEND sources
   mintshelper.cc
   numinthelper.cc
   coordentry.cc
-  matrix.cc
   gshell.cc
   integraliter.cc
   pointgrp.cc

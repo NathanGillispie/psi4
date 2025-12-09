@@ -47,13 +47,13 @@ class PSI_API BasisSetOrthogonalization {
     int print_;
 
     /// Matrix to decompose
-    SharedMatrix overlap_;
+    SharedMatrix<double> overlap_;
     /// Normalized version of the input matrix
-    SharedMatrix normalized_overlap_;
+    SharedMatrix<double> normalized_overlap_;
     /// Normalization coefficients
     SharedVector normalization_;
     /// its eigenvectors
-    SharedMatrix eigvec_;
+    SharedMatrix<double> eigvec_;
     /// and eigenvalues
     SharedVector eigval_;
 
@@ -67,9 +67,9 @@ class PSI_API BasisSetOrthogonalization {
     /// The orthogonalization method
     OrthogonalizationMethod orthog_method_;
     /// The orthogonalizing matrix
-    SharedMatrix X_;
+    SharedMatrix<double> X_;
     /// ... and its inverse
-    SharedMatrix Xinv_;
+    SharedMatrix<double> Xinv_;
 
     /// Smallest eigenvalue
     double min_S_;
@@ -104,7 +104,7 @@ class PSI_API BasisSetOrthogonalization {
     std::vector<std::vector<int>> sort_indices() const;
 
    public:
-    BasisSetOrthogonalization(OrthogonalizationMethod method, SharedMatrix overlap, double lindep_tolerance,
+    BasisSetOrthogonalization(OrthogonalizationMethod method, SharedMatrix<double> overlap, double lindep_tolerance,
                               double cholesky_tolerance, int print = 0);
 
     OrthogonalizationMethod orthog_method() const { return orthog_method_; }
@@ -120,15 +120,15 @@ class PSI_API BasisSetOrthogonalization {
         \f$X OX^T\f$ where \f$X\f$ is the return value of this
         function.
     */
-    SharedMatrix basis_to_orthog_basis();
+    SharedMatrix<double> basis_to_orthog_basis();
 
     /** Returns the inverse of the transformation returned by
      * basis_to_orthog_basis().
      */
-    SharedMatrix basis_to_orthog_basis_inverse();
+    SharedMatrix<double> basis_to_orthog_basis_inverse();
 
     /// Return an $S^{-1}$.
-    SharedMatrix overlap_inverse();
+    SharedMatrix<double> overlap_inverse();
 
     /// Number of basis functions
     Dimension dim();

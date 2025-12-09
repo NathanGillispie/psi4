@@ -39,6 +39,7 @@
 
 namespace psi {
 
+template <typename T>
 class Matrix;
 class Molecule;
 class BasisSet;
@@ -62,7 +63,7 @@ class PSI_API ExternalPotential {
     /// Auxiliary basis sets (with accompanying molecules and coefs) of diffuse charges
     std::vector<std::pair<std::shared_ptr<BasisSet>, SharedVector> > bases_;
     /// Gradient, if available, as number of charges x 3 SharedMatrix
-    SharedMatrix gradient_on_charges_;
+    SharedMatrix<double> gradient_on_charges_;
 
    public:
     /// Constructur, does nothing
@@ -94,9 +95,9 @@ class PSI_API ExternalPotential {
     void clear();
 
     /// Compute the external potential matrix in the given basis set
-    SharedMatrix computePotentialMatrix(std::shared_ptr<BasisSet> basis);
+    SharedMatrix<double> computePotentialMatrix(std::shared_ptr<BasisSet> basis);
     /// Compute the gradients due to the external potential
-    SharedMatrix computePotentialGradients(std::shared_ptr<BasisSet> basis, std::shared_ptr<Matrix> Dt);
+    SharedMatrix<double> computePotentialGradients(std::shared_ptr<BasisSet> basis, std::shared_ptr<Matrix<double>> Dt);
     /// Compute the contribution to the nuclear repulsion energy for the given molecule
     double computeNuclearEnergy(std::shared_ptr<Molecule> mol);
 
@@ -104,7 +105,7 @@ class PSI_API ExternalPotential {
     double computeExternExternInteraction(std::shared_ptr<ExternalPotential> other_extern);
 
     /// Returns the gradient on the external potential point charges from the wfn-extern interaction
-    SharedMatrix gradient_on_charges();
+    SharedMatrix<double> gradient_on_charges();
 
     /// Print a trace of the external potential
     void print(const std::string& out_fname = "outfile") const;

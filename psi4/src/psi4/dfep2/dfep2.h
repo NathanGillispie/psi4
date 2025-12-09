@@ -44,9 +44,9 @@ class DFEP2Wavefunction : public Wavefunction {
     std::shared_ptr<BasisSet> ribasis_;
 
     // Orbitals full / occ / vir / solves
-    SharedMatrix AO_C_;
-    SharedMatrix AO_Cocc_;
-    SharedMatrix AO_Cvir_;
+    SharedMatrix<double> AO_C_;
+    SharedMatrix<double> AO_Cocc_;
+    SharedMatrix<double> AO_Cvir_;
     SharedVector AO_eps_;
     std::vector<std::tuple<double, size_t, size_t>> orbital_order_;
 

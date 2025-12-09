@@ -60,7 +60,7 @@ class ElectrostaticInt : public PotentialInt {
     PRAGMA_WARNING_PUSH
     PRAGMA_WARNING_IGNORE_OVERLOADED_VIRTUAL
     /// Computes integrals and stores in result.
-    void compute(SharedMatrix& result, const Vector3&);
+    void compute(SharedMatrix<double>& result, const Vector3&);
     PRAGMA_WARNING_POP
 
     static SharedVector nuclear_contribution(std::shared_ptr<Molecule> mol);
