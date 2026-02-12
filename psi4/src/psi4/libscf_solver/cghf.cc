@@ -189,6 +189,12 @@ void CGHF::preiterations() {
                 F0_[h].subscript(beta_p, beta_q) = H_->get(h, p, q);  // core Hamiltonian BB spin block
             }
 
+    if (options_.get_bool("ZORA_SPIN_ORBIT_COUPLING")) {
+        outfile_->Printf("We getting zora ints");
+        auto H_SO_zora = mintshelper()->ao_zora_spin_orbit();
+        H_SO_zora[0]->print();
+    }
+
     // Constructs orthogonalization matrix X_ using Lowdin symmetric orthogonalization
     //
     // X = S^{-1/2}
