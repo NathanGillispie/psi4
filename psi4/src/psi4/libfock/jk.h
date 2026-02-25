@@ -30,6 +30,7 @@
 #define JK_H
 
 #include <vector>
+#include <complex>
 
 #include "psi4/pragma.h"
 PRAGMA_WARNING_PUSH
@@ -42,6 +43,10 @@ PRAGMA_WARNING_POP
 
 #include "psi4/libfock/SplitJK.h"
 
+#include <Einsums/Tensor/BlockTensor.hpp>
+#include <Einsums/Tensor.hpp>
+
+
 namespace psi {
 class MinimalInterface;
 class BasisSet;
@@ -52,6 +57,15 @@ class PSIO;
 class DFHelper;
 class DFTGrid;
 class PetiteList;
+
+template<typename T, size_t rank = 2>
+using EinsumsSharedMatrix = std::shared_ptr<einsums::Tensor<T, rank>>;
+
+using complex_t = std::complex<double>;
+
+#ifndef EinsumsComplexMatrix
+#define EinsumsComplexMatrix std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>
+#endif
 
 namespace pk {
 class PKManager;
@@ -1104,6 +1118,7 @@ class PSI_API CDJK : public DiskDFJK {
  * density-fitted technology
  * under slightly different paradigm than DiskDFJK
  * wraps lib3index/DFHelper class
+ *
  */
 class PSI_API MemDFJK : public JK {
    protected:
@@ -1171,9 +1186,9 @@ class PSI_API MemDFJK : public JK {
     void set_df_ints_num_threads(int val) { df_ints_num_threads_ = val; }
 
     /**
- * A set_do_wK function that affects the dfhelper object.
- * used to control wK workflow.
- */
+     * A set_do_wK function that affects the dfhelper object.
+     * used to control wK workflow.
+     */
     void set_do_wK(bool do_wK) override;
 
     // => Accessors <= //
@@ -1193,6 +1208,188 @@ class PSI_API MemDFJK : public JK {
      * Returns the DFHelper object
      */
     std::shared_ptr<DFHelper> dfh() { return dfh_; }
+};
+
+/**
+ * Class EinsumsDFJK
+ * 
+ * Implementation of In-Core DFJK capable of doing Hartree-Fock computations
+ * using an arbitrary data type
+ *
+ * TODO: This is now only supports complex type, change it to make it
+ * templated in the future
+ *
+ */
+class PSI_API EinsumsDFJK : public JK {
+   protected:
+    /// Options object
+    Options& options_;
+
+    /* Symmetry is not currently supported */
+
+    /// Pseudo-occupied C matrices, left side
+    std::vector<EinsumsComplexMatrix> C_left_;
+    /// Pseudo-occupied C matrices, right side
+    std::vector<EinsumsComplexMatrix> C_right_;
+    /// Pseudo-density matrices
+    std::vector<EinsumsComplexMatrix> D_;
+    /// J matrices: \f$J_{mn}=(mn|ls)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> J_;
+    /// K matrices: \f$K_{mn}=(ml|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> K_;
+    /// wK matrices: \f$K_{mn}(\omega)=(ml|\omega|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> wK_;
+
+    /* Non-symmetry blocked data */
+    /*
+    /// Pseudo-occupied C matrices, left side
+    std::vector<EinsumsComplexMatrix> C_left_ao_;
+    /// Pseudo-occupied C matrices, right side
+    std::vector<EinsumsComplexMatrix> C_right_ao_;
+    /// Pseudo-density matrices
+    std::vector<EinsumsComplexMatrix> D_ao_;
+    /// J matrices: \f$J_{mn}=(mn|ls)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> J_ao_;
+    /// K matrices: \f$K_{mn}=(ml|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> K_ao_;
+    /// wK matrices: \f$K_{mn}(\omega)=(ml|\omega|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> wK_ao_;
+    */
+
+    /// ERI computers for computing DF ints
+    std::vector<std::shared_ptr<TwoBodyAOInt>> eri_computers_;
+    /// Coulomb Metric (P|Q) built over auxiliary basis functions
+    SharedMatrix J_metric_;
+    /// Psi4 Matrix object that represents (Q|uv) three-center AO integrals
+    SharedMatrix df_ao_eri_;
+
+    /// Maximum number of occupied orbitals
+    size_t max_nocc_;
+    /// Number of shell triplets
+    size_t n_shell_triplets_;
+    /// Total number of doubles in three-center AO DF ints
+    size_t num_doubles_;
+    /// Number of significant function pairs that survive the sieve process
+    size_t n_function_pairs_ = 0;
+
+    /// Auxiliary basis set
+    std::shared_ptr<BasisSet> auxiliary_;
+    /// Number of threads
+    int df_ints_num_threads_;
+    /// Condition cutoff in fitting metric, default 1.0E-12
+    double condition_ = 1.0E-12;
+
+    /// Transforms between AO to SO, since EinsumsDFJK runs in C1
+    /// need unique function from stock J/K may be complex
+    /// Transform current C_left_/C_right_/D_ to C_left_ao_/C_right_ao_/D_ao_, before compute_JK()
+    void AO2USO();
+
+    /// Transforms between SO to AO, since EinsumsDFJK runs in C1
+    /// need unique function from stock JK since J/K may be complex
+    /// Transform finished J_ao_/K_ao_ to J_/K_, after compute_JK()
+    void USO2AO();
+
+    /// Name of class
+    std::string name() override { return "EinsumsDFJK"; }
+    /// Estimate memory required to store AO three-center ints in core
+    size_t memory_estimate() override;
+
+    /// Do we need to backtransform to C1 under the hood?
+    bool C1() const override;
+
+    /// Builds per thread AO ERI object for three center DF ints
+    void build_eri_computers();
+    /// Compute (P|Q) in auxiliary basis
+    void compute_J_metric();
+    /// Compute (P|uv) in AO basis
+    void compute_three_center_ao_eri();
+
+    /// Allows the "feeding in" of complex matrices
+    /// TODO: Make this work with wK in the future
+    void compute_JK(const std::vector<EinsumsComplexMatrix>& C_left, const std::vector<EinsumsComplexMatrix>& C_right,
+                    std::vector<EinsumsComplexMatrix>& D, std::vector<EinsumsComplexMatrix>& J,
+                    std::vector<EinsumsComplexMatrix>& K, std::vector<EinsumsComplexMatrix>& wK);
+
+    // => Required Algorithm-Specific Methods (Many of which are taken from base JK) <= //
+
+    /// Setup integrals, I/O files, etc.
+    /// calls initialize(), blocks JK
+    void preiterations() override;
+    /// Compute J/K for current C/D (coefficient and density matrices)
+    void compute_JK() override;
+    /// Delete integrals, files, etc.
+    void postiterations() override;
+
+    /// Common initialization
+    void common_init();
+
+   public:
+    // => Constructors <= //
+
+    /**
+     * @param primary primary basis set for this system
+     * @param auxiliary auxiliary basis set for this system
+     */
+    EinsumsDFJK(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary, Options& options);
+
+    // => Getters and Setters
+    void set_max_nocc(size_t max_nocc) { max_nocc_ = max_nocc; }
+    int max_nocc() const { return max_nocc_; }; // Maximum number of occupied orbitals over all spin cases
+
+    // Destructor
+    ~EinsumsDFJK() override;
+
+    // => Knobs <= //
+
+    /**
+     * Minimum relative eigenvalue to retain in fitting inverse
+     * All eigenvectors with \epsilon_i < condition * \epsilon_max
+     * will be discarded
+     * @param condition minimum relative eigenvalue allowed,
+     *        defaults to 1.0E-12
+     */
+    void set_condition(double condition) { condition_ = condition; }
+
+    /**
+     * What number of threads to compute integrals on
+     * @param val a positive integer
+     */
+    void set_df_ints_num_threads(int val) { df_ints_num_threads_ = val; }
+
+    /**
+     * A set_do_wK function that affects the dfhelper object.
+     * used to control wK workflow.
+     */
+    void set_do_wK(bool do_wK) override;
+
+    // Setters for variables
+
+    void set_C_left(std::vector<EinsumsComplexMatrix> C_left) { C_left_ = C_left; }
+    void set_C_right(std::vector<EinsumsComplexMatrix> C_right) { C_right_ = C_right; }
+    void set_D(std::vector<EinsumsComplexMatrix> D) { D_ = D; }
+    void set_J(std::vector<EinsumsComplexMatrix> J) { J_ = J; }
+    void set_K(std::vector<EinsumsComplexMatrix> K) { K_ = K; }
+    void set_wK(std::vector<EinsumsComplexMatrix> wK) { wK_ = wK; }
+
+    // Getters for variables
+    std::vector<EinsumsComplexMatrix> get_J() { return J_; }
+    std::vector<EinsumsComplexMatrix> get_K() { return K_; }
+
+    // => Accessors <= //
+
+    /**
+    * Print header information regarding JK
+    * type on output file
+    */
+    void print_header() const override;
+
+    void set_omega_alpha(double alpha) override;
+    void set_omega_beta(double beta) override;
+    void set_wcombine(bool wcombine) override;
+    void set_cutoff(double cutoff) override; 
+
+    // Overrides base JK
+    void compute();
 };
 
 /**

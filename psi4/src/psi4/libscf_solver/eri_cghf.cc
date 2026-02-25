@@ -98,16 +98,13 @@ void CGHF::common_init() {
     Fdiis = std::deque<einsums::BlockTensor<std::complex<double>, 2>>(0);
     diis_coeffs = std::vector<std::complex<double>>(0);
     error_doubles = std::vector<std::complex<double>>(0);
-    std::vector<std::tuple<int, int, std::complex<double>>> dot_product_indices;
+
     // nelecpi_ is needed to form_C which is called after every guess. Preiterations
     // is called after guess so this needs to go here.
     find_occupation();
-    
     // Combine nalphapi_ and nbetapi_ to give nelecpi_ for forming the density matrix
-    // Similarly, modify dimpi() to handle this increased dimensions
     for (int h = 0; h < nirrep_; h++) {
         nelecpi_.push_back(nalphapi_[h] + nbetapi_[h]);
-        epsilon_a_->dimpi[h] = nalphapi_[h] + nbetapi_[h];
     };
 
     // => GLOBAL VARS <=
@@ -146,8 +143,7 @@ void CGHF::common_init() {
     // Density and combined Coulomb/ exchange matrices
     D_ = std::make_shared<ComplexMatrix>("D", irrep_sizes_);
     J_ = std::make_shared<ComplexMatrix>("J", irrep_sizes_);
-    K_ = std::make_shared<ComplexMatrix>("K", irrep_sizes_);
-    wK_ = std::make_shared<ComplexMatrix>("wK", irrep_sizes_);
+    K_ = std::make_shared<ComplexMatrix>("J", irrep_sizes_);
 
     // Orthogonalized gradient [F, D], gradient error at the current iteration
     ortho_error = std::make_shared<ComplexMatrix>("Orthogonalized FDSmSDF", irrep_sizes_);
@@ -167,19 +163,18 @@ void CGHF::common_init() {
     D_->zero();
     J_->zero();
     K_->zero();
-    wK_->zero();
     temp1_->zero();
     temp2_->zero();
     FDSmSDF_->zero();
 
     subclass_init();  // This appears to set up DFT stuff and external potentials
 
-    //const char* ein_argv[4] = {
-    //    "psi4\0",
-    //    "--einsums:no-profiler-report\0",
-    //    "--einsums:log-level\0", "3\0"
-    //};
-    //einsums::initialize(4, ein_argv);
+    const char* ein_argv[4] = {
+        "psi4\0",
+        "--einsums:no-profiler-report\0",
+        "--einsums:log-level\0", "3\0"
+    };
+    einsums::initialize(4, ein_argv);
 }
 
 // Needed for initializing the Einsums spin-blocked overlap matrix EINS_
@@ -207,8 +202,8 @@ void CGHF::preiterations() {
                 F0_->block(h)(p, q) = H_->get(h, p, q);            // core Hamiltonian AA spin block
                 F0_->block(h)(beta_p, beta_q) = H_->get(h, p, q);  // core Hamiltonian BB spin block
 
-                F_->block(h)(p, q) = Fa_->get(h, p, q);
-                F_->block(h)(p + nsopi_[h], q + nsopi_[h]) = Fb_->get(h, p, q);
+                //F_->block(h)(p, q) = Fa_->get(h, p, q);
+                //F_->block(h)(p + nsopi_[h], q + nsopi_[h]) = Fb_->get(h, p, q);
             }
 }
 
@@ -276,118 +271,42 @@ void CGHF::form_V() {}
  * which are of course computed using their respective density spin block (e.g. K_aa is D_aa)
  *
  */
-/*
-* Does an explicit 4-index for loop to compute JKwK_
-*
-* The density matrix is decomposed into its 4 spin-blocks and evaluated separately.
-* According to the Slater-Condon rules, the off-diagonal elements (alpha-beta, beta-alpha)
-* have zero Coulomb energy contributions. Therefore, only J_aa and J_bb need to be evaluated
-*
-* There is only one symmetry to take advantage of: K_ab = -K_ba† (negative adjoints)
-* Thus, 5 terms are computed here:
-*
-* J_aa/J_bb =      D_sr, G_pqrs -> J_pq
-*
-* K_aa/K_bb/K_ab = D_sr, G_psrq -> K_pq
-*
-* which are of course computed using their respective density spin block (e.g. K_aa is D_aa)
-*
-*/
+
 void CGHF::form_G() {
-    // Zero out J and K matrices first (einsums::BlockTensors take symmetry into account)
     J_->zero();
     K_->zero();
-   
 
-    auto Ca = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nelecpi_[0]);
-    auto Cb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nelecpi_[0]);
+    int nso = nso_;
+    int dim = 2 * nso;
 
-    auto Jaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Kaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Jbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Kbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
+    // TODO check G_mat dimensions for irreps
 
-    auto Daa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Dbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto wKaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto wKbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
+    for (int h = 0; h < nirrep_; h++)
+    for (int p = 0; p < nsopi_[h]; p++)
+    for (int q = 0; q < nsopi_[h]; q++)
+    for (int s = 0; s < nsopi_[h]; s++)
+    for (int r = 0; r < nsopi_[h]; r++) {
+        auto g_pqrs = G_mat->get(h, p * nsopi_[h] + q, r * nsopi_[h] + s);
+        auto g_psrq = G_mat->get(h, p * nsopi_[h] + s, r * nsopi_[h] + q);
+        
+        auto D_AA = D_->block(h)(s, r);
+        auto D_BB = D_->block(h)(s + nsopi_[h], r + nsopi_[h]);
+        auto D_AB = D_->block(h)(s, r + nsopi_[h]);
+        auto D_BA = D_->block(h)(s + nsopi_[h], r);
 
-    Jaa->zero();
-    Kaa->zero();
-    Jbb->zero();
-    Kbb->zero();
-    Daa->zero();
-    Dbb->zero();
-    wKaa->zero();
+        auto sum_D = D_AA + D_BB;
 
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int i = 0; i < nelecpi_[0]; i++) {
-        Ca->subscript(p, i) = C_->block(0)(p, i);
-        Cb->subscript(p, i) = C_->block(0)(p + nsopi_[0], i);
-    }
+        // Each line will be Coulomb (J) - exchange (K) contributions
+        // NOTE: the off-diagonal AB/BA blocks have no Coulomb contributions, only exchange
+        auto Jaa = g_pqrs * D_AA;
+        auto Jbb = g_pqrs * D_BB;
+        J_->block(h)(p, q) += Jaa + Jbb;  // J_AA
+        J_->block(h)(p + nsopi_[h], q+nsopi_[h]) += Jaa + Jbb;  // J_BB
 
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int q = 0; q < nsopi_[0]; q++) {
-        Daa->subscript(p, q) = D_->block(0)(p, q);
-        Dbb->subscript(p, q) = D_->block(0)(p + nsopi_[0], q + nsopi_[0]);
-    }
-
-    // Set max_nocc
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_max_nocc(nelecpi_[0]);
-
-    auto Clefts = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Crights = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Dmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Jmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Kmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto wKmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-
-    Clefts.push_back(Ca);
-    Crights.push_back(Ca);
-
-    Crights.push_back(Cb);
-    Clefts.push_back(Cb);
-
-    Dmats.push_back(Daa);
-    Dmats.push_back(Dbb);
-
-    Jmats.push_back(Jaa);
-    Jmats.push_back(Jbb);
-    
-    Kmats.push_back(Kaa);
-    Kmats.push_back(Kbb);
-
-    wKmats.push_back(wKaa);
-    wKmats.push_back(wKbb);
-
-    // Set matrices
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_left(Clefts);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_right(Crights);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_D(Dmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_J(Jmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_K(Kmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_wK(wKmats);
-
-    // Run JK algorithm
-    timer_on("CGHF JK compute");
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->compute();
-    timer_off("CGHF JK compute");
-
-    //// Grab compputed J/K matrices from JK object (messy right now due to differences in data type)
-    auto JMats = std::static_pointer_cast<EinsumsDFJK>(jk_)->get_J();
-    auto KMats = std::static_pointer_cast<EinsumsDFJK>(jk_)->get_K();
-    Jaa = JMats[0];
-    Jbb = JMats[1];
-
-    Kaa = KMats[0];
-    Kbb = KMats[1];
-
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int q = 0; q < nsopi_[0]; q++) {
-        J_->block(0).subscript(p, q) = Jaa->subscript(p, q) + Jbb->subscript(p, q);
-        J_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Jaa->subscript(p, q) + Jbb->subscript(p, q);
-        K_->block(0).subscript(p, q) = Kaa->subscript(p, q);
-        K_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Kbb->subscript(p, q);
+        K_->block(h)(p, q) += g_psrq * D_AA;  // K_AA
+        K_->block(h)(p + nsopi_[h], q + nsopi_[h]) += g_psrq * D_BB;  // K_BB
+        K_->block(h)(p, q + nsopi_[h]) += D_AB * g_psrq; // K_AB
+        K_->block(h)(p + nsopi_[h], q) += D_BA * g_psrq; // K_BA
     }
 }
 
@@ -409,12 +328,13 @@ void CGHF::form_C(double shift) {
     // replacing std::complex<double>{0.0} with the shift
     if (shift != 0.0) throw PSIEXCEPTION("CGHF does not support energy shifting.");
 
+    temp1_->zero();
     //if (iteration_ <= 0) {
     //    form_init_F();
     //}
     // => ORTHOGONALIZE FOCK <=
     // Fp_ = X_.conj().T @ F_ @ X_
-    if (options_.get_bool("DIIS") && iteration_ > options_.get_int("DIIS_START")) {
+    if (options_.get_bool("DIIS") && iteration_ >= options_.get_int("DIIS_START")) {
         auto error_trace = do_diis();
     } else {
         einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *F_, *EINX_, std::complex<double>{0.0},
@@ -429,6 +349,7 @@ void CGHF::form_C(double shift) {
     // Matt: Einsums limitation
 
     temp1_->zero();
+    temp2_->zero();
     for (int h = 0; h < nirrep_; h++) {
         // Do not diagonalize 0x0 matrix
         if (nsopi_[h] == 0) continue;
@@ -450,18 +371,7 @@ void CGHF::form_C(double shift) {
     // EINX_ @ Fevecs_ = C_
     einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *EINX_, *temp1_, std::complex<double>{0.0}, C_.get());
 
-
-    // "During the SCF procedure, the occupation of orbitals is typically determined by the Aufbau principal across all spatial symmetries. 
-    // This may result in the occupation shifting between iterations." -Psi4 
-    // 
-    for (int h = 0; h < nirrep_; h++) {
-        for (int i = 0; i < irrep_sizes_[h]; i++) {
-            epsilon_a->set(h, i, Fevals_[h](i); 
-        }
-    }
     find_occupation();
-
-
 }
 
 /*
@@ -575,11 +485,14 @@ void CGHF::form_D() {
         }
     }
 
+    einsums::linear_algebra::gemm<false, true>(std::complex<double>{1.0}, *temp1_, *temp2_, std::complex<double>{0.0},
+                                               D_.get());
+
     // Performs einsums contraction ui,vi->uv with temp1_, temp2_ -> D_)
-    einsums::tensor_algebra::einsum(einsums::Indices{einsums::index::u, einsums::index::v}, D_.get(),     // D_uv
-                                    einsums::Indices{einsums::index::u, einsums::index::i}, *temp1_,  // Cocc_ui
-                                    einsums::Indices{einsums::index::v, einsums::index::i}, *temp2_   // Cocc.conj.T_vi
-    );
+    //einsums::tensor_algebra::einsum(einsums::Indices{einsums::index::u, einsums::index::v}, D_.get(),     // D_uv
+    //                                einsums::Indices{einsums::index::u, einsums::index::i}, *temp1_,  // Cocc_ui
+    //                                einsums::Indices{einsums::index::v, einsums::index::i}, *temp2_   // Cocc.conj.T_vi
+    //);
 }
 
 void CGHF::damping_update(double damping_percentage) {}
@@ -607,7 +520,7 @@ double CGHF::compute_E() {
 
                 one_electron_E += (F0_->block(h)(i, j) * Dji).real();  // F0_ij * D_ji
                 two_E += (J_->block(h)(i, j) * Dji).real();            // J_ij * D_ji
-                two_E -= (K_->block(h)(i, j) * Dji).real();            // J_ij * D_ji
+                two_E -= (K_->block(h)(i, j) * Dji).real();            // K_ij * D_ji
             }
     }
 
@@ -892,3 +805,4 @@ std::shared_ptr<CGHF> CGHF::c1_deep_copy(std::shared_ptr<BasisSet> basis) {
 
 }  // namespace scf
 }  // namespace psi
+

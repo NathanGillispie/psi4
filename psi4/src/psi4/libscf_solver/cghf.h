@@ -133,6 +133,7 @@ class CGHF : public HF {
     
     // Holds the grabbed Fock matrices to extrapolate
     std::deque<einsums::BlockTensor<std::complex<double>, 2>> Fdiis;
+    std::vector<std::tuple<int, int, std::complex<double>>> dot_product_indices;
     // Holds FDSmSDF_ at each iteration (orbital gradients)
     std::deque<einsums::BlockTensor<std::complex<double>, 2>> err_vecs;
     std::vector<std::complex<double>> diis_coeffs;    // Holds the coefficients for each Fock matrix in Fdiis
@@ -148,15 +149,16 @@ class CGHF : public HF {
     SharedBlockTensor C_;  // Coefficient matrix built after back-trasnformation C' = XC
 
     // NOTE: EINS_ and EINX_ are spin-blocked variants of S_ and X_ from HF, respectively
-    SharedBlockTensor EINS_;                 // Spin-blocked overlap matrix -- it is never complex
+    SharedBlockTensor EINS_;   // Spin-blocked overlap matrix -- it is never complex. MATT: WE MADE THIS COMPLEX THOUGH
     SharedBlockTensor EINX_;   // Spin-blocked orthogonalization matrix
 
     SharedBlockTensor Fevecs_;  // Eigenvectors of Fock matrix
     einsums::BlockTensor<double, 1> Fevals_;                // Eigenvalues of Fock matrix
 
     SharedBlockTensor D_;       // 1-particle density matrix
-    SharedBlockTensor JK_;       // Combined Coulomb and exchange matrix
-    //SharedBlockTensor K_;       // Exchange matrix
+    SharedBlockTensor J_;         // Coulomb matrix
+    SharedBlockTensor K_;       // Exchange matrix
+    SharedBlockTensor wK_;     // (omega) Exchange matrix
 
     // ortho_error and ecurr are specific to DIIS
     SharedBlockTensor ortho_error;    // Orthogonalized gradient error
