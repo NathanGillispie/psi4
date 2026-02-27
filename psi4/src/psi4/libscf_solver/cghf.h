@@ -112,6 +112,9 @@ class CGHF : public HF {
     virtual bool same_a_b_orbs() const { return false; }
     virtual bool same_a_b_dens() const { return false; }
 
+    // Was HOMO/LUMO mixing done?
+    bool mix_performed_;
+
     // Empty functions for now -- sets up external potentials (TODO later)
     std::shared_ptr<UV> potential_;
     std::shared_ptr<VBase> V_potential() const override { return potential_; };
@@ -159,6 +162,27 @@ class CGHF : public HF {
     SharedBlockTensor J_;         // Coulomb matrix
     SharedBlockTensor K_;       // Exchange matrix
     SharedBlockTensor wK_;     // (omega) Exchange matrix
+
+    // => alpha/beta blocks of C_, D_, J_, K_, and wK_ (needed for JK build) <= //
+
+    EinsumsComplexMatrix Caa_;
+    EinsumsComplexMatrix Cbb_;
+
+    EinsumsComplexMatrix Daa_;
+    EinsumsComplexMatrix Dbb_;
+    EinsumsComplexMatrix Dba_;
+
+    EinsumsComplexMatrix Jaa_;
+    EinsumsComplexMatrix Jbb_;
+    EinsumsComplexMatrix Jba_;
+
+    EinsumsComplexMatrix Kaa_;
+    EinsumsComplexMatrix Kbb_;
+    EinsumsComplexMatrix Kba_;
+
+    EinsumsComplexMatrix wKaa_;
+    EinsumsComplexMatrix wKbb_;
+    EinsumsComplexMatrix wKba_;
 
     // ortho_error and ecurr are specific to DIIS
     SharedBlockTensor ortho_error;    // Orthogonalized gradient error

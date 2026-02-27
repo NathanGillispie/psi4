@@ -93,6 +93,9 @@ void CGHF::common_init() {
     same_a_b_orbs_ = false;
     /*** End useless definitions ***/
 
+    // Was HOMO/LUMO mixing done?
+    mix_performed_ = false;
+
     // => DIIS variables <=
     err_vecs = std::deque<einsums::BlockTensor<std::complex<double>, 2>>(0);
     Fdiis = std::deque<einsums::BlockTensor<std::complex<double>, 2>>(0);
@@ -107,7 +110,6 @@ void CGHF::common_init() {
     // Similarly, modify dimpi() to handle this increased dimensions
     for (int h = 0; h < nirrep_; h++) {
         nelecpi_.push_back(nalphapi_[h] + nbetapi_[h]);
-        epsilon_a_->dimpi[h] = nalphapi_[h] + nbetapi_[h];
     };
 
     // => GLOBAL VARS <=
@@ -148,6 +150,27 @@ void CGHF::common_init() {
     J_ = std::make_shared<ComplexMatrix>("J", irrep_sizes_);
     K_ = std::make_shared<ComplexMatrix>("K", irrep_sizes_);
     wK_ = std::make_shared<ComplexMatrix>("wK", irrep_sizes_);
+
+    // => alpha/beta blocks of C_, D_, J_, K_, and wK_ (needed for JK build) <= //
+    Caa_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nelecpi_[0]);
+    Cbb_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta coefficients", nsopi_[0], nelecpi_[0]);
+
+    Daa_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha/Alpha D", nsopi_[0], nsopi_[0]);
+    Dbb_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta D", nsopi_[0], nsopi_[0]);
+    Dba_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta D", nsopi_[0], nsopi_[0]);
+
+    //Jba_ is of course a dummy Tensor since EinsumsDFJK doesn't have optional J/K yet
+    Jaa_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha/Alpha J", nsopi_[0], nsopi_[0]);
+    Jbb_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta J", nsopi_[0], nsopi_[0]);
+    Jba_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha/Alpha J", nsopi_[0], nsopi_[0]);
+
+    Kaa_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha/Alpha K", nsopi_[0], nsopi_[0]);
+    Kbb_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta K", nsopi_[0], nsopi_[0]);
+    Kba_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta K", nsopi_[0], nsopi_[0]);
+
+    wKaa_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha/Alpha wK", nsopi_[0], nsopi_[0]);
+    wKbb_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta wK", nsopi_[0], nsopi_[0]);
+    wKba_ = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Beta/Beta wK", nsopi_[0], nsopi_[0]);
 
     // Orthogonalized gradient [F, D], gradient error at the current iteration
     ortho_error = std::make_shared<ComplexMatrix>("Orthogonalized FDSmSDF", irrep_sizes_);
@@ -292,104 +315,61 @@ void CGHF::form_V() {}
 *
 * which are of course computed using their respective density spin block (e.g. K_aa is D_aa)
 *
+* A very special thank you to Andy Jiang for coding EinsumsDFJK and implementing this!
 */
+
 void CGHF::form_G() {
-    // Zero out J and K matrices first (einsums::BlockTensors take symmetry into account)
+    // Zero J and K matrices
     J_->zero();
     K_->zero();
-   
-
-    auto Ca = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nelecpi_[0]);
-    auto Cb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nelecpi_[0]);
-
-    auto Jaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Kaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Jbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Kbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-
-    auto Daa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto Dbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto wKaa = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-    auto wKbb = std::make_shared<einsums::Tensor<std::complex<double>, 2>>("Alpha coefficients", nsopi_[0], nsopi_[0]);
-
-    Jaa->zero();
-    Kaa->zero();
-    Jbb->zero();
-    Kbb->zero();
-    Daa->zero();
-    Dbb->zero();
-    wKaa->zero();
-
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int i = 0; i < nelecpi_[0]; i++) {
-        Ca->subscript(p, i) = C_->block(0)(p, i);
-        Cb->subscript(p, i) = C_->block(0)(p + nsopi_[0], i);
-    }
-
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int q = 0; q < nsopi_[0]; q++) {
-        Daa->subscript(p, q) = D_->block(0)(p, q);
-        Dbb->subscript(p, q) = D_->block(0)(p + nsopi_[0], q + nsopi_[0]);
-    }
 
     // Set max_nocc
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_max_nocc(nelecpi_[0]);
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_max_nocc(nelectron_);
 
-    auto Clefts = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Crights = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Dmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Jmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto Kmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
-    auto wKmats = std::vector<std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>>();
+    // Initialize C and D matrices
+#pragma omp parallel for
+    for (int p = 0; p < nsopi_[0]; p++) {
+        for (int i = 0; i < nelecpi_[0]; i++) {
+            Caa_->subscript(p, i) = C_->block(0)(p, i);
+            Cbb_->subscript(p, i) = C_->block(0)(p + nsopi_[0], i);
+        } // end i
+    } // end p
 
-    Clefts.push_back(Ca);
-    Crights.push_back(Ca);
-
-    Crights.push_back(Cb);
-    Clefts.push_back(Cb);
-
-    Dmats.push_back(Daa);
-    Dmats.push_back(Dbb);
-
-    Jmats.push_back(Jaa);
-    Jmats.push_back(Jbb);
-    
-    Kmats.push_back(Kaa);
-    Kmats.push_back(Kbb);
-
-    wKmats.push_back(wKaa);
-    wKmats.push_back(wKbb);
+#pragma omp parallel for
+    for (int p = 0; p < nsopi_[0]; p++) {
+        for (int q = 0; q < nsopi_[0]; q++) {
+            Daa_->subscript(p, q) = D_->block(0)(p, q);
+            Dbb_->subscript(p, q) = D_->block(0)(p + nsopi_[0], q + nsopi_[0]);
+            Dba_->subscript(p, q) = D_->block(0)(p + nsopi_[0], q);
+        } // end q
+    } // end p
 
     // Set matrices
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_left(Clefts);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_right(Crights);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_D(Dmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_J(Jmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_K(Kmats);
-    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_wK(wKmats);
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_left({ Caa_, Cbb_, Cbb_ });
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_C_right({ Caa_, Cbb_, Caa_ });
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_D({ Daa_, Dbb_, Dba_ });
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_J({ Jaa_, Jbb_, Jba_ });
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_K({ Kaa_, Kbb_, Kba_ });
+    std::static_pointer_cast<EinsumsDFJK>(jk_)->set_wK({ wKaa_, wKbb_, wKba_ });
 
     // Run JK algorithm
-    timer_on("CGHF JK compute");
     std::static_pointer_cast<EinsumsDFJK>(jk_)->compute();
-    timer_off("CGHF JK compute");
 
-    //// Grab compputed J/K matrices from JK object (messy right now due to differences in data type)
-    auto JMats = std::static_pointer_cast<EinsumsDFJK>(jk_)->get_J();
-    auto KMats = std::static_pointer_cast<EinsumsDFJK>(jk_)->get_K();
-    Jaa = JMats[0];
-    Jbb = JMats[1];
-
-    Kaa = KMats[0];
-    Kbb = KMats[1];
-
-    for (int p = 0; p < nsopi_[0]; p++)
-    for (int q = 0; q < nsopi_[0]; q++) {
-        J_->block(0).subscript(p, q) = Jaa->subscript(p, q) + Jbb->subscript(p, q);
-        J_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Jaa->subscript(p, q) + Jbb->subscript(p, q);
-        K_->block(0).subscript(p, q) = Kaa->subscript(p, q);
-        K_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Kbb->subscript(p, q);
-    }
+    // Grab compputed J/K matrices from JK object (messy right now due to differences in data type)
+#pragma omp parallel for
+    for (int p = 0; p < nsopi_[0]; p++) {
+        for (int q = 0; q < nsopi_[0]; q++) {
+            J_->block(0).subscript(p, q) = Jaa_->subscript(p, q) + Jbb_->subscript(p, q);
+            J_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Jaa_->subscript(p, q) + Jbb_->subscript(p, q);
+            K_->block(0).subscript(p, q) = Kaa_->subscript(p, q);
+            K_->block(0).subscript(p + nsopi_[0], q + nsopi_[0]) = Kbb_->subscript(p, q);
+            auto Kba_val = Kba_->subscript(p, q);
+            K_->block(0).subscript(p + nsopi_[0], q) = Kba_val;
+            K_->block(0).subscript(p, q + nsopi_[0]) = std::conj(Kba_val);
+        } // end q
+    } // end p
 }
+
 
 /* F = H + J - K */
 void CGHF::form_F() {
@@ -450,15 +430,39 @@ void CGHF::form_C(double shift) {
     // EINX_ @ Fevecs_ = C_
     einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *EINX_, *temp1_, std::complex<double>{0.0}, C_.get());
 
+    // Perform optional HOMO/LUMO mixing to break spin symmetry immediately
+    if (options_.get_bool("GUESS_MIX") && !mix_performed_) {
+        temp1_->zero();
+        double k = 0.25 * pc_pi; // How much to mix the HOMO/LUMO coefficients by
+ 
+        // SAD doesn't have orbitals in iteration 0, other guesses do - from uhf.cc
+        bool have_orbitals = !sad_ || (sad_ && iteration_ > 0);
+        if (have_orbitals) {
+            for (int h = 0; h < nirrep_; h++) {
+                int homo_idx = nelecpi_[h] - 1;
+                int lumo_idx = nelecpi_[h];
 
-    // "During the SCF procedure, the occupation of orbitals is typically determined by the Aufbau principal across all spatial symmetries. 
-    // This may result in the occupation shifting between iterations." -Psi4 
-    // 
-    for (int h = 0; h < nirrep_; h++) {
-        for (int i = 0; i < irrep_sizes_[h]; i++) {
-            epsilon_a->set(h, i, Fevals_[h](i); 
+                for (int i = 0; i < irrep_sizes_[h]; i++) {
+                    auto old_homo_val = C_->block(h)(i, homo_idx);
+                    auto old_lumo_val = C_->block(h)(i, lumo_idx);
+
+                    // new_HOMO = (old_HOMO) + k*(old_LUMO)
+                    // new_LUMO = (old_LUMO) - k*(old_HOMO)
+
+                    auto new_homo_val = old_homo_val + k*old_lumo_val;
+                    auto new_lumo_val = old_lumo_val - k*old_homo_val;
+
+                    C_->block(h)(i, homo_idx) = new_homo_val;
+                    C_->block(h)(i, lumo_idx) = new_lumo_val;
+                }
+            }
+
+            mix_performed_ = true;
         }
     }
+
+
+
     find_occupation();
 
 
