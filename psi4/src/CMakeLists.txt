@@ -38,6 +38,7 @@ target_sources(core
     export_blas_lapack.cc
     export_cubeprop.cc
     export_dpd.cc
+    export_einsums.cc
     export_fock.cc
     export_functional.cc
     export_misc.cc

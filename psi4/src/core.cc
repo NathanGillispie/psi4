@@ -141,6 +141,9 @@ void export_benchmarks(py::module&);
 void export_blas_lapack(py::module&);
 void export_cubeprop(py::module&);
 void export_dpd(py::module&);
+#ifdef USING_Einsums
+void export_einsums(py::module&);
+#endif
 void export_fock(py::module&);
 void export_functional(py::module&);
 void export_mints(py::module&);
@@ -1208,6 +1211,10 @@ PYBIND11_MODULE(core, core) {
 
     // BLAS/LAPACK Static Wrappers
     export_blas_lapack(core);
+
+#ifdef USING_Einsums
+    export_einsums(core);
+#endif
 
     // Define library classes
     export_psio(core);
