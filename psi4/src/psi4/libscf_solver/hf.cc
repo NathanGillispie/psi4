@@ -1037,12 +1037,17 @@ void HF::guess() {
         guess_type = "CORE";
     }
 
-    if ((guess_type == "READ") && !guess_Ca_) {
-        outfile->Printf("\nWarning! Guess was READ without Ca set, switching to CORE!\n");
-        outfile->Printf("           This option should have been configured at the driver level.\n\n");
-        guess_type = "CORE";
+    if ((guess_type == "READ") && !guess_Ca_) { // Will always default to this for GHF, even when guess_Ca is supplied
+        if (options_.get_str("REFERENCE") != "CGHF") {
+            outfile->Printf("\nWarning! Guess was READ without Ca set, switching to CORE!\n");
+            outfile->Printf("           This option should have been configured at the driver level.\n\n");
+            outfile->Printf("\nReference: %s", options_.get_str("REFERENCE"));
+            guess_type = "CORE";
+        } else {
+        }
     }
 
+    // Don't do this for GHF. Dimensions do not match for Ca_ and Cb_ anyways
     if (guess_Ca_) {
         if (print_) outfile->Printf("  SCF Guess: Orbitals guess was supplied from a previous computation.\n\n");
 
@@ -1253,6 +1258,11 @@ void HF::guess() {
         form_D();
         guess_E = compute_initial_E();
 
+    } else if (options_.get_str("REFERENCE") == "CGHF" && options_.get_str("GUESS") == "READ") {
+        outfile->Printf("Guess being read in from NumPy");
+        form_initial_C();
+        form_D();
+        guess_E = compute_initial_E();
     } else {
         throw PSIEXCEPTION("  SCF Guess: No guess was found!");
     }

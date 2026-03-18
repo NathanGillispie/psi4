@@ -1775,7 +1775,7 @@ def scf_helper(name, post_scf=True, **kwargs):
     # The wfn from_file routine adds the npy suffix if needed, but we add it here so that
     # we can use os.path.isfile to query whether the file exists before attempting to read
     read_filename = scf_wfn.get_scratch_filename(180) + '.npy'
-    if ((core.get_option('SCF', 'GUESS') == 'READ') and os.path.isfile(read_filename)):
+    if ((core.get_option('SCF', 'GUESS') == 'READ') and os.path.isfile(read_filename)) and core.get_option('SCF', 'REFERENCE') != 'CGHF':
         old_wfn = core.Wavefunction.from_file(read_filename)
 
         Ca_occ = old_wfn.Ca_subset("SO", "OCC")
@@ -1803,7 +1803,7 @@ def scf_helper(name, post_scf=True, **kwargs):
         if old_ref != new_ref:
             scf_wfn.reset_occ_ = True
 
-    elif (core.get_option('SCF', 'GUESS') == 'READ') and not os.path.isfile(read_filename):
+    elif (core.get_option('SCF', 'GUESS') == 'READ') and not os.path.isfile(read_filename) and core.get_option('SCF', 'REFERENCE') != 'CGHF':
         core.print_out(f"\n !!!  Unable to find file {read_filename}, defaulting to SAD guess. !!!\n\n")
         core.set_local_option('SCF', 'GUESS', 'SAD')
         sad_basis_list = core.BasisSet.build(scf_wfn.molecule(), "ORBITAL",

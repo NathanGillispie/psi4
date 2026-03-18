@@ -37,6 +37,9 @@
 #include <Einsums/Config.hpp>
 #include <Einsums/Tensor.hpp>
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 using SharedBlockTensor = std::shared_ptr<einsums::BlockTensor<std::complex<double>, 2>>;
 #endif
 
@@ -109,6 +112,8 @@ class CGHF : public HF {
     // Form coefficient matrix from Fock guess (SAP, CORE, etc.)
     void form_initial_C() override;
 
+    void form_initial_F() override;
+
     // Constructs 1-particle density matrix using the occupied coefficients Cocc_
     // and its conjugate. Stored in temp1_.
     void form_D() override;
@@ -141,8 +146,18 @@ class CGHF : public HF {
     // Computes <S^2> expectation value and prints to outfile
     void s2_expectation_value();
 
+    // Read in complex C_, D_, and F_ from a hacked wavefunction
+    void read_from_wfn();
+
     // Gets the HOMO and LUMO indices for HOMO/LUMO mixing
     std::tuple<int, int> find_homo_lumo_idx();
+
+    // Update the D_, C_, and F_ matrices with a NumPy matrix
+    //void read_from_wfn(py::array_t<std::complex<double>> guess_D, py::array_t<std::complex<double>> guess_F, py::array_t<std::complex<double>> guess_C);
+
+    void print_density();
+
+    void reset_diis_subspace();
 
     void finalize() override;
 

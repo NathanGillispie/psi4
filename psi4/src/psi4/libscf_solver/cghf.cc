@@ -37,6 +37,10 @@
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/liboptions/liboptions.h"
 
+#include "psi4/libqt/qt.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include "cghf.h"
 
 #ifdef USING_Einsums
@@ -45,6 +49,7 @@
 #include <Einsums/Runtime.hpp>
 
 using ComplexMatrix = einsums::BlockTensor<std::complex<double>, 2>;
+
 #endif
 
 #ifdef _OPENMP
@@ -194,6 +199,7 @@ void CGHF::preiterations() {
                 F0_->block(h)(p, q) = H_->get(h, p, q);
                 F0_->block(h)(beta_p, beta_q) = H_->get(h, p, q);
 
+                if (options_.get_str("REFERENCE") == "READ") { continue; }
                 // F_: [[Fa_, 0],[0, Fb_]]
                 F_->block(h)(p, q) = Fa_->get(h, p, q);
                 F_->block(h)(beta_p, beta_q) = Fb_->get(h, p, q);
@@ -461,12 +467,23 @@ std::tuple<int, int> CGHF::find_homo_lumo_idx() {
  */
 void CGHF::form_initial_C() {
     // find_occupation();
+    auto read_guess = options_.get_str("GUESS");
+   
+
     if (!sad_) {
         for (int h = 0; h < nirrep_; h++) {
-            for (int p = 0; p < nsopi_[h]; p++) {
-                for (int q = 0; q < nsopi_[h]; q++) {
-                    F_->block(h)(p, q) = Fa_->get(h, p, q);
-                    F_->block(h)(p + nsopi_[h], q + nsopi_[h]) = Fb_->get(h, p, q);
+            if (read_guess == "READ") {
+                for (int p = 0; p < nsopi_[h]; p++) {
+                    for (int q = 0; q < nsopi_[h]; q++) {
+                        F_->block(h)(p, q) = std::complex<double>{Fa_->get(h, p, q), Fb_->get(h, p, q)};
+                    }
+                }
+            } else {
+                for (int p = 0; p < nsopi_[h]; p++) {
+                    for (int q = 0; q < nsopi_[h]; q++) {
+                        F_->block(h)(p, q) = Fa_->get(h, p, q);
+                        F_->block(h)(p + nsopi_[h], q + nsopi_[h]) = Fb_->get(h, p, q);
+                    }
                 }
             }
         }
@@ -603,6 +620,12 @@ double CGHF::compute_initial_E() {
     return one_electron_E + nuclearrep_;
 }
 
+void CGHF::reset_diis_subspace() {
+    err_vecs.clear();
+    Fdiis.clear();
+    error_doubles.clear();
+}
+
 /*
  * Direct inversion of the iterative subspace (DIIS) for improved convergence
  *
@@ -620,17 +643,21 @@ void CGHF::do_diis() {
     form_FDSmSDF();
 
     // e.e for e = [F,D]
-    double error = 0;
+    std::complex<double> cerror = std::complex<double>(0.0, 0.0);
     for (int h = 0; h < nirrep_; h++) {
         auto o = FDSmSDF_->block(h);
         // Avoid using true_dot until einsums fixes segfault on M-intel runners.
         // error += einsums::linear_algebra::true_dot(o, o).real();
         for (int p = 0; p < irrep_sizes_[h]; p++) {
             for (int q = 0; q < irrep_sizes_[h]; q++) {
-                error += (std::conj(o.subscript(p, q)) * o.subscript(p, q)).real();
+                cerror += std::conj(o.subscript(p, q)) * o.subscript(p, q);
             }
         }
     }
+
+    //double error = std::pow(cerror.real(), 2.0) + std::pow(cerror.imag(), 2.0);
+    double error = std::abs(cerror);
+    //double error = cerror.real();
 
     // Only extrapolate Fp_ when enough vectors are stored
     if (err_vecs.size() < diis_max) {
@@ -688,22 +715,28 @@ void CGHF::do_diis() {
 
     // Actually populate it with the errors
     for (int i = 0; i < diis_max; i++) {
-        for (int j = i; j < diis_max; j++) {
+        for (int j = 0; j < diis_max; j++) {
             auto ei = err_vecs[i];
             auto ej = err_vecs[j];
 
-            std::complex<double> sum{0, 0};
-            for (int h = 0; h < nirrep_; h++)
+            std::complex<double> sum{0.0, 0.0};
+            for (int h = 0; h < nirrep_; h++) {
                 // Avoid using true_dot until einsums fixes segfault on M-intel runners.
                 // sum += einsums::linear_algebra::true_dot(ei[h], ej[h]);
-                for (int p = 0; p < irrep_sizes_[h]; p++)
-                    for (int q = 0; q < irrep_sizes_[h]; q++)
+                for (int p = 0; p < irrep_sizes_[h]; p++) {
+                    for (int q = 0; q < irrep_sizes_[h]; q++) {
                         sum += std::conj(ei->block(h).subscript(p, q)) * ej->block(h).subscript(p, q);
-            B_(j, i) = sum;
+                    }
+                }
+            }
+
+            B_(i, j) = sum;
             // B_ is real and symmetric
-            if (i != j) B_(i, j) = sum;
+            //if (i != j) B_(i, j) = sum;
         }
     }
+
+    //println(B_);
 
     // Container for the column vector solution of gesv. It should be a column vector
     // but has rank == 2. This is a weird artifact of gesv.
@@ -869,26 +902,76 @@ void CGHF::s2_expectation_value() {
 
 }
 
-void CGHF::finalize() {
-    s2_expectation_value();
+void CGHF::form_initial_F() {
+    if (options_.get_str("REFERENCE") == "READ") {
+        read_from_wfn();
+    }
+}
 
-    //for (int h = 0; h < nirrep_; h++) {
-    //    for (int p = 0; p < nsopi_[h]; p++) {
-    //        for (int q = 0; q < nsopi_[h]; q++) {
-    //            auto dab = D_->block(h)(p, q+nsopi_[h]);
-    //            std::cout << dab << "\n";
-    //        }
-    //    }
-    //}
+// => DEPRECATE OR MAKE THIS MORE EFFICIENT BEFORE RELEASE <=
+// This transfers the read in and "hacked" SharedMatrix objects read in from a file
+// The ALPHA parts of the matrices (ex. Ca_) will correspond to the REAL part
+// and the BETA part (ex. Cb_) will correspond to the IMAG part
+//
+// For DIMENSION data (ex. nsopi_), this MUST correspond to the UHF Dimensions for
+// the code to work
+void CGHF::read_from_wfn() {
+    for (int h = 0; h < nirrep_; h++) {
+        int n = irrep_sizes_[h];
+
+        for (int p = 0; p < n; p++) {
+            for (int q = 0; q < n; q++) {
+                //D_->block(h)(p, q) = std::complex<double>{Da_->get(h, p, q), Db_->get(h, p, q)}; 
+                F_->block(h)(p, q) = std::complex<double>{Fa_->get(h, p, q), Fb_->get(h, p, q)}; 
+                //C_->block(h)(p, q) = std::complex<double>{Ca_->get(h, p, q), Cb_->get(h, p, q)}; 
+            }
+        }
+    }
+
+    JK_->zero();
+}
+
+
+
+void CGHF::finalize() {
+    //s2_expectation_value();
+
+    for (int h = 0; h < nirrep_; h++) {
+        for (int p = 0; p < nsopi_[h]; p++) {
+            for (int q = 0; q < nsopi_[h]; q++) {
+                Ca_->set(h, p, q, 0.0);
+            }
+        }
+    }
+
     HF::finalize();
+}
+
+void CGHF::print_density() {
+    println(*D_);
 }
 
 std::shared_ptr<CGHF> CGHF::c1_deep_copy(std::shared_ptr<BasisSet> basis) {
     auto wfn = Wavefunction::c1_deep_copy(basis);
+    auto hf_wfn = std::make_shared<CGHF>(wfn, functional_, wfn->options(), wfn->psio());
 
-    auto hf_wfn = std::shared_ptr<CGHF>(new CGHF(wfn, functional_, wfn->options(), wfn->psio()));
+    // now just have to copy the matrices that UHF initializes
+    // include only those that are not temporary (some deleted in finalize())
+    if (Ca_) hf_wfn->Ca_ = Ca_subset("AO", "ALL");
+    if (Cb_) hf_wfn->Cb_ = Cb_subset("AO", "ALL");
+    if (Da_) hf_wfn->Da_ = Da_subset("AO");
+    if (Db_) hf_wfn->Db_ = Db_subset("AO");
+    if (Fa_) hf_wfn->Fa_ = Fa_subset("AO");
+    if (Fb_) hf_wfn->Fb_ = Fb_subset("AO");
+    if (epsilon_a_) hf_wfn->epsilon_a_ = epsilon_subset_helper(epsilon_a_, nalphapi_, "AO", "ALL");
+    if (epsilon_b_) hf_wfn->epsilon_b_ = epsilon_subset_helper(epsilon_b_, nbetapi_, "AO", "ALL");
+    // H_ ans X_ reset in the HF constructor, copy them over here
+    auto SO2AO = aotoso()->transpose();
+    if (H_) hf_wfn->H_->remove_symmetry(H_, SO2AO);
+    if (X_) hf_wfn->X_->remove_symmetry(X_, SO2AO);
 
     return hf_wfn;
+
 }
 
 #endif

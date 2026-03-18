@@ -231,6 +231,9 @@ def scf_initialize(self):
         core.timer_off("HF: Guess")
 
         if core.get_option('SCF', "REFERENCE") == 'CGHF':
+            if core.get_option('SCF', 'GUESS') == "READ":
+                self.read_from_wfn()
+            
             core.timer_on("CGHF: Preiterations")
             self.preiterations()
             core.timer_off("CGHF: Preiterations")
