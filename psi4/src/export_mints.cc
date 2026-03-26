@@ -73,6 +73,7 @@
 #include "psi4/libmints/dipole.h"
 #include "psi4/libmints/overlap.h"
 #include "psi4/libmints/thc_eri.h"
+#include "psi4/libmints/amfx2c_sf.h"
 #include "psi4/libpsi4util/libpsi4util.h"
 #include <string>
 
@@ -1751,6 +1752,10 @@ void export_mints(py::module& m) {
 
     m.def("libint2_supports", [](const std::string& comp) { return libint2::supports(comp); },
        "Whether the linked Libint2 supports a particular ordering or integral type/derivative/AM. Use maximally uniform AM for latter.");
+
+    py::class_<SFamfX2C>(m, "amfx2c", "Initializes and defines amfX2C-SF object")
+        .def(py::init<std::shared_ptr<Molecule>, std::shared_ptr<BasisSet>>())
+        .def("compute", &SFamfX2C::compute);
 
     // when L2 is pure cmake
     // m.def("libint2_citation", []() {

@@ -39,6 +39,7 @@
 #include "psi4/libmints/basisset.h"
 #include "psi4/libmints/molecule.h"
 #include "psi4/libmints/matrix.h"
+#include "psi4/libmints/amfx2c_sf.h"
 
 #include <vector>
 #include <string>
@@ -5088,4 +5089,5 @@ void SphericalGrid::lebedev_error() {
     outfile->Printf("    In Soviet Russia, grid build you!\n\n");
     throw PSIEXCEPTION("SphericalGrid: Bad Lebedev number requested, see outfile for details.");
 }
+
 }  // namespace psi

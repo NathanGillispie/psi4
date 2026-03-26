@@ -49,6 +49,7 @@ class BlockOPoints;
 class RadialGrid;
 class SphericalGrid;
 class Options;
+class SFamfX2C;
 
 // This is an auxiliary structure used internally by the grid-builder class.
 // Apparently, for performance reasons, it is not good for the final molecular grid

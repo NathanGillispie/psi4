@@ -1,5 +1,6 @@
 list(APPEND sources
   local.cc
+  amfx2c_sf.cc
   sfx2c1e.cc
   zora.cc
   orbitalspace.cc
