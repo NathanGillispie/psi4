@@ -5090,4 +5090,47 @@ void SphericalGrid::lebedev_error() {
     throw PSIEXCEPTION("SphericalGrid: Bad Lebedev number requested, see outfile for details.");
 }
 
+/* Gets atom number A of molecule and computes the atom grid */
+std::shared_ptr<std::vector<MassPoint>> SFamfX2C::get_atomic_grid(const int A) {
+    const int nradpts = 1000;
+    // const int numAngPts = options_.get_int("DFT_RADIAL_POINTS");
+    const int numAngPts = 1202;
+    const int radscheme = RadialGridMgr::WhichScheme("BECKE");
+    const int nucscheme = NuclearWeightMgr::WhichScheme("TREUTLER");
+    NuclearWeightMgr nuc(mol_, nucscheme);
+    const double stratmannCutoff = nuc.GetStratmannCutoff(A);
+    const double weightcut = 1.0E-15;
+    OrientationMgr std_orientation(mol_);
+
+    auto atom_grid = std::make_shared<std::vector<MassPoint>>();
+
+    const int Z = mol_->true_atomic_number(A);
+    const double alpha = GetBSRadius(Z);
+    std::vector<double> r(nradpts), wr(nradpts);
+    RadialGridMgr::makeRadialGrid(nradpts, radscheme, r.data(), wr.data(), alpha);
+
+    /* TODO: assert r matches user-provided list (r, ρ(r)) */
+    /* TODO: multiply w[r] by radial density so integrating basis functions is simpler. */
+
+    RadialGrid::build("Unknown", nradpts, r.data(), wr.data(), alpha, Z);
+    for (int i = 0; i < nradpts; i++) {
+        const MassPoint *anggrid = LebedevGridMgr::findGridByNPoints(numAngPts);
+        auto spherical_grid = SphericalGrid::build("Unknown", numAngPts, anggrid);
+
+        for (int j = 0; j < numAngPts; j++) {
+            MassPoint mp = {r[i] * anggrid[j].x, r[i] * anggrid[j].y, r[i] * anggrid[j].z,
+                            wr[i] * anggrid[j].w};
+            mp = std_orientation.MoveIntoPosition(mp, A);
+            mp.w *= nuc.computeNuclearWeight(mp, A, stratmannCutoff);
+
+            if (std::abs(mp.w) > weightcut) {
+                atom_grid->push_back(mp);
+            }
+            assert(!std::isnan(mp.w));
+        }
+    }
+
+    return atom_grid;
+}
+
 }  // namespace psi
