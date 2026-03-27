@@ -31,18 +31,16 @@
 namespace psi {
 
 class SphericalGrid;
-struct MassPoint;
 
 class SFamfX2C {
   public:
     SFamfX2C(std::shared_ptr<Molecule>, std::shared_ptr<BasisSet>);
     ~SFamfX2C();
-    void compute();
 
+    void compute();
   private:
     std::shared_ptr<Molecule> mol_;
     std::shared_ptr<BasisSet> basis_;
-    std::shared_ptr<std::vector<MassPoint>> get_atomic_grid(const int);
 };
 
 }
