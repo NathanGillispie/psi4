@@ -43,7 +43,17 @@ SFamfX2C::SFamfX2C(std::shared_ptr<Molecule> mol, std::shared_ptr<BasisSet> basi
 SFamfX2C::~SFamfX2C() {}
 
 void SFamfX2C::compute() {
-    std::cout << "Hello world!" << std::endl;
+    basis_->print_detail("outfile");
+    const int natom = mol_->natom();
+
+    for (int n = 0; n < natom; n++) {
+        const int Z = mol_->Z(n);
+        const std::shared_ptr<CoordEntry> &atom = mol_->atom_entry(n);
+
+        const std::string label = atom->label();
+
+        outfile->Printf("(atom Z: %d) label: %s\n", Z, label);
+    }
 }
 
 } // namespace psi

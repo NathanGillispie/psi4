@@ -10,7 +10,7 @@ pytestmark = [pytest.mark.psi, pytest.mark.api, pytest.mark.quick]
 
 def test_amfx2c():
     """Dummy Test"""
-    mol = psi4.core.Molecule.from_string("0 1\nH 0 0 0\nH .5 0 0")
+    mol = psi4.core.Molecule.from_string("0 1\nH 0 0 0\nHe .5 0 0\nLi 1 0 0\nBe 2 0 0")
     basis = psi4.core.BasisSet.build(mol, 'orbital', '6-31G*')
 
     amfx2c = psi4.core.amfx2c(mol, basis)

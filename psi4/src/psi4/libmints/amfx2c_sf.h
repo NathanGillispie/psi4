@@ -30,8 +30,6 @@
 
 namespace psi {
 
-class SphericalGrid;
-
 class SFamfX2C {
   public:
     SFamfX2C(std::shared_ptr<Molecule>, std::shared_ptr<BasisSet>);
