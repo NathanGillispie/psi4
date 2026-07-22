@@ -30,6 +30,7 @@
 #define JK_H
 
 #include <vector>
+#include <complex>
 
 #include "psi4/pragma.h"
 PRAGMA_WARNING_PUSH
@@ -42,6 +43,9 @@ PRAGMA_WARNING_POP
 
 #include "psi4/libfock/SplitJK.h"
 
+#include <Einsums/Tensor/BlockTensor.hpp>
+#include <Einsums/Tensor.hpp>
+
 namespace psi {
 class MinimalInterface;
 class BasisSet;
@@ -52,6 +56,15 @@ class PSIO;
 class DFHelper;
 class DFTGrid;
 class PetiteList;
+
+template<typename T, size_t rank = 2>
+using EinsumsSharedMatrix = std::shared_ptr<einsums::Tensor<T, rank>>;
+
+using complex_t = std::complex<double>;
+
+#ifndef EinsumsComplexMatrix
+#define EinsumsComplexMatrix std::shared_ptr<einsums::Tensor<std::complex<double>, 2>>
+#endif
 
 namespace pk {
 class PKManager;
@@ -1332,6 +1345,96 @@ class PSI_API CompositeJK : public JK {
     * type on output file
     */
     void print_header() const override;
+};
+
+/**
+ * Class ComplexDirectJK
+ *
+ * DirectJK implementation using EinsumComplexMatrix
+ *
+ * Note: Placeholder class
+ */
+class PSI_API ComplexDirectJK : public JK {
+   protected:
+    /// Options object
+    Options& options_;
+
+    /* Symmetry is not currently supported */
+
+    /// Pseudo-occupied C matrices, left side
+    std::vector<EinsumsComplexMatrix> C_left_;
+    /// Pseudo-occupied C matrices, right side
+    std::vector<EinsumsComplexMatrix> C_right_;
+    /// Pseudo-density matrices
+    std::vector<EinsumsComplexMatrix> D_;
+    /// J matrices: \f$J_{mn}=(mn|ls)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> J_;
+    /// K matrices: \f$K_{mn}=(ml|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> K_;
+    /// wK matrices: \f$K_{mn}(\omega)=(ml|\omega|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> wK_;
+
+    /* Non-symmetry blocked data */
+
+    /// Pseudo-occupied C matrices, left side
+    std::vector<EinsumsComplexMatrix> C_left_ao_;
+    /// Pseudo-occupied C matrices, right side
+    std::vector<EinsumsComplexMatrix> C_right_ao_;
+    /// Pseudo-density matrices
+    std::vector<EinsumsComplexMatrix> D_ao_;
+    /// J matrices: \f$J_{mn}=(mn|ls)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> J_ao_;
+    /// K matrices: \f$K_{mn}=(ml|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> K_ao_;
+    /// wK matrices: \f$K_{mn}(\omega)=(ml|\omega|ns)C_{li}^{left}C_{si}^{right}\f$
+    std::vector<EinsumsComplexMatrix> wK_ao_;
+
+    std::string name() override { return "ComplexDirectJK"; }
+    size_t memory_estimate() override;
+
+    // => Required Algorithm-Specific Methods <= //
+
+    /// Do we need to backtransform to C1 under the hood?
+    bool C1() const override { return true; }
+    /// Setup integrals, files, etc
+    void preiterations() override;
+    /// Compute J/K for current C/D
+    void compute_JK() override;
+    /// Delete integrals, files, etc
+    void postiterations() override;
+
+    /// Common initialization
+    void common_init();
+
+   public:
+    // => Constructors <= //
+
+    /**
+     * @param primary primary basis set for this system
+     */
+    ComplexDirectJK(std::shared_ptr<BasisSet> primary, Options& options);
+
+    // Destructor
+    ~ComplexDirectJK() override;
+
+    /**
+    * Print header information regarding JK
+    * type on output file
+    */
+    void print_header() const override;
+
+    // Setters for variables
+
+    void set_C_left(std::vector<EinsumsComplexMatrix> C_left) { C_left_ = C_left; }
+    void set_C_right(std::vector<EinsumsComplexMatrix> C_right) { C_right_ = C_right; }
+    void set_D(std::vector<EinsumsComplexMatrix> D) { D_ = D; }
+    void set_J(std::vector<EinsumsComplexMatrix> J) { J_ = J; }
+    void set_K(std::vector<EinsumsComplexMatrix> K) { K_ = K; }
+    void set_wK(std::vector<EinsumsComplexMatrix> wK) { wK_ = wK; }
+
+    // Getters for variables
+    std::vector<EinsumsComplexMatrix> get_J() { return J_; }
+    std::vector<EinsumsComplexMatrix> get_K() { return K_; }
 };
 
 }
