@@ -1,3 +1,6 @@
+import re
+from pathlib import Path
+
 import pytest
 import numpy as np
 from scipy.linalg.lapack import dpstrf
@@ -320,4 +323,140 @@ def test_cghf_form_G():
     np.testing.assert_allclose(J[:, nbf:], 0.0, atol=1e-14)
     np.testing.assert_allclose(K[nbf:, :], 0.0, atol=1e-14)
     np.testing.assert_allclose(K[:, nbf:], 0.0, atol=1e-14)
+
+
+def _full_guess_cghf(basis_name="sto-3g", **scf_options):
+    """CGHF after core guess + one real ComplexDirectJK build: H_, S_/X_, C_, D_, J_/K_/G_ all populated."""
+    wfn = _core_guess_cghf(basis_name=basis_name, **scf_options)
+    wfn.form_D()
+
+    jk = psi4.core.ComplexJK.build_JK(wfn.basisset(), wfn.basisset())
+    jk.initialize()
+    wfn.set_jk(jk)
+    wfn.form_G()
+    return wfn
+
+
+def test_cghf_form_F():
+    """form_F builds F = H + G."""
+    wfn = _full_guess_cghf(scf_type="direct", screening="NONE")
+    wfn.form_F()
+
+    H = wfn.get_H().to_array()
+    G = wfn.get_G().to_array()
+    F = wfn.get_F().to_array()
+
+    np.testing.assert_allclose(F, H + G, atol=1e-12)
+
+
+def test_cghf_compute_E():
+    """compute_E: E = Enuc + Tr(HD) + 1/2 Tr(D(J-K)), with no extra 1/2 on the kinetic energy.
+
+    D_ is the *full* generalized-spinor density (Tr(D S) = nelectron_), unlike RHF's Da_
+    (half the total density), so the two-electron contraction needs the usual factor of
+    1/2 to avoid double counting -- the same convention ROHF/UHF use for their total (Dt_)
+    density. The kinetic energy is a plain one-electron property and should not be halved.
+    """
+    wfn = _full_guess_cghf(scf_type="direct", screening="NONE")
+
+    H = wfn.get_H().to_array()
+    T = wfn.get_T().to_array()
+    D = wfn.get_D().to_array()
+    J = wfn.get_J().to_array()
+    K = wfn.get_K().to_array()
+    enuc = wfn.molecule().nuclear_repulsion_energy()
+
+    one_electron_E = np.trace(H @ D).real
+    kinetic_E = np.trace(T @ D).real
+    two_electron_E = 0.5 * (np.trace(J @ D).real - np.trace(K @ D).real)
+    E_ref = enuc + one_electron_E + two_electron_E
+
+    E = wfn.compute_E()
+
+    assert E == pytest.approx(E_ref, abs=1e-10)
+    assert wfn.get_energies("Nuclear") == pytest.approx(enuc, abs=1e-12)
+    assert wfn.get_energies("Kinetic") == pytest.approx(kinetic_E, abs=1e-10)
+    assert wfn.get_energies("One-Electron") == pytest.approx(one_electron_E, abs=1e-10)
+    assert wfn.get_energies("Two-Electron") == pytest.approx(two_electron_E, abs=1e-10)
+    assert wfn.get_energies("XC") == 0.0
+    assert wfn.get_energies("VV10") == 0.0
+    assert wfn.get_energies("-D") == 0.0
+
+
+def test_cghf_finalize():
+    """finalize() drops jk_ by default, resets X_/T_ to null, and syncs energy_."""
+    wfn = _core_guess_cghf(save_jk=False)
+    jk = psi4.core.ComplexJK.build_JK(wfn.basisset(), wfn.basisset())
+    jk.initialize()
+    wfn.set_jk(jk)
+    assert wfn.jk() is not None
+
+    wfn.set_energies("Total Energy", -1.23456789)
+    wfn.finalize()
+
+    assert wfn.jk() is None
+    assert wfn.get_X() is None
+    assert wfn.get_T() is None
+    assert wfn.energy() == pytest.approx(-1.23456789, abs=1e-12)
+    assert wfn.initialized_diis_manager_ is False
+
+
+def test_cghf_finalize_save_jk():
+    """finalize() keeps jk_ alive when SAVE_JK is requested."""
+    wfn = _core_guess_cghf(save_jk=True)
+    jk = psi4.core.ComplexJK.build_JK(wfn.basisset(), wfn.basisset())
+    jk.initialize()
+    wfn.set_jk(jk)
+
+    wfn.finalize()
+
+    assert wfn.jk() is not None
+
+
+def test_cghf_print_orbitals(tmp_path):
+    """print_orbitals reports one energy per orbital, split into Occupied/Virtual sections."""
+    wfn = _core_guess_cghf()
+    nocc = int(sum(wfn.nelecpi()))
+    nmo = wfn.get_C().to_array().shape[1]
+
+    outname = str(tmp_path / "cghf_print_orbitals.dat")
+    psi4.core.set_output_file(outname, False)
+    wfn.print_orbitals()
+    psi4.core.set_output_file("pytest_output.dat", True)  # flush/close tmp file, restore default
+
+    text = Path(outname).read_text()
+    occ_start = text.index("Occupied:")
+    vir_start = text.index("Virtual:")
+    final_start = text.index("Final Occupation by Irrep:")
+    assert occ_start < vir_start < final_start
+
+    energy_re = r"-?\d+\.\d{6}"
+    n_occ_printed = len(re.findall(energy_re, text[occ_start:vir_start]))
+    n_vir_printed = len(re.findall(energy_re, text[vir_start:final_start]))
+
+    assert n_occ_printed == nocc
+    assert n_vir_printed == nmo - nocc
+
+
+def test_cghf_orbital_gradient():
+    """compute_orbital_gradient (monkeypatched onto CGHF) returns absmax/rms of FDS - SDF."""
+    wfn = _full_guess_cghf(scf_type="direct", screening="NONE", diis=False)
+    wfn.form_F()
+
+    F = wfn.get_F().to_array()
+    D = wfn.get_D().to_array()
+    S = wfn.get_S().to_array()
+    grad_ref = F @ D @ S - S @ D @ F
+
+    psi4.set_options({"diis_rms_error": False})
+    grad_absmax = wfn.compute_orbital_gradient(False, 8)
+    assert grad_absmax == pytest.approx(float(np.max(np.abs(grad_ref))), abs=1e-12)
+
+    psi4.set_options({"diis_rms_error": True})
+    grad_rms = wfn.compute_orbital_gradient(False, 8)
+    assert grad_rms == pytest.approx(float(np.sqrt(np.mean(np.abs(grad_ref) ** 2))), abs=1e-12)
+    assert grad_rms <= grad_absmax  # RMS never exceeds the max element magnitude
+
+    with pytest.raises(NotImplementedError, match="DIIS not implemented"):
+        wfn.compute_orbital_gradient(True, 8)
 

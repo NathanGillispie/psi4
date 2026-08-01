@@ -374,17 +374,24 @@ double CGHF::compute_initial_E() {
 }
 
 double CGHF::compute_E() {
+    /* Generalized (spinor) density D_ is the *full* one-particle density
+     * matrix (Tr(D S) = nelectron_), unlike RHF's Da_ (half the total) or
+     * UHF's separate Da_/Db_ blocks. J_/K_ are likewise built from the full
+     * density in one spinor space, so the two-electron energy needs the
+     * usual 1/2 to avoid double-counting: E_2e = 1/2 Tr(D (J - K)).
+     * The kinetic energy is a one-electron property and carries no such
+     * factor: Tr(D T). */
     std::complex<double> one_electron_E = vector_dot(*H_, *D_);
     std::complex<double> kinetic_E = vector_dot(*T_, *D_);
     std::complex<double> coulomb_E = vector_dot(*J_, *D_);
     std::complex<double> exchange_E = vector_dot(*K_, *D_);
 
-    kinetic_E *= .5;
+    double two_electron_E = 0.5 * (coulomb_E.real() - exchange_E.real());
 
     energies_["Nuclear"] = nuclearrep_;
     energies_["Kinetic"] = kinetic_E.real();
     energies_["One-Electron"] = one_electron_E.real();
-    energies_["Two-Electron"] = coulomb_E.real() - exchange_E.real();
+    energies_["Two-Electron"] = two_electron_E;
     energies_["XC"] = 0.0;
     energies_["VV10"] = 0.0;
     energies_["-D"] = 0.0;
@@ -392,8 +399,7 @@ double CGHF::compute_E() {
     double Etotal = 0.0;
     Etotal += nuclearrep_;
     Etotal += one_electron_E.real();
-    Etotal += coulomb_E.real();
-    Etotal -= exchange_E.real();
+    Etotal += two_electron_E;
 
     return Etotal;
 }
