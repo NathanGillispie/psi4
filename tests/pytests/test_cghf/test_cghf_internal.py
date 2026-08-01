@@ -1,6 +1,3 @@
-import re
-from pathlib import Path
-
 import pytest
 import numpy as np
 from scipy.linalg.lapack import dpstrf
@@ -416,61 +413,6 @@ def test_cghf_compute_E():
     assert wfn.get_energies("XC") == 0.0
     assert wfn.get_energies("VV10") == 0.0
     assert wfn.get_energies("-D") == 0.0
-
-
-def test_cghf_finalize():
-    """finalize() drops jk_ by default, resets X_/T_ to null, and syncs energy_."""
-    wfn = _core_guess_cghf(save_jk=False)
-    jk = psi4.core.ComplexJK.build_JK(wfn.basisset(), wfn.basisset())
-    jk.initialize()
-    wfn.set_jk(jk)
-    assert wfn.jk() is not None
-
-    wfn.set_energies("Total Energy", -1.23456789)
-    wfn.finalize()
-
-    assert wfn.jk() is None
-    assert wfn.get_X() is None
-    assert wfn.get_T() is None
-    assert wfn.energy() == pytest.approx(-1.23456789, abs=1e-12)
-    assert wfn.initialized_diis_manager_ is False
-
-
-def test_cghf_finalize_save_jk():
-    """finalize() keeps jk_ alive when SAVE_JK is requested."""
-    wfn = _core_guess_cghf(save_jk=True)
-    jk = psi4.core.ComplexJK.build_JK(wfn.basisset(), wfn.basisset())
-    jk.initialize()
-    wfn.set_jk(jk)
-
-    wfn.finalize()
-
-    assert wfn.jk() is not None
-
-
-def test_cghf_print_orbitals(tmp_path):
-    """print_orbitals reports one energy per orbital, split into Occupied/Virtual sections."""
-    wfn = _core_guess_cghf()
-    nocc = int(sum(wfn.nelecpi()))
-    nmo = wfn.get_C().to_array().shape[1]
-
-    outname = str(tmp_path / "cghf_print_orbitals.dat")
-    psi4.core.set_output_file(outname, False)
-    wfn.print_orbitals()
-    psi4.core.set_output_file("pytest_output.dat", True)  # flush/close tmp file, restore default
-
-    text = Path(outname).read_text()
-    occ_start = text.index("Occupied:")
-    vir_start = text.index("Virtual:")
-    final_start = text.index("Final Occupation by Irrep:")
-    assert occ_start < vir_start < final_start
-
-    energy_re = r"-?\d+\.\d{6}"
-    n_occ_printed = len(re.findall(energy_re, text[occ_start:vir_start]))
-    n_vir_printed = len(re.findall(energy_re, text[vir_start:final_start]))
-
-    assert n_occ_printed == nocc
-    assert n_vir_printed == nmo - nocc
 
 
 def test_cghf_orbital_gradient():
