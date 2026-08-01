@@ -434,6 +434,31 @@ def test_cghf_orbital_gradient():
     assert grad_rms == pytest.approx(float(np.sqrt(np.mean(np.abs(grad_ref) ** 2))), abs=1e-12)
     assert grad_rms <= grad_absmax  # RMS never exceeds the max element magnitude
 
-    with pytest.raises(NotImplementedError, match="DIIS not implemented"):
+
+def test_cghf_orbital_gradient_pushes_diis_entry():
+    """compute_orbital_gradient(save_fock=True) lazily builds diis_manager_ and stores a
+    {target: [F], error: [gradient]} entry as ComplexMatrix objects."""
+    wfn = _full_guess_cghf(scf_type="direct", screening="NONE", scf_initial_accelerator="none")
+    wfn.form_F()
+    F_ref = wfn.get_F().to_array()
+    assert not wfn.initialized_diis_manager_
+
+    wfn.compute_orbital_gradient(True, 8)
+
+    assert wfn.initialized_diis_manager_
+    assert len(wfn.diis_manager_.stored_vectors) == 1
+    entry = wfn.diis_manager_.stored_vectors[0]
+    assert isinstance(entry["target"][0], psi4.core.ComplexMatrix)
+    assert isinstance(entry["error"][0], psi4.core.ComplexMatrix)
+    np.testing.assert_allclose(entry["target"][0].to_array(), F_ref, atol=1e-12)
+
+
+def test_cghf_orbital_gradient_rejects_adiis_ediis():
+    """ADIIS/EDIIS aren't implemented for CGHF; SCF_INITIAL_ACCELERATOR must be NONE for
+    compute_orbital_gradient(save_fock=True) to push a DIIS entry."""
+    wfn = _full_guess_cghf(scf_type="direct", screening="NONE")  # default scf_initial_accelerator=ADIIS
+    wfn.form_F()
+
+    with pytest.raises(NotImplementedError, match="ADIIS/EDIIS"):
         wfn.compute_orbital_gradient(True, 8)
 
