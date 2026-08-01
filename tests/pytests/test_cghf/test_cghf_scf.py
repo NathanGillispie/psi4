@@ -5,20 +5,11 @@ import psi4
 
 pytestmark = [pytest.mark.psi, pytest.mark.api, pytest.mark.smoke, pytest.mark.cghf]
 
-# RHF/cc-pVDZ energy for the same H2 geometry (0.74 A) computed with the same
-# psi4 build. With no spin-orbit coupling, closed-shell CGHF must exactly
-# reproduce the RHF energy.
-#
-# CO/cc-pVDZ was tried first (per the original smoke test), but with GUESS=CORE,
-# DIIS=False, and SCF_INITIAL_ACCELERATOR=NONE it oscillates between two
-# energies and never converges -- a known core-guess pathology for CO's
-# near-degenerate frontier orbitals, not a bug in CGHF's math. H2 has no such
-# convergence difficulty and gives a clean, checkable reference energy.
 REFERENCE_ENERGY = -1.1287000935604175
 
-
 def test_cghf_basic_scf():
-    """Minimal CGHF full SCF example: CGHF must reproduce closed-shell RHF for H2."""
+    """Minimal CGHF full SCF example: CGHF with no spin-orbit coupling should
+    reproduce RHF for closed-shell molecules."""
     mol = psi4.geometry("""
     0 1
         H

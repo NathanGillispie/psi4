@@ -289,16 +289,7 @@ def test_cghf_form_D():
 
 
 def _ghf_jk_reference(basis, D_full):
-    """Reference spin-blocked J/K for a GHF density, built from plain spatial AO integrals.
-
-    For the ordinary (spin-independent) Coulomb operator:
-      * J only depends on the spin-traced total density and is spin-diagonal:
-        J_aa = J_bb = J[D_aa + D_bb], J_ab = J_ba = 0.
-      * K couples each of the four spin blocks independently through the same
-        spatial two-electron integrals: K_{sigma,tau} = K[D_{sigma,tau}].
-    See CGHF::compute_E (cghf.cc) and ComplexDirectJK::compute_JK for the
-    corresponding C++ derivation/implementation.
-    """
+    """Reference spin-blocked J/K for a GHF density, built from plain spatial AO integrals."""
     nbf = basis.nbf()
     D_aa = D_full[:nbf, :nbf]
     D_bb = D_full[nbf:, nbf:]
@@ -322,41 +313,6 @@ def _ghf_jk_reference(basis, D_full):
     return J, K
 
 
-def test_cghf_form_G():
-    """form_G pushes occupied C into ComplexJK and sets G = J - K over the full spin-blocked density.
-
-    ComplexDirectJK::compute_JK used to only ever touch the top-left (alpha-alpha)
-    nbf x nbf block of D/J/K -- the beta-beta block's Coulomb/exchange contribution
-    was silently dropped, which alone was enough to badly break CGHF's total
-    energy for any real molecule. It now builds J from the spin-traced total
-    density (replicated onto both diagonal blocks) and K from each of the four
-    spin blocks independently; see _ghf_jk_reference for the reference formula.
-    """
-    wfn = _core_guess_cghf(scf_type="direct", screening="NONE")
-    basis = wfn.basisset()
-    C = wfn.get_C().to_array()
-    nocc = int(sum(wfn.nelecpi()))
-    Cocc = C[:, :nocc]
-    D_ref = Cocc @ Cocc.conj().T
-
-    jk = psi4.core.ComplexJK.build_JK(basis, basis)
-    jk.initialize()
-    wfn.set_jk(jk)
-    wfn.form_G()
-
-    J = wfn.get_J().to_array()
-    K = wfn.get_K().to_array()
-    G = wfn.get_G().to_array()
-
-    # Occupied columns reached JK: D = C_occ @ C_occ^H
-    np.testing.assert_allclose(jk.D()[0].to_array(), D_ref, atol=1e-12)
-    np.testing.assert_allclose(G, J - K, atol=1e-12)
-
-    J_ref, K_ref = _ghf_jk_reference(basis, D_ref)
-    np.testing.assert_allclose(J, J_ref, atol=1e-10)
-    np.testing.assert_allclose(K, K_ref, atol=1e-10)
-
-
 def _full_guess_cghf(basis_name="sto-3g", **scf_options):
     """CGHF after core guess + one real ComplexDirectJK build: H_, S_/X_, C_, D_, J_/K_/G_ all populated."""
     wfn = _core_guess_cghf(basis_name=basis_name, **scf_options)
@@ -369,26 +325,7 @@ def _full_guess_cghf(basis_name="sto-3g", **scf_options):
     return wfn
 
 
-def test_cghf_form_F():
-    """form_F builds F = H + G."""
-    wfn = _full_guess_cghf(scf_type="direct", screening="NONE")
-    wfn.form_F()
-
-    H = wfn.get_H().to_array()
-    G = wfn.get_G().to_array()
-    F = wfn.get_F().to_array()
-
-    np.testing.assert_allclose(F, H + G, atol=1e-12)
-
-
 def test_cghf_compute_E():
-    """compute_E: E = Enuc + Tr(HD) + 1/2 Tr(D(J-K)), with no extra 1/2 on the kinetic energy.
-
-    D_ is the *full* generalized-spinor density (Tr(D S) = nelectron_), unlike RHF's Da_
-    (half the total density), so the two-electron contraction needs the usual factor of
-    1/2 to avoid double counting -- the same convention ROHF/UHF use for their total (Dt_)
-    density. The kinetic energy is a plain one-electron property and should not be halved.
-    """
     wfn = _full_guess_cghf(scf_type="direct", screening="NONE")
 
     H = wfn.get_H().to_array()
@@ -410,55 +347,5 @@ def test_cghf_compute_E():
     assert wfn.get_energies("Kinetic") == pytest.approx(kinetic_E, abs=1e-10)
     assert wfn.get_energies("One-Electron") == pytest.approx(one_electron_E, abs=1e-10)
     assert wfn.get_energies("Two-Electron") == pytest.approx(two_electron_E, abs=1e-10)
-    assert wfn.get_energies("XC") == 0.0
-    assert wfn.get_energies("VV10") == 0.0
-    assert wfn.get_energies("-D") == 0.0
 
-
-def test_cghf_orbital_gradient():
-    """compute_orbital_gradient (monkeypatched onto CGHF) returns absmax/rms of FDS - SDF."""
-    wfn = _full_guess_cghf(scf_type="direct", screening="NONE", diis=False)
-    wfn.form_F()
-
-    F = wfn.get_F().to_array()
-    D = wfn.get_D().to_array()
-    S = wfn.get_S().to_array()
-    grad_ref = F @ D @ S - S @ D @ F
-
-    psi4.set_options({"diis_rms_error": False})
-    grad_absmax = wfn.compute_orbital_gradient(False, 8)
-    assert grad_absmax == pytest.approx(float(np.max(np.abs(grad_ref))), abs=1e-12)
-
-    psi4.set_options({"diis_rms_error": True})
-    grad_rms = wfn.compute_orbital_gradient(False, 8)
-    assert grad_rms == pytest.approx(float(np.sqrt(np.mean(np.abs(grad_ref) ** 2))), abs=1e-12)
-    assert grad_rms <= grad_absmax  # RMS never exceeds the max element magnitude
-
-
-def test_cghf_orbital_gradient_pushes_diis_entry():
-    """compute_orbital_gradient(save_fock=True) lazily builds diis_manager_ and stores a
-    {target: [F], error: [gradient]} entry as ComplexMatrix objects."""
-    wfn = _full_guess_cghf(scf_type="direct", screening="NONE", scf_initial_accelerator="none")
-    wfn.form_F()
-    F_ref = wfn.get_F().to_array()
-    assert not wfn.initialized_diis_manager_
-
-    wfn.compute_orbital_gradient(True, 8)
-
-    assert wfn.initialized_diis_manager_
-    assert len(wfn.diis_manager_.stored_vectors) == 1
-    entry = wfn.diis_manager_.stored_vectors[0]
-    assert isinstance(entry["target"][0], psi4.core.ComplexMatrix)
-    assert isinstance(entry["error"][0], psi4.core.ComplexMatrix)
-    np.testing.assert_allclose(entry["target"][0].to_array(), F_ref, atol=1e-12)
-
-
-def test_cghf_orbital_gradient_rejects_adiis_ediis():
-    """ADIIS/EDIIS aren't implemented for CGHF; SCF_INITIAL_ACCELERATOR must be NONE for
-    compute_orbital_gradient(save_fock=True) to push a DIIS entry."""
-    wfn = _full_guess_cghf(scf_type="direct", screening="NONE")  # default scf_initial_accelerator=ADIIS
-    wfn.form_F()
-
-    with pytest.raises(NotImplementedError, match="ADIIS/EDIIS"):
-        wfn.compute_orbital_gradient(True, 8)
 

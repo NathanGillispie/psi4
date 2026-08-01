@@ -116,9 +116,7 @@ py::list tiled_tensor_array_interface(TiledT& tt) {
 
 // The handful of ComplexMatrix operations psi4/driver/procrouting/diis.py needs in order
 // to treat ComplexMatrix exactly like Matrix/Vector (clone/axpy/vector_dot/zero/name/
-// save/load), so the existing DIIS machinery works unmodified for CGHF. All operate on
-// diagonal tiles only, matching the rest of the CGHF/ComplexJK code (tile(h, h) is "the"
-// block for irrep h; off-diagonal tiles are not used).
+// save/load)
 
 std::shared_ptr<ComplexMatrix> complexmatrix_clone(const ComplexMatrix& self) {
     return std::make_shared<ComplexMatrix>(self);
@@ -128,9 +126,8 @@ std::shared_ptr<ComplexMatrix> complexmatrix_clone(const ComplexMatrix& self) {
 //
 // Implemented as a plain element loop (via operator(p, q), the same accessor used
 // throughout cghf.cc/ComplexJK) rather than einsums::linear_algebra::axpy, whose
-// generic TensorConcept dispatch assumes a BLAS-compatible flat/strided layout that
-// doesn't hold reliably for these small, tile-owned matrices; a manual loop is layout
-// agnostic and plenty fast for DIIS-sized (Fock-matrix-sized) tiles.
+// generic TensorConcept dispatch appears to not work.
+// A manual loop is fast enough for my use at the moment.
 void complexmatrix_axpy(ComplexMatrix& self, std::complex<double> alpha, const ComplexMatrix& other) {
     if (self.grid_size(0) != other.grid_size(0) || self.grid_size(1) != other.grid_size(1)) {
         throw py::value_error("ComplexMatrix.axpy: tile grids must match.");
@@ -149,11 +146,8 @@ void complexmatrix_axpy(ComplexMatrix& self, std::complex<double> alpha, const C
     }
 }
 
-// Re(Tr(self^H other)), summed over diagonal tiles: the Hermitian inner product DIIS
-// needs to build a real, symmetric B-matrix out of (in general anti-Hermitian) FDS-SDF
-// error vectors. Mirrors Matrix::vector_dot's role, generalized to complex data. See
-// complexmatrix_axpy for why this is a manual element loop rather than
-// einsums::linear_algebra::true_dot.
+// Re(Tr(self^H other)), summed over diagonal tiles
+// einsums::linear_algebra::true_dot appears to not work as expected.
 double complexmatrix_vector_dot(const ComplexMatrix& self, const ComplexMatrix& other) {
     std::complex<double> total{0.0, 0.0};
     for (int h = 0; h < static_cast<int>(self.grid_size(0)); ++h) {
@@ -172,9 +166,7 @@ double complexmatrix_vector_dot(const ComplexMatrix& self, const ComplexMatrix& 
 }
 
 // Raw per-tile complex sub-blocks to/from a PSIO file, mirroring Matrix::save/load with
-// SaveType::SubBlocks (libmints/matrix.cc). Lets DIIS's StoragePolicy.OnDisk work for
-// ComplexMatrix exactly like it does for Matrix, and is a first step toward on-disk
-// storage for einsums TiledTensors more generally (e.g. a future DiskDF-type ComplexJK).
+// SaveType::SubBlocks (libmints/matrix.cc).
 void complexmatrix_save(ComplexMatrix& self, std::shared_ptr<PSIO>& psio, size_t fileno) {
     bool already_open = psio->open_check(fileno);
     if (!already_open) psio->open(fileno, PSIO_OPEN_OLD);

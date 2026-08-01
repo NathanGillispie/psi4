@@ -100,27 +100,18 @@ void ComplexDirectJK::compute_JK() {
         auto ints = std::shared_ptr<TwoBodyAOInt>(factory->eri());
 
         if (dim == nbf) {
-            // Plain (non spin-blocked) complex density: used e.g. by the ComplexJK
-            // unit tests directly, with no notion of a generalized spin structure.
+            // Plain (non spin-blocked) complex density
             build_JK_matrices(ints, D_ref, J_out, K_out);
         } else if (dim == 2 * nbf) {
-            /* Generalized (GHF) spin-blocked density. D (and J/K) are 2x2 block
-             * matrices of spatial nbf x nbf blocks: D_aa, D_ab, D_ba, D_bb, laid
-             * out as [[D_aa, D_ab], [D_ba, D_bb]]. For the ordinary (spin-
-             * independent, non-relativistic) Coulomb operator:
-             *   - J only depends on the spin-traced total density and is
-             *     spin-diagonal: J_aa = J_bb = J[D_aa + D_bb], J_ab = J_ba = 0.
-             *   - K couples each of the four spin blocks independently through
-             *     the *same* spatial two-electron integrals:
-             *     K_{sigma,tau} = K[D_{sigma,tau}].
-             * (Previously this branch didn't exist at all: the shell-quartet
-             * loop below only ever knows about `nbf` AO functions, so feeding
-             * it the full 2*nbf matrix directly silently only ever touched the
-             * D_aa/J_aa/K_aa block, leaving the D_bb-derived contributions
-             * completely missing from the Fock matrix.) See CGHF::compute_E in
-             * cghf.cc for the corresponding total-energy expression that
-             * assumes this convention.
-             */
+            // Generalized (CGHF) spin-blocked density. (D and J/K) are 2x2 block
+            // matrices of nbf x nbf blocks: [[D_aa, D_ab], [D_ba, D_bb]]
+
+            // This still leaves room for improvement in terms of uniqueness.
+            // D_ab is often adjoint of D_ba, for example. D_aa and D_bb are
+            // often Hermitian themselves.
+
+            // Splitting up into separate tensors is preferred. These are contiguous
+            // where Views would not be in general.
             ComplexT D_aa("D_aa", nbf, nbf), D_bb("D_bb", nbf, nbf);
             ComplexT D_ab("D_ab", nbf, nbf), D_ba("D_ba", nbf, nbf);
             for (size_t p = 0; p < nbf; p++) {
@@ -139,7 +130,7 @@ void ComplexDirectJK::compute_JK() {
             ComplexT J_tot("J_tot", nbf, nbf);
             ComplexT K_aa("K_aa", nbf, nbf), K_bb("K_bb", nbf, nbf);
             ComplexT K_ab("K_ab", nbf, nbf), K_ba("K_ba", nbf, nbf);
-            ComplexT scratch("scratch (unused J or K)", nbf, nbf);
+            ComplexT scratch("scratch", nbf, nbf);
 
             build_JK_matrices(ints, D_tot, J_tot, scratch);
             build_JK_matrices(ints, D_aa, scratch, K_aa);
@@ -162,7 +153,7 @@ void ComplexDirectJK::compute_JK() {
         } else {
             throw PSIEXCEPTION("ComplexDirectJK: density block dimension (" + std::to_string(dim) +
                                ") must equal the number of AO basis functions (" + std::to_string(nbf) +
-                               ", plain complex density) or twice that (GHF spin-blocked density).");
+                               ") or twice that (GHF spin-blocked density).");
         }
     }
 

@@ -21,10 +21,8 @@ class StoragePolicy(Enum):
 class _ComplexMatrixTemplate:
     """Template marker for a core.ComplexMatrix DIIS entry: its per-irrep tile sizes.
 
-    core.ComplexMatrix has no rowdim()/coldim() (Dimension) concept the way core.Matrix
-    does, and a bare list-of-ints template (as used for Vector/Matrix) would be
-    ambiguous for the common C1 case (a single tile size looks just like a Vector's
-    dimpi()). This distinct type disambiguates it in template_helper()/load_quantity().
+    TODO: determine if adding rowdim/coldim (Dimension) attributes to ComplexMatrix
+    would make this more seamless
     """
 
     def __init__(self, block_sizes):
