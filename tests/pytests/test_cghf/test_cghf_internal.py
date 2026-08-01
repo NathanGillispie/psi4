@@ -291,11 +291,52 @@ def test_cghf_form_D():
     assert not np.allclose(D, C @ C.conj().T)
 
 
+def _ghf_jk_reference(basis, D_full):
+    """Reference spin-blocked J/K for a GHF density, built from plain spatial AO integrals.
+
+    For the ordinary (spin-independent) Coulomb operator:
+      * J only depends on the spin-traced total density and is spin-diagonal:
+        J_aa = J_bb = J[D_aa + D_bb], J_ab = J_ba = 0.
+      * K couples each of the four spin blocks independently through the same
+        spatial two-electron integrals: K_{sigma,tau} = K[D_{sigma,tau}].
+    See CGHF::compute_E (cghf.cc) and ComplexDirectJK::compute_JK for the
+    corresponding C++ derivation/implementation.
+    """
+    nbf = basis.nbf()
+    D_aa = D_full[:nbf, :nbf]
+    D_bb = D_full[nbf:, nbf:]
+    D_ab = D_full[:nbf, nbf:]
+    D_ba = D_full[nbf:, :nbf]
+
+    J_tot, _ = _jk_reference_ao(basis, D_aa + D_bb)
+    _, K_aa = _jk_reference_ao(basis, D_aa)
+    _, K_bb = _jk_reference_ao(basis, D_bb)
+    _, K_ab = _jk_reference_ao(basis, D_ab)
+    _, K_ba = _jk_reference_ao(basis, D_ba)
+
+    J = np.zeros_like(D_full)
+    K = np.zeros_like(D_full)
+    J[:nbf, :nbf] = J_tot
+    J[nbf:, nbf:] = J_tot
+    K[:nbf, :nbf] = K_aa
+    K[nbf:, nbf:] = K_bb
+    K[:nbf, nbf:] = K_ab
+    K[nbf:, :nbf] = K_ba
+    return J, K
+
+
 def test_cghf_form_G():
-    """form_G pushes occupied C into ComplexJK and sets G = J - K."""
+    """form_G pushes occupied C into ComplexJK and sets G = J - K over the full spin-blocked density.
+
+    ComplexDirectJK::compute_JK used to only ever touch the top-left (alpha-alpha)
+    nbf x nbf block of D/J/K -- the beta-beta block's Coulomb/exchange contribution
+    was silently dropped, which alone was enough to badly break CGHF's total
+    energy for any real molecule. It now builds J from the spin-traced total
+    density (replicated onto both diagonal blocks) and K from each of the four
+    spin blocks independently; see _ghf_jk_reference for the reference formula.
+    """
     wfn = _core_guess_cghf(scf_type="direct", screening="NONE")
     basis = wfn.basisset()
-    nbf = basis.nbf()
     C = wfn.get_C().to_array()
     nocc = int(sum(wfn.nelecpi()))
     Cocc = C[:, :nocc]
@@ -314,15 +355,9 @@ def test_cghf_form_G():
     np.testing.assert_allclose(jk.D()[0].to_array(), D_ref, atol=1e-12)
     np.testing.assert_allclose(G, J - K, atol=1e-12)
 
-    # ComplexDirectJK contracts AO integrals against D using AO indices, so only
-    # the top-left nbf by nbf block is filled (current DirectJK / spin-block wiring).
-    J_ao, K_ao = _jk_reference_ao(basis, D_ref[:nbf, :nbf])
-    np.testing.assert_allclose(J[:nbf, :nbf], J_ao, atol=1e-10)
-    np.testing.assert_allclose(K[:nbf, :nbf], K_ao, atol=1e-10)
-    np.testing.assert_allclose(J[nbf:, :], 0.0, atol=1e-14)
-    np.testing.assert_allclose(J[:, nbf:], 0.0, atol=1e-14)
-    np.testing.assert_allclose(K[nbf:, :], 0.0, atol=1e-14)
-    np.testing.assert_allclose(K[:, nbf:], 0.0, atol=1e-14)
+    J_ref, K_ref = _ghf_jk_reference(basis, D_ref)
+    np.testing.assert_allclose(J, J_ref, atol=1e-10)
+    np.testing.assert_allclose(K, K_ref, atol=1e-10)
 
 
 def _full_guess_cghf(basis_name="sto-3g", **scf_options):
