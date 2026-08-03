@@ -41,6 +41,10 @@
 #include "psi4/libfock/ComplexJK.h"
 #include "psi4/libfock/v.h"
 
+// TODO: REMOVE THESE
+#include <Einsums/LinearAlgebra.hpp>
+#include <Einsums/TensorAlgebra.hpp>
+
 namespace {
 
 // Takes an nsopi_-shaped square SharedMatrix and copies to 2 (two) diagonal
@@ -68,15 +72,6 @@ void copy_matrix_to_complex(const psi::Matrix& A, psi::ComplexMatrix& B) {
             }
         }
     }
-}
-
-std::complex<double> vector_dot(const psi::ComplexMatrix& A, const psi::ComplexMatrix& B) {
-    std::complex<double> E;
-
-    using namespace einsums;
-    tensor_algebra::einsum(Indices{}, &E, Indices{index::i, index::j}, A, Indices{index::j, index::i}, B);
-
-    return E;
 }
 
 }
@@ -281,8 +276,8 @@ void CGHF::form_H() {
     copy_matrix_to_complex(*T_real, *T_);
     copy_matrix_to_complex(*V_real, *V_);
 
-    if (debug_ > 2) T_->print(*outfile->stream());
-    if (debug_ > 2) V_->print(*outfile->stream());
+    if (debug_ > 2) T_->print("outfile");
+    if (debug_ > 2) V_->print("outfile");
 
     if (perturb_h_)
         throw PSIEXCEPTION("Perturbed Hamiltonian not supported with CGHF.");
@@ -290,10 +285,11 @@ void CGHF::form_H() {
     if (external_pot_)
         throw PSIEXCEPTION("External potential not supported with CGHF.");
 
-    (*H_) = (*T_);
-    (*H_) += (*V_);
+    H_->zero();
+    H_->add(*T_);
+    H_->add(*V_);
 
-    if (print_ > 3) H_->print(*outfile->stream());
+    if (print_ > 3) H_->print("outfile");
 }
 
 void CGHF::form_Shalf() {
@@ -358,7 +354,7 @@ void CGHF::guess() {
 
 double CGHF::compute_initial_E() {
     /*  \sum_{ij}h_{ij} \gamma_{ji} */
-    std::complex<double> E = vector_dot(*H_, *D_);
+    std::complex<double> E = H_->product_trace(*D_);
 
     if (E.imag() > 1e-12) {
         outfile->Printf("WARNING: CGHF::compute_initial_E found large imaginary %+fi\n"
@@ -369,10 +365,10 @@ double CGHF::compute_initial_E() {
 }
 
 double CGHF::compute_E() {
-    std::complex<double> one_electron_E = vector_dot(*H_, *D_);
-    std::complex<double> kinetic_E = vector_dot(*T_, *D_);
-    std::complex<double> coulomb_E = vector_dot(*J_, *D_);
-    std::complex<double> exchange_E = vector_dot(*K_, *D_);
+    std::complex<double> one_electron_E = H_->product_trace(*D_);
+    std::complex<double> kinetic_E = T_->product_trace(*D_);
+    std::complex<double> coulomb_E = J_->product_trace(*D_);
+    std::complex<double> exchange_E = K_->product_trace(*D_);
 
     double two_electron_E = 0.5 * (coulomb_E.real() - exchange_E.real());
 
@@ -399,13 +395,13 @@ void CGHF::form_C(double shift) {
     auto temp = ComplexMatrix("temp", F_->rowspi(), X_->colspi());
     auto XFX = ComplexMatrix("Othogonalized Fock", X_->colspi(), X_->colspi());
 
-    // using namespace einsums;
+    using TiledT = ComplexMatrix::TiledT;
 
     // Form F' = X'FX for canonical orthogonalization
-    einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *F_, *X_,
-                                       std::complex<double>{0.0}, &temp);
-    einsums::linear_algebra::gemm<true, false>(std::complex<double>{1.0}, *X_, temp,
-                                      std::complex<double>{0.0}, &XFX);
+    einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, static_cast<TiledT&>(*F_), static_cast<TiledT&>(*X_),
+                                       std::complex<double>{0.0}, &static_cast<TiledT&>(temp));
+    einsums::linear_algebra::gemm<true, false>(std::complex<double>{1.0}, static_cast<TiledT&>(*X_), static_cast<TiledT&>(temp),
+                                      std::complex<double>{0.0}, &static_cast<TiledT&>(XFX));
 
     // Form C' = eig(F')
     temp = ComplexMatrix("temp", XFX.block_sizes());

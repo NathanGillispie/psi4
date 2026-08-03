@@ -93,18 +93,14 @@ namespace {
 // Diagonal-tile NumPy views for an einsums TiledTensor (ComplexMatrix). Requires the
 // same number of tiles on each axis (one tile index per irrep). Non-const tile(h, h)
 // lazily allocates missing diagonal tiles so Python can write into them.
-template <typename TiledT>
-py::list tiled_tensor_array_interface(TiledT& tt) {
-    using ValueT = typename TiledT::ValueType;
-    if (tt.grid_size(0) != tt.grid_size(1)) {
-        throw py::value_error(
-            "ComplexMatrix.array_interface requires equal tile counts on both axes "
-            "(one tile index per irrep).");
-    }
+py::list tiled_tensor_array_interface(psi::ComplexMatrix& tt) {
+    using ValueT = std::complex<double>;
+    if (tt.nrow() != tt.ncol())
+        throw py::value_error("ComplexMatrix.array_interface requires equal block counts on both axes.");
     py::list ret;
-    const size_t ntiles = tt.grid_size(0);
-    for (size_t h = 0; h < ntiles; ++h) {
-        auto& tile = tt.tile(static_cast<int>(h), static_cast<int>(h));
+    const int ntiles = tt.nrow();
+    for (int h = 0; h < ntiles; ++h) {
+        auto& tile = tt.get(h);
         const auto r = static_cast<py::ssize_t>(tile.dim(0));
         const auto c = static_cast<py::ssize_t>(tile.dim(1));
         ValueT* ptr = (r != 0 && c != 0) ? tile.data() : nullptr;
@@ -376,7 +372,7 @@ void export_wavefunction(py::module& m) {
                  // One size list --> same tiling on both axes (square diagonal tiles).
                  auto mat = std::make_shared<ComplexMatrix>(name, block_sizes);
                  for (int h = 0; h < static_cast<int>(block_sizes.size()); ++h) {
-                     (void)mat->tile(h, h);  // allocate + zero diagonal tiles
+                     (void)mat->get(h);  // allocate + zero diagonal tiles
                  }
                  return mat;
              }),
@@ -390,21 +386,17 @@ void export_wavefunction(py::module& m) {
                  }
                  auto mat = std::make_shared<ComplexMatrix>(name, row_sizes, col_sizes);
                  for (int h = 0; h < static_cast<int>(row_sizes.size()); ++h) {
-                     (void)mat->tile(h, h);
+                     (void)mat->get(h);
                  }
                  return mat;
              }),
              "name"_a, "row_sizes"_a, "col_sizes"_a,
              "Construct a ComplexMatrix with diagonal tiles of shape (row_sizes[h], col_sizes[h]).")
         .def(
-            "num_blocks", [](const ComplexMatrix& m) { return m.grid_size(0); },
+            "num_blocks", [](const ComplexMatrix& m) { return m.rowspi().n(); },
             "Number of symmetry blocks (tile count along axis 0).")
-        .def("array_interface", &tiled_tensor_array_interface<ComplexMatrix>,
-             py::return_value_policy::reference_internal,
+        .def("array_interface", &tiled_tensor_array_interface, py::return_value_policy::reference_internal,
              "List of per-irrep diagonal-tile NumPy views sharing the tensor's memory.")
-        .def(
-            "tile_size", [](const ComplexMatrix& m, int axis) { return m.tile_size(axis); }, "axis"_a = 0,
-            "Per-tile sizes along the given axis (list of ints, one per irrep/tile).")
         .def_property("name", [](const ComplexMatrix& m) { return m.name(); },
                       [](ComplexMatrix& m, const std::string& name) { m.set_name(name); },
                       "The name of this ComplexMatrix.")

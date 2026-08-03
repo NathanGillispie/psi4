@@ -37,7 +37,10 @@
 #include "psi4/psi4-dec.h"
 #include "psi4/libpsi4util/PsiOutStream.h"
 
-#include <ostream>
+#ifdef USING_Einsums
+#include <Einsums/TensorAlgebra.hpp>
+#include <Einsums/LinearAlgebra.hpp>
+#endif
 
 namespace psi {
 
@@ -45,20 +48,13 @@ namespace psi {
 
 /// Overload for Dimension callers
 ComplexMatrix::ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes)
-  : tensor_(name, row_sizes.blocks(), col_sizes.blocks()) {}
+    : tensor_(name, row_sizes.blocks(), col_sizes.blocks()) {}
 
+const Dimension ComplexMatrix::rowspi() const { return Dimension(tensor_.tile_size(0)); }
 
-const Dimension ComplexMatrix::rowspi() const {
-    return Dimension(tensor_.tile_size(0));
-}
+const Dimension ComplexMatrix::colspi() const { return Dimension(tensor_.tile_size(1)); }
 
-const Dimension ComplexMatrix::colspi() const {
-    return Dimension(tensor_.tile_size(1));
-}
-
-std::shared_ptr<ComplexMatrix> ComplexMatrix::clone() const {
-    return std::make_shared<ComplexMatrix>(*this);
-}
+std::shared_ptr<ComplexMatrix> ComplexMatrix::clone() const { return std::make_shared<ComplexMatrix>(*this); }
 
 // self += alpha * other
 //
@@ -84,14 +80,9 @@ void ComplexMatrix::axpy(std::complex<double> alpha, const ComplexMatrix& other)
     }
 }
 
-// self -= other
-void ComplexMatrix::subtract(const ComplexMatrix& other) {
-    axpy(-1.0, other);
-}
-
 // Re(Tr(self^H other)), summed over diagonal tiles
 double ComplexMatrix::vector_dot(const ComplexMatrix& other) const {
-    const auto& other_t = static_cast<const TiledT&>(other);
+    const auto& other_t = other.tensor_;
     std::complex<double> total{0.0, 0.0};
     for (int h = 0; h < static_cast<int>(tensor_.grid_size(0)); ++h) {
         if (!tensor_.has_tile(h, h) || !other_t.has_tile(h, h)) continue;
@@ -106,6 +97,17 @@ double ComplexMatrix::vector_dot(const ComplexMatrix& other) const {
         }
     }
     return total.real();
+}
+
+// np.einsum("ij,ji->", this, other)
+std::complex<double> ComplexMatrix::product_trace(const ComplexMatrix& other) const {
+    std::complex<double> E;
+
+    using namespace einsums;
+    tensor_algebra::einsum(Indices{}, &E, Indices{index::i, index::j}, tensor_, Indices{index::j, index::i},
+                           other.tensor_);
+
+    return E;
 }
 
 // Raw per-tile complex sub-blocks to a PSIO file, mirroring Matrix::save with
@@ -140,12 +142,59 @@ void ComplexMatrix::load(std::shared_ptr<PSIO>& psio, size_t fileno) {
     if (!already_open) psio->close(fileno, 1);
 }
 
-void ComplexMatrix::print(std::string out, const char *extra) const {
-    if (extra != nullptr) { throw PSIEXCEPTION("Not implemented"); }
+void ComplexMatrix::print(std::string out, const char* extra) const {
+    if (extra != nullptr) {
+        throw PSIEXCEPTION("Not implemented");
+    }
 
     std::shared_ptr<psi::PsiOutStream> printer = (out == "outfile" ? outfile : std::make_shared<PsiOutStream>(out));
 
     einsums::fprintln(*printer->stream(), tensor_);
+}
+
+namespace linalg {
+
+template <bool AdjoinA, bool AdjoinB>
+ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
+    std::complex<double> c1{1.0};
+    std::complex<double> c0{0.0};
+
+    Dimension C_rowspi;
+    Dimension C_colspi;
+
+    if constexpr (AdjoinA) {
+        C_rowspi = A.colspi();
+    } else {
+        C_rowspi = A.rowspi();
+    }
+
+    if constexpr (AdjoinB) {
+        C_colspi = B.rowspi();
+    } else {
+        C_colspi = B.colspi();
+    }
+
+    ComplexMatrix C{"T", C_rowspi, C_colspi};
+
+    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(c1, A, B, c0, &C);
+
+    return C;
+}
+
+template <bool adjoinA, bool adjoinB>
+SharedComplexMatrix doublet(const SharedComplexMatrix& A, const SharedComplexMatrix& B) {
+    return std::make_shared<ComplexMatrix>(std::move(doublet<adjoinA, adjoinB>(*A, *B)));
+}
+
+}  // namespace linalg
+
+// X^H this X
+void ComplexMatrix::transform(const ComplexMatrix& X) {
+    ComplexMatrix temp = linalg::doublet<false, false>(*this, X);
+    ComplexMatrix transformed = linalg::doublet<true, false>(X, temp);
+    transformed.set_name(this->name());
+
+    this = &static_cast<ComplexMatrix::TensorT&>(transformed);
 }
 
 #endif  // USING_Einsums

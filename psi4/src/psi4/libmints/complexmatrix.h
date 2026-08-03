@@ -47,7 +47,21 @@ namespace psi {
 class PSIO;
 class Dimension;
 
+// Certain friend free methods (e.g. `linalg::doublet`) need to access the private
+// `tensor_` member to do lower-level Einsums operations. To be defined in a
+// different namespace, you need to forward declare the new namespace and func.
+// This requires a forward-declared ComplexMatrix class for argument types.
+// This eliminates the need for adding a public getter for private members.
+class ComplexMatrix;
+using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
+
 #ifdef USING_Einsums
+
+// Forward declare the friend functions.
+namespace linalg {
+template <bool, bool>
+ComplexMatrix doublet(const ComplexMatrix&, const ComplexMatrix&);
+}
 
 /*! \ingroup MINTS
  *  \class ComplexMatrix
@@ -60,7 +74,7 @@ class Dimension;
  *  Python layer: clone, axpy, subtract, vector_dot, save, and load.
  */
 class PSI_API ComplexMatrix {
-  public:
+   public:
     using BlockT = einsums::Tensor<std::complex<double>, 2>;
     using TiledT = einsums::TiledTensor<std::complex<double>, 2>;
     using ValueType = std::complex<double>;
@@ -71,34 +85,32 @@ class PSI_API ComplexMatrix {
     ComplexMatrix(const ComplexMatrix&) = default;
     ComplexMatrix(ComplexMatrix&&) = default;
     ComplexMatrix& operator=(const ComplexMatrix&) = default;
-    ComplexMatrix& operator=(ComplexMatrix&&) = default;
+    ComplexMatrix& operator=(ComplexMatrix&& other) = default;
+
+    /// Arithmetic operators
+    void operator+=(const ComplexMatrix& other) { tensor_ += other; }
 
     /// Construct with matching row/col tile sizes (square diagonal tiles).
-    ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes)
-        : tensor_(name, tile_sizes) {}
+    ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes) : tensor_(name, tile_sizes) {}
 
     ComplexMatrix(const std::string& name, const std::array<std::vector<int>, 2>& tile_sizes)
         : tensor_(name, tile_sizes) {}
 
     /// Construct with independent row/col tile sizes (rectangular diagonal tiles).
-    ComplexMatrix(const std::string& name, const std::vector<size_t>& row_sizes,
-                  const std::vector<size_t>& col_sizes)
+    ComplexMatrix(const std::string& name, const std::vector<size_t>& row_sizes, const std::vector<size_t>& col_sizes)
         : tensor_(name, row_sizes, col_sizes) {}
 
     /// Overload for std::vector<int> callers (e.g. copy_matrix_to_complex).
-    ComplexMatrix(const std::string& name, const std::vector<int>& row_sizes,
-                  const std::vector<int>& col_sizes)
-        : tensor_(name,
-                  std::vector<size_t>(row_sizes.begin(), row_sizes.end()),
+    ComplexMatrix(const std::string& name, const std::vector<int>& row_sizes, const std::vector<int>& col_sizes)
+        : tensor_(name, std::vector<size_t>(row_sizes.begin(), row_sizes.end()),
                   std::vector<size_t>(col_sizes.begin(), col_sizes.end())) {}
 
-		/// Overload for single block of size
-	  ComplexMatrix(int rows, int cols)
-	      : tensor_("", std::vector<int>{ rows }, std::vector<int>{ cols }) {}
+    /// Overload for single block of size
+    ComplexMatrix(int rows, int cols) : tensor_("", std::vector<int>{rows}, std::vector<int>{cols}) {}
 
-		/// Overload for single block of size with name
-	  ComplexMatrix(const std::string& name, int rows, int cols)
-	      : tensor_(name, std::vector<int>{ rows }, std::vector<int>{ cols }) {}
+    /// Overload for single block of size with name
+    ComplexMatrix(const std::string& name, int rows, int cols)
+        : tensor_(name, std::vector<int>{rows}, std::vector<int>{cols}) {}
 
     /// Overload for Dimension callers
     ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes);
@@ -116,11 +128,16 @@ class PSI_API ComplexMatrix {
     /// In-place self += alpha * other (diagonal tiles only).
     void axpy(std::complex<double> alpha, const ComplexMatrix& other);
 
-    /// In-place self -= other (diagonal tiles only).
-    void subtract(const ComplexMatrix& other);
+    /// In-place add
+    void add(const ComplexMatrix& other) { tensor_ += other; }
+
+    /// In-place subtract
+    void subtract(const ComplexMatrix& other) { tensor_ -= other; }
 
     /// Re(Tr(self^H other)), summed over diagonal tiles.
-    double vector_dot(const ComplexMatrix& other) const;
+    double vector_dot(const ComplexMatrix&) const;
+
+    std::complex<double> product_trace(const ComplexMatrix&) const;
 
     /// Save diagonal tiles as raw complex sub-blocks to a PSIO file.
     void save(std::shared_ptr<PSIO>& psio, size_t fileno);
@@ -129,6 +146,7 @@ class PSI_API ComplexMatrix {
     void load(std::shared_ptr<PSIO>& psio, size_t fileno);
 
     const std::string& name() const { return tensor_.name(); }
+    void set_name(const std::string& s) { tensor_.set_name(s); }
 
     /// python compat printer
     void print_out() const { print("outfile"); }
@@ -143,16 +161,16 @@ class PSI_API ComplexMatrix {
     const Dimension colspi() const;
     int colspi(const int& h) const { return coldim(h); }
 
-	constexpr int nrow() const { return static_cast<int>(tensor_.dim(0)); }
-	constexpr int ncol() const { return static_cast<int>(tensor_.dim(1)); }
+    int nrow() const { return static_cast<int>(tensor_.dim(0)); }
+    int ncol() const { return static_cast<int>(tensor_.dim(1)); }
 
     bool has_block(const int& h) const { return tensor_.has_tile(h, h); }
 
-	const std::array<std::vector<int>, 2>& block_sizes() const { return tensor_.tile_sizes(); }
+    const std::array<std::vector<int>, 2> block_sizes() const { return tensor_.tile_sizes(); }
 
     void zero() { tensor_.zero(); }
 
-	/// Getters
+    /// Getters
     BlockT& get(const int& h) { return tensor_.tile(h, h); }
     const BlockT& get(const int& h) const { return tensor_.tile(h, h); }
 
@@ -170,11 +188,16 @@ class PSI_API ComplexMatrix {
 
     /// Setters
     void set(const int& h, const int& i, const int& j, const ValueType& value) { tensor_.tile(h, h)(i, j) = value; }
-  private:
+
+    /// In-place basis transformation
+    void transform(const ComplexMatrix&);
+
+    template <bool, bool>
+    friend ComplexMatrix linalg::doublet(const ComplexMatrix&, const ComplexMatrix&);
+
+   private:
     TiledT tensor_;
 };
-
-using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
 
 #else  // !USING_Einsums
 
