@@ -41,11 +41,6 @@
 #include "psi4/libfock/ComplexJK.h"
 #include "psi4/libfock/v.h"
 
-#include <Einsums/Print.hpp>
-// DEBUG STATEMENTS
-#include <pybind11/pybind11.h>
-// END DEBUG
-
 namespace {
 
 // Takes an nsopi_-shaped square SharedMatrix and copies to 2 (two) diagonal
@@ -68,8 +63,8 @@ void copy_matrix_to_complex(const psi::Matrix& A, psi::ComplexMatrix& B) {
         const int c_ = A.colspi(h);
         for (int i = 0; i < r_; i++) {
             for (int j = 0; j < c_; j++) {
-                B.tile(h, h)(i, j) = A(h, i, j);
-                B.tile(h, h)(i + r_, j + c_) = A(h, i, j);
+				B.set(h, i, j, A(h, i, j));
+				B.set(h, i + r_, j + c_, A(h, i, j));
             }
         }
     }
@@ -401,8 +396,8 @@ double CGHF::compute_E() {
 void CGHF::form_C(double shift) {
     if (shift != 0.0) throw PSIEXCEPTION("Level shifting not available for CGHF.");
 
-    auto temp = ComplexMatrix("temp", F_->tile_size(0), X_->tile_size(1));
-    auto XFX = ComplexMatrix("Othogonalized Fock", X_->tile_size(1), X_->tile_size(1));
+    auto temp = ComplexMatrix("temp", F_->rowspi(), X_->colspi());
+    auto XFX = ComplexMatrix("Othogonalized Fock", X_->colspi(), X_->colspi());
 
     // using namespace einsums;
 
@@ -413,7 +408,7 @@ void CGHF::form_C(double shift) {
                                       std::complex<double>{0.0}, &XFX);
 
     // Form C' = eig(F')
-    temp = ComplexMatrix("temp", XFX.tile_sizes());
+    temp = ComplexMatrix("temp", XFX.block_sizes());
     temp.zero();
     epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
 
@@ -425,7 +420,7 @@ void CGHF::form_C(double shift) {
         evals.zero();
 
         // Hermitian eigensolver one block at a time
-        einsums::linear_algebra::heev<true>(&XFX.tile(h, h), &evals);
+        einsums::linear_algebra::heev<true>(&XFX.get(h), &evals);
 
         double last_value = - std::numeric_limits<double>::infinity();
         for (int m = 0; m < nmopi_[h]; m++) {
@@ -440,12 +435,12 @@ void CGHF::form_C(double shift) {
         // Takes the conjugate transpose of XFX (e.g. ij -> ji) to give us the proper eigenvectors
         // NOTE: the template parameters <true> states to take the conjugate (Einsums v1.x)
         einsums::tensor_algebra::permute<true>(
-            std::complex<double>{0.0}, einsums::Indices{einsums::index::i, einsums::index::j}, &temp.tile(h,h),
-            std::complex<double>{1.0}, einsums::Indices{einsums::index::j, einsums::index::i}, XFX.tile(h,h));
+            std::complex<double>{0.0}, einsums::Indices{einsums::index::i, einsums::index::j}, &temp.get(h),
+            std::complex<double>{1.0}, einsums::Indices{einsums::index::j, einsums::index::i}, XFX.get(h));
     }
 
     // Form C_ := X_ @ temp
-    C_ = std::make_shared<ComplexMatrix>("MO coefficients", X_->tile_sizes());
+    C_ = std::make_shared<ComplexMatrix>("MO coefficients", X_->block_sizes());
     einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *X_, temp,
                                        std::complex<double>{0.0}, C_.get());
 
@@ -455,7 +450,7 @@ void CGHF::form_C(double shift) {
 void CGHF::find_occupation() {
     if (debug_) epsilon_->print("outfile");
 
-    if (nirrep_ > 1) throw pybind11::attribute_error("CGHF::find_occupation is a work in progress.");
+	if (nirrep_ > 1) throw PSIEXCEPTION("CGHF::find_occupation() C1 symmetry only!");
 
     // No changing C_ because we assume the orbitals are sorted within their irreps
 
@@ -481,12 +476,12 @@ void CGHF::find_occupation() {
 void CGHF::form_D() {
     D_->zero();
     for (int h = 0; h < nirrep_; ++h) {
-        int nso = C_->tile_size(0)[h];
+        int nso = C_->rowdim(h);
         int nocc = static_cast<int>(nelecpi_[h]);
         if (!nso || !nocc) continue;
 
-        auto const& C_h = C_->tile(h, h);
-        auto& D_h = D_->tile(h, h);
+        auto const& C_h = C_->get(h);
+        auto& D_h = D_->get(h);
 
         // D_h = C_occ * C_occ^H using the leading occupied columns (lda = full MO stride)
         einsums::blas::gemm('n', 'c', nso, nso, nocc, std::complex<double>{1.0}, C_h.data(),
@@ -496,7 +491,7 @@ void CGHF::form_D() {
 
     if (debug_ > 0) {
         outfile->Printf("in CGHF::form_D:\n");
-        D_->print(*outfile->stream());
+        D_->print("outfile");
     }
 }
 
@@ -505,10 +500,10 @@ void CGHF::form_F() {
     (*F_) += (*G_);
 
     if (debug_) {
-        F_->print(*outfile->stream());
-        J_->print(*outfile->stream());
-        K_->print(*outfile->stream());
-        G_->print(*outfile->stream());
+        F_->print("outfile");
+        J_->print("outfile");
+        K_->print("outfile");
+        G_->print("outfile");
     }
 }
 
@@ -520,11 +515,11 @@ void CGHF::form_G() {
     C.clear();
 
     // Grab the occupied columns
-    auto C2 = std::make_shared<ComplexMatrix>("C SO OCC", C_->tile_size(0), nelecpi_);
+    auto C2 = std::make_shared<ComplexMatrix>("C SO OCC", C_->rowspi(), nelecpi_);
     for (int h = 0; h < nirrep_; h++) {
         if (nelecpi_[h] == 0) continue;
         // Einsums analog of Matrix's per-column C_DCOPY
-        C2->tile(h, h) = C_->tile(h, h)(einsums::All, einsums::Range{0, nelecpi_[h]});
+        C2->get(h) = C_->get(h)(einsums::All, einsums::Range{0, nelecpi_[h]});
     }
     C.push_back(C2);
 

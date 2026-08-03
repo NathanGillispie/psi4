@@ -33,9 +33,9 @@
 
 #include <complex>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <vector>
+#include <array>
 
 #ifdef USING_Einsums
 #include <Einsums/Config.hpp>
@@ -75,6 +75,9 @@ class PSI_API ComplexMatrix {
 
     /// Construct with matching row/col tile sizes (square diagonal tiles).
     ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes)
+        : tensor_(name, tile_sizes) {}
+
+    ComplexMatrix(const std::string& name, const std::array<std::vector<int>, 2>& tile_sizes)
         : tensor_(name, tile_sizes) {}
 
     /// Construct with independent row/col tile sizes (rectangular diagonal tiles).
@@ -125,35 +128,36 @@ class PSI_API ComplexMatrix {
     /// Load diagonal tiles as raw complex sub-blocks from a PSIO file.
     void load(std::shared_ptr<PSIO>& psio, size_t fileno);
 
-	  const std::string& name() const { return tensor_.name(); }
+    const std::string& name() const { return tensor_.name(); }
 
-	  /// python compat printer
-	  void print_out() const { print("outfile"); }
+    /// python compat printer
+    void print_out() const { print("outfile"); }
     /// Print to an ostream (delegates to the underlying TiledTensor).
     void print(std::string outfile = "outfile", const char* extra = nullptr) const;
 
-	  int rowdim(const int& h = 0) const { return tensor_.tile_size(0)[h]; }
-	  int coldim(const int& h = 0) const { return tensor_.tile_size(1)[h]; }
+    int rowdim(const int& h = 0) const { return tensor_.tile_size(0)[h]; }
+    int coldim(const int& h = 0) const { return tensor_.tile_size(1)[h]; }
 
-		const Dimension rowspi() const;
-	  int rowspi(const int& h) const { return rowdim(h); }
-		const Dimension colspi() const;
-	  int colspi(const int& h) const { return coldim(h); }
+    const Dimension rowspi() const;
+    int rowspi(const int& h) const { return rowdim(h); }
+    const Dimension colspi() const;
+    int colspi(const int& h) const { return coldim(h); }
 
-		constexpr int nrow() const { return static_cast<int>(tensor_.dim(0)); }
-		constexpr int ncol() const { return static_cast<int>(tensor_.dim(1)); }
+	constexpr int nrow() const { return static_cast<int>(tensor_.dim(0)); }
+	constexpr int ncol() const { return static_cast<int>(tensor_.dim(1)); }
 
-		bool has_block(const int& h) const { return tensor_.has_tile(h, h); }
+    bool has_block(const int& h) const { return tensor_.has_tile(h, h); }
 
+	const std::array<std::vector<int>, 2>& block_sizes() const { return tensor_.tile_sizes(); }
 
-		void zero() { tensor_.zero(); }
+    void zero() { tensor_.zero(); }
 
-	  /// Getters
-	  BlockT& get(const int& h) { return tensor_.tile(h, h); }
-	  const BlockT& get(const int& h) const { return tensor_.tile(h, h); }
+	/// Getters
+    BlockT& get(const int& h) { return tensor_.tile(h, h); }
+    const BlockT& get(const int& h) const { return tensor_.tile(h, h); }
 
-	  ValueType get(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
-	  const ValueType get(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
+    ValueType get(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
+    const ValueType get(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
 
     BlockT& operator[](const int& h) { return tensor_.tile(h, h); }
     const BlockT& operator[](const int& h) const { return tensor_.tile(h, h); }
@@ -161,8 +165,11 @@ class PSI_API ComplexMatrix {
     BlockT& operator()(const int& h) { return tensor_.tile(h, h); }
     const BlockT& operator()(const int& h) const { return tensor_.tile(h, h); }
 
-	  ValueType operator()(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
-	  const ValueType operator()(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
+    ValueType operator()(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
+    const ValueType operator()(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
+
+    /// Setters
+    void set(const int& h, const int& i, const int& j, const ValueType& value) { tensor_.tile(h, h)(i, j) = value; }
   private:
     TiledT tensor_;
 };
