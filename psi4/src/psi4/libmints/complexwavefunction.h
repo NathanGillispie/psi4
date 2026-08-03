@@ -30,6 +30,7 @@
 #define _psi_src_lib_libmints_complexwavefunction_h
 
 #include "psi4/libmints/basewavefunction.h"
+#include "psi4/libmints/complexmatrix.h"
 #include "psi4/libmints/typedefs.h"
 #include "psi4/libpsi4util/exception.h"
 
@@ -40,11 +41,6 @@
 #include <vector>
 
 #ifdef USING_Einsums
-#include <Einsums/Config.hpp>
-#include <Einsums/Tensor.hpp>
-
-#include <Einsums/LinearAlgebra.hpp>
-#include <Einsums/TensorAlgebra.hpp>
 #include <Einsums/Runtime.hpp>
 #endif
 
@@ -55,9 +51,6 @@ class BasisSet;
 class Options;
 
 #ifdef USING_Einsums
-
-using ComplexMatrix = einsums::TiledTensor<std::complex<double>, 2>;
-using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
 
 /*! \ingroup MINTS
  *  \class ComplexWavefunction
@@ -205,10 +198,6 @@ class PSI_API ComplexWavefunction : public BaseWavefunction {
 };
 
 #else  // !USING_Einsums
-
-/// Stub type so pybind can expose ComplexMatrix without Einsums.
-class PSI_API ComplexMatrix {};
-using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
 
 /*! Stub ComplexWavefunction: public mol/basis constructors throw unless built with Einsums.
  *  Blank / Options-only constructors remain for derived stubs (e.g. CGHF). */

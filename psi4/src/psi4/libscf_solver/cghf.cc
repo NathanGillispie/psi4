@@ -286,8 +286,8 @@ void CGHF::form_H() {
     copy_matrix_to_complex(*T_real, *T_);
     copy_matrix_to_complex(*V_real, *V_);
 
-    if (debug_ > 2) einsums::fprintln(*outfile->stream(), *T_);
-    if (debug_ > 2) einsums::fprintln(*outfile->stream(), *V_);
+    if (debug_ > 2) T_->print(*outfile->stream());
+    if (debug_ > 2) V_->print(*outfile->stream());
 
     if (perturb_h_)
         throw PSIEXCEPTION("Perturbed Hamiltonian not supported with CGHF.");
@@ -298,7 +298,7 @@ void CGHF::form_H() {
     (*H_) = (*T_);
     (*H_) += (*V_);
 
-    if (print_ > 3) einsums::fprintln(*outfile->stream(), *H_);
+    if (print_ > 3) H_->print(*outfile->stream());
 }
 
 void CGHF::form_Shalf() {
@@ -496,7 +496,7 @@ void CGHF::form_D() {
 
     if (debug_ > 0) {
         outfile->Printf("in CGHF::form_D:\n");
-        einsums::fprintln(*outfile->stream(), *D_);
+        D_->print(*outfile->stream());
     }
 }
 
@@ -505,10 +505,10 @@ void CGHF::form_F() {
     (*F_) += (*G_);
 
     if (debug_) {
-        einsums::fprintln(*outfile->stream(), *F_);
-        einsums::fprintln(*outfile->stream(), *J_);
-        einsums::fprintln(*outfile->stream(), *K_);
-        einsums::fprintln(*outfile->stream(), *G_);
+        F_->print(*outfile->stream());
+        J_->print(*outfile->stream());
+        K_->print(*outfile->stream());
+        G_->print(*outfile->stream());
     }
 }
 
