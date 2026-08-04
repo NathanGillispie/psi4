@@ -149,7 +149,6 @@ void ComplexJK::compute_D() {
                 throw PSIEXCEPTION("ComplexJK::compute_D: C_left/C_right occupied dimensions must match.");
             }
             if (!nsol || !nsor || !nocc) continue;
-            if (!Cl.has_block(h) || !Cr.has_block(h)) continue;
 
             auto const& Cl_h = Cl.get(h);
             auto const& Cr_h = Cr.get(h);

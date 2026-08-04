@@ -71,25 +71,40 @@ ComplexMatrix triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexM
 
 template <bool, bool, bool>
 SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatrix&, const SharedComplexMatrix&);
-}   // namespace linalg
+}  // namespace linalg
 
 /*! \ingroup MINTS
  *  \class ComplexMatrix
  *  \brief Complex blocked matrix backed by an einsums TiledTensor.
  *
- *  Wraps einmsums::TiledTensor<std::complex<double>, 2> as a private member
- *  and provides implicit conversion to/from the underlying TiledTensor so
- *  all existing TiledTensor API (tile, grid_size, has_tile, zero, name, …)
- *  remains directly available.  Adds operations needed by DIIS and the
- *  Python layer: clone, axpy, subtract, vector_dot, save, and load.
+ *  Wraps ``einmsums::TiledTensor<std::complex<double>, 2>`` as a private member
+ *  and provides familiar API, similar to the (completely independent) ``Matrix``
+ *  class. Tiles are analogous to irrep blocks in ``Matrix``, but TiledTensors
+ *  allow tiles to be created on-demand, anywhere on the predefined grid.
+ *  This grid is set at the constructor by rowspi and optionally colspi. Like
+ *  ``Matrix``, the number of irreps in each dimension is assumed to be equal.
+ *  Unlike ``Matrix``, we assume at the ctor: ``rowspi.n() == colspi.n()``.
+ *
+ *  TiledTensors work differently to ``Matrix``. Memory is handled by the
+ *  object. When you call ``zero()`` the tiles are emptied, not actually set to
+ *  zero. When you try to ``get()`` a tile, the tile is allocated and returns
+ *  zeros. When you ``get()`` a specific value in an uninitialized tile, the
+ *  tile may or may not be allocated, but a zero is always returned.
+ *
+ *  Adds operations needed by DIIS and the Python layer: clone, axpy, subtract,
+ *  vector_dot, save, and load.
  */
 class PSI_API ComplexMatrix {
+   private:
+    /// The backed einsums TiledTensor object.
+    einsums::TiledTensor<std::complex<double>, 2> tensor_;
+
    public:
     using BlockT = einsums::Tensor<std::complex<double>, 2>;
     using TiledT = einsums::TiledTensor<std::complex<double>, 2>;
-    using ValueType = std::complex<double>;
+    using ValueT = std::complex<double>;
 
-    // -- constructors (forward to TiledTensor) --
+    // -- ctors (forward to TiledTensor) --
 
     ComplexMatrix() = default;
     ComplexMatrix(const ComplexMatrix&) = default;
@@ -97,20 +112,25 @@ class PSI_API ComplexMatrix {
     ComplexMatrix& operator=(const ComplexMatrix&) = default;
     ComplexMatrix& operator=(ComplexMatrix&& other) = default;
 
-    /// Arithmetic operators
+    /// Arithmetic operator ``+=``. Einsums asserts the dimensions at runtime.
     void operator+=(const ComplexMatrix& other) { tensor_ += other; }
+    /// Arithmetic operator ``-=``. Einsums asserts the dimensions at runtime.
+    void operator-=(const ComplexMatrix& other) { tensor_ -= other; }
 
-    /// Construct with matching row/col tile sizes (square diagonal tiles).
+    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
     ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes) : tensor_(name, tile_sizes) {}
 
+    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
     ComplexMatrix(const std::string& name, const std::array<std::vector<int>, 2>& tile_sizes)
         : tensor_(name, tile_sizes) {}
 
     /// Construct with independent row/col tile sizes (rectangular diagonal tiles).
+    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
     ComplexMatrix(const std::string& name, const std::vector<size_t>& row_sizes, const std::vector<size_t>& col_sizes)
         : tensor_(name, row_sizes, col_sizes) {}
 
     /// Overload for std::vector<int> callers (e.g. copy_matrix_to_complex).
+    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
     ComplexMatrix(const std::string& name, const std::vector<int>& row_sizes, const std::vector<int>& col_sizes)
         : tensor_(name, std::vector<size_t>(row_sizes.begin(), row_sizes.end()),
                   std::vector<size_t>(col_sizes.begin(), col_sizes.end())) {}
@@ -163,7 +183,12 @@ class PSI_API ComplexMatrix {
     /// Print to an ostream (delegates to the underlying TiledTensor).
     void print(std::string outfile = "outfile", const char* extra = nullptr) const;
 
+    /// Number of possible row tiles (empty or filled)
+    int nirrep() const { return tensor_.grid_size(0); }
+
+    /// Returns dimension of row tile for given irrep.
     int rowdim(const int& h = 0) const { return tensor_.tile_size(0)[h]; }
+    /// Returns dimension of column tile for given irrep.
     int coldim(const int& h = 0) const { return tensor_.tile_size(1)[h]; }
 
     const Dimension rowspi() const;
@@ -171,33 +196,53 @@ class PSI_API ComplexMatrix {
     const Dimension colspi() const;
     int colspi(const int& h) const { return coldim(h); }
 
+    /// Returns the total number of rows
     int nrow() const { return static_cast<int>(tensor_.dim(0)); }
+    /// Returns the total number of columns
     int ncol() const { return static_cast<int>(tensor_.dim(1)); }
 
-    bool has_block(const int& h) const { return tensor_.has_tile(h, h); }
-
+    PSI_DEPRECATED(
+        "Internal einsums type used for constructors. Should be "
+        "replaced with rowspi/colspi ASAP.")
     const std::array<std::vector<int>, 2> block_sizes() const { return tensor_.tile_sizes(); }
 
+    /// Zero out all blocks. Deallocates tiles.
     void zero() { tensor_.zero(); }
 
-    /// Getters
+    /// @{
+    /// Returns the h'th irrep as ``einsums::Tensor<std::complex<double>, 2>`` type.
     BlockT& get(const int& h) { return tensor_.tile(h, h); }
     const BlockT& get(const int& h) const { return tensor_.tile(h, h); }
-
-    ValueType get(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
-    const ValueType get(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
-
     BlockT& operator[](const int& h) { return tensor_.tile(h, h); }
     const BlockT& operator[](const int& h) const { return tensor_.tile(h, h); }
-
     BlockT& operator()(const int& h) { return tensor_.tile(h, h); }
     const BlockT& operator()(const int& h) const { return tensor_.tile(h, h); }
+    /// @}
 
-    ValueType operator()(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
-    const ValueType operator()(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
+    /**
+     * Returns a single element of tensor_
+     *
+     * @param h Subtile
+     * @param m Row
+     * @param n Column
+     * @return value at position (h, m, n)
+     */
+    ValueT get(const int& h, const int& m, const int& n) const { return tensor_.tile(h, h)(m, n); }
 
-    /// Setters
-    void set(const int& h, const int& i, const int& j, const ValueType& value) { tensor_.tile(h, h)(i, j) = value; }
+    /// Returns a ``std::complex<double>&`` reference to element at position (h, i, j).
+    ValueT& operator()(const int& h, const int& i, const int& j) { return tensor_.tile(h, h)(i, j); }
+    /// Returns a ``const std::complex<double>&`` reference to element at position (h, i, j).
+    const ValueT& operator()(const int& h, const int& i, const int& j) const { return tensor_.tile(h, h)(i, j); }
+
+    /**
+     * Set a single element of tensor_
+     *
+     * @param h Subtile
+     * @param m Row
+     * @param n Column
+     * @param value Value
+     */
+    void set(const int& h, const int& m, const int& n, const ValueT& value) { tensor_.tile(h, h)(m, n) = value; }
 
     template <bool, bool>
     friend ComplexMatrix linalg::doublet(const ComplexMatrix&, const ComplexMatrix&);
@@ -205,11 +250,8 @@ class PSI_API ComplexMatrix {
     template <bool, bool, bool>
     friend ComplexMatrix linalg::triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexMatrix&);
 
-    /// Return a conjugate transpose matrix
+    /// Return a conjugate transpose ComplexMatrix
     SharedComplexMatrix conjT() const;
-
-   private:
-    TiledT tensor_;
 };
 
 namespace linalg {
@@ -233,8 +275,8 @@ ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
 
     ComplexMatrix C{"T", C_rowspi, C_colspi};
 
-    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(std::complex<double>{1.0},
-		A.tensor_, B.tensor_, std::complex<double>{0.0}, &C.tensor_);
+    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(std::complex<double>{1.0}, A.tensor_, B.tensor_,
+                                                    std::complex<double>{0.0}, &C.tensor_);
 
     return C;
 }
@@ -252,12 +294,11 @@ ComplexMatrix triplet(const ComplexMatrix& A, const ComplexMatrix& B, const Comp
 }
 
 template <bool AdjoinA, bool AdjoinB, bool AdjoinC>
-SharedComplexMatrix triplet(const SharedComplexMatrix& A, const SharedComplexMatrix& B,
-                            const SharedComplexMatrix& C) {
+SharedComplexMatrix triplet(const SharedComplexMatrix& A, const SharedComplexMatrix& B, const SharedComplexMatrix& C) {
     return std::make_shared<ComplexMatrix>(std::move(triplet<AdjoinA, AdjoinB, AdjoinC>(*A, *B, *C)));
 }
 
-}
+}  // namespace linalg
 
 #else  // !USING_Einsums
 
