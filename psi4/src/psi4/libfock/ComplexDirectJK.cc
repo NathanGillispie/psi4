@@ -84,7 +84,7 @@ void ComplexDirectJK::compute_JK() {
     const int nbf = primary_->nbf();
 
     for (size_t N = 0; N < D_.size(); N++) {
-        if (D_[N]->nrow() != 1)
+        if (D_[N]->rowspi().n() != 1)
             throw PSIEXCEPTION("Non-C1 symmetries not allowed with ComplexJK and SCF_TYPE DIRECT");
 
         if (!(do_J_ && do_K_)) {

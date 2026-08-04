@@ -137,11 +137,11 @@ void ComplexJK::compute_D() {
         // compute() aliases C_right_ = C_left_ when only C_left is filled; allow the same here.
         auto const& Cr = (N < C_right_.size()) ? *C_right_[N] : Cl;
 
-        if (Cl.nrow() != Cr.nrow() || Cl.ncol() != Cr.ncol()) {
+        if (Cl.rowspi().n() != Cr.rowspi().n() || Cl.colspi().n() != Cr.colspi().n()) {
             throw PSIEXCEPTION("ComplexJK::compute_D: C_left/C_right tile grids must match.");
         }
 
-        for (int h = 0; h < Cl.nrow(); ++h) {
+        for (int h = 0; h < Cl.rowspi().n(); ++h) {
             int nsol = Cl.rowdim(h);
             int nsor = Cr.rowdim(h);
             int nocc = Cl.coldim(h);
