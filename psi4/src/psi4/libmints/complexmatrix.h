@@ -40,6 +40,7 @@
 #ifdef USING_Einsums
 #include <Einsums/Config.hpp>
 #include <Einsums/Tensor.hpp>
+#include <Einsums/LinearAlgebra.hpp>
 #endif
 
 namespace psi {
@@ -61,7 +62,16 @@ using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
 namespace linalg {
 template <bool, bool>
 ComplexMatrix doublet(const ComplexMatrix&, const ComplexMatrix&);
-}
+
+template <bool, bool>
+SharedComplexMatrix doublet(const SharedComplexMatrix&, const SharedComplexMatrix&);
+
+template <bool, bool, bool>
+ComplexMatrix triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexMatrix&);
+
+template <bool, bool, bool>
+SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatrix&, const SharedComplexMatrix&);
+}   // namespace linalg
 
 /*! \ingroup MINTS
  *  \class ComplexMatrix
@@ -195,9 +205,64 @@ class PSI_API ComplexMatrix {
     template <bool, bool>
     friend ComplexMatrix linalg::doublet(const ComplexMatrix&, const ComplexMatrix&);
 
+    template <bool, bool, bool>
+    friend ComplexMatrix linalg::triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexMatrix&);
+
+    /// Return a conjugate transpose matrix
+    SharedComplexMatrix conjT() const;
+
    private:
     TiledT tensor_;
 };
+
+namespace linalg {
+
+template <bool AdjoinA, bool AdjoinB>
+ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
+    std::complex<double> c1{1.0};
+    std::complex<double> c0{0.0};
+
+    std::vector<int> C_rowspi;
+    std::vector<int> C_colspi;
+
+    if constexpr (AdjoinA) {
+        C_rowspi = A.tensor_.tile_size(1);
+    } else {
+        C_rowspi = A.tensor_.tile_size(0);
+    }
+
+    if constexpr (AdjoinB) {
+        C_colspi = B.tensor_.tile_size(0);
+    } else {
+        C_colspi = B.tensor_.tile_size(1);
+    }
+
+    ComplexMatrix C{"T", C_rowspi, C_colspi};
+
+    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(c1, A.tensor_, B.tensor_, c0, &C.tensor_);
+
+    return C;
+}
+
+template <bool AdjoinA, bool AdjoinB>
+SharedComplexMatrix doublet(const SharedComplexMatrix& A, const SharedComplexMatrix& B) {
+    return std::make_shared<ComplexMatrix>(std::move(doublet<AdjoinA, AdjoinB>(*A, *B)));
+}
+
+template <bool AdjoinA, bool AdjoinB, bool AdjoinC>
+ComplexMatrix triplet(const ComplexMatrix& A, const ComplexMatrix& B, const ComplexMatrix& C) {
+    auto BC = doublet<AdjoinB, AdjoinC>(B, C);
+    auto ABC = doublet<AdjoinA, AdjoinB>(A, BC);
+    return ABC;
+}
+
+template <bool AdjoinA, bool AdjoinB, bool AdjoinC>
+SharedComplexMatrix triplet(const SharedComplexMatrix& A, const SharedComplexMatrix& B,
+                            const SharedComplexMatrix& C) {
+    return std::make_shared<ComplexMatrix>(std::move(triplet<AdjoinA, AdjoinB, AdjoinC>(*A, *B, *C)));
+}
+
+}
 
 #else  // !USING_Einsums
 

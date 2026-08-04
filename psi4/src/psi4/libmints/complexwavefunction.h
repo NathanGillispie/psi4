@@ -30,11 +30,9 @@
 #define _psi_src_lib_libmints_complexwavefunction_h
 
 #include "psi4/libmints/basewavefunction.h"
-#include "psi4/libmints/complexmatrix.h"
 #include "psi4/libmints/typedefs.h"
 #include "psi4/libpsi4util/exception.h"
 
-#include <complex>
 #include <map>
 #include <memory>
 #include <string>
@@ -62,7 +60,7 @@ class PSI_API ComplexWavefunction : public BaseWavefunction {
     int nelec_;
 
     /// Number of electrons per irrep
-    std::vector<size_t> nelecpi_;
+    Dimension nelecpi_;
 
     /// Overlap matrix
     SharedComplexMatrix S_;
@@ -131,7 +129,7 @@ class PSI_API ComplexWavefunction : public BaseWavefunction {
     }
 
     /// Returns the number of electrons per irrep array.
-    const std::vector<size_t>& nelecpi() const { return nelecpi_; }
+    const Dimension& nelecpi() const { return nelecpi_; }
     /// Return the number of electrons
     int nelec() const { return nelec_; }
 

@@ -95,10 +95,10 @@ namespace {
 // lazily allocates missing diagonal tiles so Python can write into them.
 py::list tiled_tensor_array_interface(psi::ComplexMatrix& tt) {
     using ValueT = std::complex<double>;
-    if (tt.nrow() != tt.ncol())
+    if (tt.rowspi().n() != tt.colspi().n())
         throw py::value_error("ComplexMatrix.array_interface requires equal block counts on both axes.");
     py::list ret;
-    const int ntiles = tt.nrow();
+    const int ntiles = tt.rowspi().n();
     for (int h = 0; h < ntiles; ++h) {
         auto& tile = tt.get(h);
         const auto r = static_cast<py::ssize_t>(tile.dim(0));

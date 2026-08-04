@@ -35,6 +35,7 @@
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/pointgrp.h"
 #include "psi4/libmints/matrix.h"
+#include "psi4/libmints/complexmatrix.h"
 #include "psi4/libmints/vector.h"
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libpsi4util/process.h"
@@ -392,20 +393,13 @@ double CGHF::compute_E() {
 void CGHF::form_C(double shift) {
     if (shift != 0.0) throw PSIEXCEPTION("Level shifting not available for CGHF.");
 
-    auto temp = ComplexMatrix("temp", F_->rowspi(), X_->colspi());
-    auto XFX = ComplexMatrix("Othogonalized Fock", X_->colspi(), X_->colspi());
-
-    using TiledT = ComplexMatrix::TiledT;
-
     // Form F' = X'FX for canonical orthogonalization
-    einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, static_cast<TiledT&>(*F_), static_cast<TiledT&>(*X_),
-                                       std::complex<double>{0.0}, &static_cast<TiledT&>(temp));
-    einsums::linear_algebra::gemm<true, false>(std::complex<double>{1.0}, static_cast<TiledT&>(*X_), static_cast<TiledT&>(temp),
-                                      std::complex<double>{0.0}, &static_cast<TiledT&>(XFX));
+    auto Forth = linalg::triplet<true, false, false>(X_, F_, X_);
+    Forth->set_name("Orthogonalized Fock");
 
     // Form C' = eig(F')
-    temp = ComplexMatrix("temp", XFX.block_sizes());
-    temp.zero();
+    SharedComplexMatrix temp = std::make_shared<ComplexMatrix>("temp", F_->block_sizes());
+    temp->zero();
     epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
 
     for (int h = 0; h < nirrep_; h++) {
@@ -416,7 +410,7 @@ void CGHF::form_C(double shift) {
         evals.zero();
 
         // Hermitian eigensolver one block at a time
-        einsums::linear_algebra::heev<true>(&XFX.get(h), &evals);
+        einsums::linear_algebra::heev<true>(&Forth->get(h), &evals);
 
         double last_value = - std::numeric_limits<double>::infinity();
         for (int m = 0; m < nmopi_[h]; m++) {
@@ -425,20 +419,14 @@ void CGHF::form_C(double shift) {
             epsilon_->set(h, m, current_value);
             last_value = current_value;
         }
-
-        // heev retuns the wrong side, so we need to take the inverse (hermitian adjoint)
-
-        // Takes the conjugate transpose of XFX (e.g. ij -> ji) to give us the proper eigenvectors
-        // NOTE: the template parameters <true> states to take the conjugate (Einsums v1.x)
-        einsums::tensor_algebra::permute<true>(
-            std::complex<double>{0.0}, einsums::Indices{einsums::index::i, einsums::index::j}, &temp.get(h),
-            std::complex<double>{1.0}, einsums::Indices{einsums::index::j, einsums::index::i}, XFX.get(h));
     }
 
-    // Form C_ := X_ @ temp
-    C_ = std::make_shared<ComplexMatrix>("MO coefficients", X_->block_sizes());
-    einsums::linear_algebra::gemm<false, false>(std::complex<double>{1.0}, *X_, temp,
-                                       std::complex<double>{0.0}, C_.get());
+    // heev retuns the wrong side, so we need to take the conjugate transpose for the proper eigenvectors
+    temp = Forth->conjT();
+
+    // Form C_ := X_ @ C' (temp)
+    C_ = linalg::doublet<false, false>(X_, temp);
+    C_->set_name("MO coefficients");
 
     find_occupation();
 }
@@ -495,6 +483,8 @@ void CGHF::form_F() {
     (*F_) = (*H_);
     (*F_) += (*G_);
 
+    F_->set_name("Fock");
+
     if (debug_) {
         F_->print("outfile");
         J_->print("outfile");
@@ -532,8 +522,8 @@ void CGHF::form_G() {
     if (alpha != 1) throw PSIEXCEPTION("Who let the DFT in?");
     if (!functional_->is_x_hybrid()) throw PSIEXCEPTION("Who let the DFT in?");
 
-    (*G_) += (*J_);
-    (*G_) -= (*K_);
+    G_->add(*J_);
+    G_->subtract(*K_);
 }
 
 std::shared_ptr<ComplexJK> CGHF::build_jk(size_t memory) const {

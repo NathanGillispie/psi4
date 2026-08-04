@@ -152,49 +152,27 @@ void ComplexMatrix::print(std::string out, const char* extra) const {
     einsums::fprintln(*printer->stream(), tensor_);
 }
 
-namespace linalg {
+SharedComplexMatrix ComplexMatrix::conjT() const {
+    auto temp = std::make_shared<ComplexMatrix>(this->name() + "^H", this->colspi(), this->rowspi());
 
-template <bool AdjoinA, bool AdjoinB>
-ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
-    std::complex<double> c1{1.0};
-    std::complex<double> c0{0.0};
+    // using keyT = const std::array<int, 2>;
+    // using valueT = const einsums::Tensor<std::complex<double>, 2>;
+    for (const auto& [key, value] : tensor_.tiles()) {
+        const auto& [rowpi, colpi] = key;
+        static_assert(std::is_same_v<decltype(rowpi), const int>);
 
-    Dimension C_rowspi;
-    Dimension C_colspi;
+        // necessarily: tensor_.has_tile(rowpi, colpi) == true
+        // This adds a tile to temp.
+        auto& ttile = temp->tensor_.tile(colpi, rowpi);
 
-    if constexpr (AdjoinA) {
-        C_rowspi = A.colspi();
-    } else {
-        C_rowspi = A.rowspi();
+        // The template parameter <true> means take the conjugate.
+#pragma message("Einsums::tensor_algebra::permute API will change as soon as v2.0")
+        einsums::tensor_algebra::permute<true>(
+            std::complex<double>{0.0}, einsums::Indices{einsums::index::i, einsums::index::j}, &ttile,
+            std::complex<double>{1.0}, einsums::Indices{einsums::index::j, einsums::index::i}, value);
     }
 
-    if constexpr (AdjoinB) {
-        C_colspi = B.rowspi();
-    } else {
-        C_colspi = B.colspi();
-    }
-
-    ComplexMatrix C{"T", C_rowspi, C_colspi};
-
-    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(c1, A, B, c0, &C);
-
-    return C;
-}
-
-template <bool adjoinA, bool adjoinB>
-SharedComplexMatrix doublet(const SharedComplexMatrix& A, const SharedComplexMatrix& B) {
-    return std::make_shared<ComplexMatrix>(std::move(doublet<adjoinA, adjoinB>(*A, *B)));
-}
-
-}  // namespace linalg
-
-// X^H this X
-void ComplexMatrix::transform(const ComplexMatrix& X) {
-    ComplexMatrix temp = linalg::doublet<false, false>(*this, X);
-    ComplexMatrix transformed = linalg::doublet<true, false>(X, temp);
-    transformed.set_name(this->name());
-
-    this = &static_cast<ComplexMatrix::TensorT&>(transformed);
+    return temp;
 }
 
 #endif  // USING_Einsums
