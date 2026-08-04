@@ -199,9 +199,6 @@ class PSI_API ComplexMatrix {
     /// Setters
     void set(const int& h, const int& i, const int& j, const ValueType& value) { tensor_.tile(h, h)(i, j) = value; }
 
-    /// In-place basis transformation
-    void transform(const ComplexMatrix&);
-
     template <bool, bool>
     friend ComplexMatrix linalg::doublet(const ComplexMatrix&, const ComplexMatrix&);
 
@@ -219,9 +216,6 @@ namespace linalg {
 
 template <bool AdjoinA, bool AdjoinB>
 ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
-    std::complex<double> c1{1.0};
-    std::complex<double> c0{0.0};
-
     std::vector<int> C_rowspi;
     std::vector<int> C_colspi;
 
@@ -239,7 +233,8 @@ ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
 
     ComplexMatrix C{"T", C_rowspi, C_colspi};
 
-    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(c1, A.tensor_, B.tensor_, c0, &C.tensor_);
+    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(std::complex<double>{1.0},
+		A.tensor_, B.tensor_, std::complex<double>{0.0}, &C.tensor_);
 
     return C;
 }

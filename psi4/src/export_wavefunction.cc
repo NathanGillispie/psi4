@@ -395,6 +395,12 @@ void export_wavefunction(py::module& m) {
         .def(
             "num_blocks", [](const ComplexMatrix& m) { return m.rowspi().n(); },
             "Number of symmetry blocks (tile count along axis 0).")
+        .def("rowdim", static_cast<const Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::rowspi),
+             py::return_value_policy::copy,
+             "Per-irrep row tile sizes as a Dimension (C1 returns size-1 Dimension).")
+        .def("coldim", static_cast<const Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::colspi),
+             py::return_value_policy::copy,
+             "Per-irrep column tile sizes as a Dimension.")
         .def("array_interface", &tiled_tensor_array_interface, py::return_value_policy::reference_internal,
              "List of per-irrep diagonal-tile NumPy views sharing the tensor's memory.")
         .def_property("name", [](const ComplexMatrix& m) { return m.name(); },
@@ -413,7 +419,10 @@ void export_wavefunction(py::module& m) {
         .def("load", &ComplexMatrix::load, "psio"_a, "fileno"_a,
              "Loads diagonal tiles as raw complex sub-blocks from a PSIO file. The "
              "ComplexMatrix must already have the correct tile grid (e.g. from the "
-             "(name, block_sizes) constructor).");
+             "(name, block_sizes) constructor).")
+        .def("product_trace", &ComplexMatrix::product_trace, "other"_a,
+             "Replicates einsum('ij,ji->', self, other)")
+        .def("conjT", &ComplexMatrix::conjT, "Returns the conjugate transpose of this ComplexMatrix.");
 
     py::class_<ComplexWavefunction, std::shared_ptr<ComplexWavefunction>, BaseWavefunction>(m,
             "ComplexWavefunction", "ComplexWavefunction class docstring")
