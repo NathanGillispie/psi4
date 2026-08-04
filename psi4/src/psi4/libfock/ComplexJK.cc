@@ -55,7 +55,6 @@ void ComplexJK::common_init() {
 
 std::shared_ptr<ComplexJK> ComplexJK::build_JK(std::shared_ptr<BasisSet> primary, std::shared_ptr<BasisSet> auxiliary,
                                                Options& options, std::string jk_type) {
-
     bool do_df_scf_guess = options.get_bool("DF_SCF_GUESS");
     if (do_df_scf_guess) {
         std::string error_message = "SCREENING=DENSITY has not been implemented for ";
@@ -104,14 +103,14 @@ void ComplexJK::allocate_JK() {
         for (int N = 0; N < D_.size() && do_J_; N++) {
             std::stringstream s;
             s << "J " << N << " (SO)";
-			const auto& Dt = *D_[N];
+            const auto& Dt = *D_[N];
             J_.push_back(std::make_shared<ComplexMatrix>(s.str(), Dt.rowspi(), Dt.colspi()));
         }
 
         for (int N = 0; N < D_.size() && do_K_; N++) {
             std::stringstream s;
             s << "K " << N << " (SO)";
-			const auto& Dt = *D_[N];
+            const auto& Dt = *D_[N];
             K_.push_back(std::make_shared<ComplexMatrix>(s.str(), Dt.rowspi(), Dt.colspi()));
         }
     }
@@ -137,11 +136,11 @@ void ComplexJK::compute_D() {
         // compute() aliases C_right_ = C_left_ when only C_left is filled; allow the same here.
         auto const& Cr = (N < C_right_.size()) ? *C_right_[N] : Cl;
 
-        if (Cl.rowspi().n() != Cr.rowspi().n() || Cl.colspi().n() != Cr.colspi().n()) {
-            throw PSIEXCEPTION("ComplexJK::compute_D: C_left/C_right tile grids must match.");
+        if (Cl.nirrep() != Cr.nirrep()) {
+            throw PSIEXCEPTION("ComplexJK::compute_D: C_left/C_right must have same number of irreps.");
         }
 
-        for (int h = 0; h < Cl.rowspi().n(); ++h) {
+        for (int h = 0; h < D_[N]->nirrep(); ++h) {
             int nsol = Cl.rowdim(h);
             int nsor = Cr.rowdim(h);
             int nocc = Cl.coldim(h);
@@ -169,10 +168,10 @@ size_t ComplexJK::memory_overhead() const {
 
 void ComplexJK::zero() {
     if (do_J_) {
-        for(auto J : J_) J->zero();
+        for (auto J : J_) J->zero();
     }
     if (do_K_) {
-        for(auto K : K_) K->zero();
+        for (auto K : K_) K->zero();
     }
 }
 
