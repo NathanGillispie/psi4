@@ -113,7 +113,8 @@ class PSI_API ComplexMatrix {
     ComplexMatrix& operator=(const ComplexMatrix&) = default;
     ComplexMatrix& operator=(ComplexMatrix&& other) = default;
 
-    /// Constructors for Dimension callers
+    // -- Constructors for Dimension callers --
+
     ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes)
         : tensor_(name, row_sizes.blocks(), col_sizes.blocks()) {}
 
@@ -132,25 +133,6 @@ class PSI_API ComplexMatrix {
 
     ComplexMatrix(int rows, int cols)
         : ComplexMatrix("", rows, cols) {}
-
-    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
-    ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes) : tensor_(name, tile_sizes) {}
-
-    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
-    ComplexMatrix(const std::string& name, const std::array<std::vector<int>, 2>& tile_sizes)
-        : tensor_(name, tile_sizes) {}
-
-    /// Construct with independent row/col tile sizes (rectangular diagonal tiles).
-    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
-    ComplexMatrix(const std::string& name, const std::vector<size_t>& row_sizes, const std::vector<size_t>& col_sizes)
-        : tensor_(name, row_sizes, col_sizes) {}
-
-    /// Overload for std::vector<int> callers (e.g. copy_matrix_to_complex).
-    PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
-    ComplexMatrix(const std::string& name, const std::vector<int>& row_sizes, const std::vector<int>& col_sizes)
-        : tensor_(name, std::vector<size_t>(row_sizes.begin(), row_sizes.end()),
-                  std::vector<size_t>(col_sizes.begin(), col_sizes.end())) {}
-
 
     // -- implicit conversion --
 
@@ -191,10 +173,12 @@ class PSI_API ComplexMatrix {
     /// Load diagonal tiles as raw complex sub-blocks from a PSIO file.
     void load(std::shared_ptr<PSIO>& psio, size_t fileno);
 
+    /// Get the name, used for ``print()`` and Einsums runtime errors.
     const std::string& name() const { return tensor_.name(); }
+    /// Set the name, used for ``print()`` and Einsums runtime errors.
     void set_name(const std::string& s) { tensor_.set_name(s); }
 
-    /// python compat printer
+    /// Python-compatible printer.
     void print_out() const { print("outfile"); }
     /// Print to an ostream (delegates to the underlying TiledTensor).
     void print(std::string outfile = "outfile", const char* extra = nullptr) const;

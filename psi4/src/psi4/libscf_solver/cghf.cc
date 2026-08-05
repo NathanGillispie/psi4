@@ -110,19 +110,19 @@ void CGHF::common_init() {
     // DFT stuff (would typically go in subclass_init)
     setup_potential();
 
-    std::vector<size_t> irrep_sizes(nirrep_);
+    Dimension irrep_dim(nirrep_);
     for (int h = 0; h < nirrep_; h++) {
-        irrep_sizes[h] = static_cast<size_t>(nsopi_[h] * 2);
+        irrep_dim[h] = nsopi_[h] * 2;
     }
 
-    T_ = std::make_shared<ComplexMatrix>("T", irrep_sizes, irrep_sizes);
-    V_ = std::make_shared<ComplexMatrix>("V", irrep_sizes, irrep_sizes);
-    H_ = std::make_shared<ComplexMatrix>("H", irrep_sizes, irrep_sizes);
-    D_ = std::make_shared<ComplexMatrix>("SCF density", irrep_sizes, irrep_sizes);
-    F_ = std::make_shared<ComplexMatrix>("F", irrep_sizes, irrep_sizes);
-    G_ = std::make_shared<ComplexMatrix>("G", irrep_sizes, irrep_sizes);
-    J_ = std::make_shared<ComplexMatrix>("J", irrep_sizes, irrep_sizes);
-    K_ = std::make_shared<ComplexMatrix>("K", irrep_sizes, irrep_sizes);
+    T_ = std::make_shared<ComplexMatrix>("T", irrep_dim);
+    V_ = std::make_shared<ComplexMatrix>("V", irrep_dim);
+    H_ = std::make_shared<ComplexMatrix>("H", irrep_dim);
+    D_ = std::make_shared<ComplexMatrix>("SCF density", irrep_dim);
+    F_ = std::make_shared<ComplexMatrix>("F", irrep_dim);
+    G_ = std::make_shared<ComplexMatrix>("G", irrep_dim);
+    J_ = std::make_shared<ComplexMatrix>("J", irrep_dim);
+    K_ = std::make_shared<ComplexMatrix>("K", irrep_dim);
 
     T_->zero();
     V_->zero();
