@@ -387,13 +387,11 @@ void export_wavefunction(py::module& m) {
              }),
              "name"_a, "row_sizes"_a, "col_sizes"_a,
              "Construct a ComplexMatrix with diagonal tiles of shape (row_sizes[h], col_sizes[h]).")
-        .def(
-            "num_blocks", [](const ComplexMatrix& m) { return m.rowspi().n(); },
-            "Number of symmetry blocks (tile count along axis 0).")
-        .def("rowdim", static_cast<const Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::rowspi),
-             py::return_value_policy::copy,
+        .def("nirrep", [](const ComplexMatrix& m) { return m.nirrep(); }, "Returns number of tiles")
+        .def("rowdim", static_cast<Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::rowspi),
+             py::return_value_policy::copy, // TODO: make sure this is the correct return policy
              "Per-irrep row tile sizes as a Dimension (C1 returns size-1 Dimension).")
-        .def("coldim", static_cast<const Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::colspi),
+        .def("coldim", static_cast<Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::colspi),
              py::return_value_policy::copy,
              "Per-irrep column tile sizes as a Dimension.")
         .def("array_interface", &tiled_tensor_array_interface, py::return_value_policy::reference_internal,

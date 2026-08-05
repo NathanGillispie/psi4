@@ -46,14 +46,6 @@ namespace psi {
 
 #ifdef USING_Einsums
 
-/// Overload for Dimension callers
-ComplexMatrix::ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes)
-    : tensor_(name, row_sizes.blocks(), col_sizes.blocks()) {}
-
-const Dimension ComplexMatrix::rowspi() const { return Dimension(tensor_.tile_size(0)); }
-
-const Dimension ComplexMatrix::colspi() const { return Dimension(tensor_.tile_size(1)); }
-
 std::shared_ptr<ComplexMatrix> ComplexMatrix::clone() const { return std::make_shared<ComplexMatrix>(*this); }
 
 // self += alpha * other

@@ -37,6 +37,8 @@
 #include <vector>
 #include <array>
 
+#include "dimension.h"
+
 #ifdef USING_Einsums
 #include <Einsums/Config.hpp>
 #include <Einsums/Tensor.hpp>
@@ -46,7 +48,6 @@
 namespace psi {
 
 class PSIO;
-class Dimension;
 
 // Certain friend free methods (e.g. `linalg::doublet`) need to access the private
 // `tensor_` member to do lower-level Einsums operations. To be defined in a
@@ -104,7 +105,7 @@ class PSI_API ComplexMatrix {
     using TiledT = einsums::TiledTensor<std::complex<double>, 2>;
     using ValueT = std::complex<double>;
 
-    // -- ctors (forward to TiledTensor) --
+    // -- Default constructors (forward to TiledTensor) --
 
     ComplexMatrix() = default;
     ComplexMatrix(const ComplexMatrix&) = default;
@@ -112,10 +113,25 @@ class PSI_API ComplexMatrix {
     ComplexMatrix& operator=(const ComplexMatrix&) = default;
     ComplexMatrix& operator=(ComplexMatrix&& other) = default;
 
-    /// Arithmetic operator ``+=``. Einsums asserts the dimensions at runtime.
-    void operator+=(const ComplexMatrix& other) { tensor_ += other; }
-    /// Arithmetic operator ``-=``. Einsums asserts the dimensions at runtime.
-    void operator-=(const ComplexMatrix& other) { tensor_ -= other; }
+    /// Constructors for Dimension callers
+    ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes)
+        : tensor_(name, row_sizes.blocks(), col_sizes.blocks()) {}
+
+    ComplexMatrix(const std::string& name, const Dimension& row_sizes)
+        : ComplexMatrix(name, row_sizes, row_sizes) {}
+
+    ComplexMatrix(const Dimension& row_sizes, const Dimension& col_sizes)
+        : ComplexMatrix("", row_sizes, col_sizes) {}
+
+    ComplexMatrix(const Dimension& row_sizes)
+        : ComplexMatrix("", row_sizes) {}
+
+    /// Overload for single block of size
+    ComplexMatrix(const std::string& name, int rows, int cols)
+        : tensor_(name, std::vector<int>{rows}, std::vector<int>{cols}) {}
+
+    ComplexMatrix(int rows, int cols)
+        : ComplexMatrix("", rows, cols) {}
 
     PSI_DEPRECATED("Einsums types used for ComplexMatrix constructor.")
     ComplexMatrix(const std::string& name, const std::vector<size_t>& tile_sizes) : tensor_(name, tile_sizes) {}
@@ -135,22 +151,22 @@ class PSI_API ComplexMatrix {
         : tensor_(name, std::vector<size_t>(row_sizes.begin(), row_sizes.end()),
                   std::vector<size_t>(col_sizes.begin(), col_sizes.end())) {}
 
-    /// Overload for single block of size
-    ComplexMatrix(int rows, int cols) : tensor_("", std::vector<int>{rows}, std::vector<int>{cols}) {}
 
-    /// Overload for single block of size with name
-    ComplexMatrix(const std::string& name, int rows, int cols)
-        : tensor_(name, std::vector<int>{rows}, std::vector<int>{cols}) {}
+    // -- implicit conversion --
 
-    /// Overload for Dimension callers
-    ComplexMatrix(const std::string& name, const Dimension& row_sizes, const Dimension& col_sizes);
+    /// Implicit conversion **from** TiledTensor
+    ComplexMatrix(const TiledT& t) : tensor_(t) {}
 
-    // -- implicit conversion: all TiledTensor methods transparently available --
-
+    /// Implicit conversion **to** TiledTensor
     operator TiledT&() { return tensor_; }
     operator const TiledT&() const { return tensor_; }
 
     // -- ComplexMatrix-specific operations --
+
+    /// Arithmetic operator ``+=``. Einsums asserts the dimensions at runtime.
+    void operator+=(const ComplexMatrix& other) { tensor_ += other; }
+    /// Arithmetic operator ``-=``. Einsums asserts the dimensions at runtime.
+    void operator-=(const ComplexMatrix& other) { tensor_ -= other; }
 
     /// Deep copy.
     std::shared_ptr<ComplexMatrix> clone() const;
@@ -191,9 +207,15 @@ class PSI_API ComplexMatrix {
     /// Returns dimension of column tile for given irrep.
     int coldim(const int& h = 0) const { return tensor_.tile_size(1)[h]; }
 
-    const Dimension rowspi() const;
+    // Unlike Matrix, ComplexMatrix does not have an internal rowspi_ function to return.
+    // The lifetime of the reference in `Matrix::rowspi()` lasts as long as the
+    // Matrix instance. Here, we have to create a Dimension then return it.
+    // The Dimension lifetime is extended only by assigning it to a variable.
+    // const Dimension would force a copy (not move) so Dimension is preferred.
+
+    Dimension rowspi() const { return Dimension(tensor_.tile_size(0)); }
     int rowspi(const int& h) const { return rowdim(h); }
-    const Dimension colspi() const;
+    Dimension colspi() const { return Dimension(tensor_.tile_size(1)); }
     int colspi(const int& h) const { return coldim(h); }
 
     /// Returns the total number of rows
@@ -256,22 +278,15 @@ class PSI_API ComplexMatrix {
 
 namespace linalg {
 
+/**
+ *  If this were placed in the source, no explicit specializations would be compiled,
+ *  resulting in a linking error. Practically, this **is** a runtime error in Psi4.
+ */
+
 template <bool AdjoinA, bool AdjoinB>
 ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
-    std::vector<int> C_rowspi;
-    std::vector<int> C_colspi;
-
-    if constexpr (AdjoinA) {
-        C_rowspi = A.tensor_.tile_size(1);
-    } else {
-        C_rowspi = A.tensor_.tile_size(0);
-    }
-
-    if constexpr (AdjoinB) {
-        C_colspi = B.tensor_.tile_size(0);
-    } else {
-        C_colspi = B.tensor_.tile_size(1);
-    }
+    const Dimension C_rowspi = (AdjoinA) ? A.colspi() : A.rowspi();
+    const Dimension C_colspi = (AdjoinB) ? B.rowspi() : B.colspi();
 
     ComplexMatrix C{"T", C_rowspi, C_colspi};
 

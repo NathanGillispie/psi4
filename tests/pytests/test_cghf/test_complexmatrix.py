@@ -11,7 +11,7 @@ pytestmark = [pytest.mark.psi, pytest.mark.api, pytest.mark.quick, pytest.mark.c
 def test_complexmatrix_constructor_zeroed():
     """ComplexMatrix(name, block_sizes) builds a zeroed multi-block tensor."""
     mat = psi4.core.ComplexMatrix("zeros", [2, 3, 1])
-    assert mat.num_blocks() == 3
+    assert mat.nirrep() == 3
 
     views = mat.array_interface()
     assert len(views) == 3
@@ -27,7 +27,7 @@ def test_complexmatrix_constructor_zeroed():
 def test_complexmatrix_constructor_rectangular():
     """ComplexMatrix(name, row_sizes, col_sizes) builds rectangular diagonal tiles."""
     mat = psi4.core.ComplexMatrix("Cocc", [4, 2], [1, 3])
-    assert mat.num_blocks() == 2
+    assert mat.nirrep() == 2
     views = mat.array_interface()
     assert [v.shape for v in views] == [(4, 1), (2, 3)]
     views[0][:] = [[1 + 1j], [2], [3], [4]]
@@ -55,7 +55,7 @@ def test_complexmatrix_to_from_array_c1():
     ref += 1.0j * np.flip(ref)
 
     mat = psi4.core.ComplexMatrix.from_array(ref, name="Test")
-    assert mat.num_blocks() == 1
+    assert mat.nirrep() == 1
     out = mat.to_array()
     assert isinstance(out, np.ndarray)
     np.testing.assert_allclose(out, ref)

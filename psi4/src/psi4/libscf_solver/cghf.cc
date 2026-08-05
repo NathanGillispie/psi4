@@ -52,8 +52,8 @@ namespace {
 // blocks **per irrep** into each tile of the provided ComplexMatrix.
 void copy_matrix_to_complex(const psi::Matrix& A, psi::ComplexMatrix& B) {
     const int nirrep = A.nirrep();
-    std::vector<int> row_dim(nirrep);
-    std::vector<int> col_dim(nirrep);
+    psi::Dimension row_dim(nirrep);
+    psi::Dimension col_dim(nirrep);
 
     for (int h = 0; h < nirrep; h++) {
         row_dim[h] = A.rowspi(h) * 2;
@@ -398,8 +398,6 @@ void CGHF::form_C(double shift) {
     Forth->set_name("Orthogonalized Fock");
 
     // Form C' = eig(F')
-    SharedComplexMatrix temp = std::make_shared<ComplexMatrix>("temp", F_->block_sizes());
-    temp->zero();
     epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
 
     for (int h = 0; h < nirrep_; h++) {
@@ -422,7 +420,7 @@ void CGHF::form_C(double shift) {
     }
 
     // heev retuns the wrong side, so we need to take the conjugate transpose for the proper eigenvectors
-    temp = Forth->conjT();
+    auto temp = Forth->conjT();
 
     // Form C_ := X_ @ C' (temp)
     C_ = linalg::doublet<false, false>(X_, temp);
