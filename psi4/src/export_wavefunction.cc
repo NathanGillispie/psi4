@@ -90,17 +90,12 @@ namespace {
 
 #ifdef USING_Einsums
 
-// Diagonal-tile NumPy views for an einsums TiledTensor (ComplexMatrix). Requires the
-// same number of tiles on each axis (one tile index per irrep). Non-const tile(h, h)
-// lazily allocates missing diagonal tiles so Python can write into them.
+/// NumPy views for an ComplexMatrix (einsums TiledTensor).
 py::list tiled_tensor_array_interface(psi::ComplexMatrix& tt) {
     using ValueT = std::complex<double>;
-    if (tt.rowspi().n() != tt.colspi().n())
-        throw py::value_error("ComplexMatrix.array_interface requires equal block counts on both axes.");
     py::list ret;
-    const int ntiles = tt.rowspi().n();
-    for (int h = 0; h < ntiles; ++h) {
-        auto& tile = tt.get(h);
+    for (int h = 0; h < tt.nirrep(); ++h) {
+        auto& tile = tt.get(h); // allocates tiles if missing
         const auto r = static_cast<py::ssize_t>(tile.dim(0));
         const auto c = static_cast<py::ssize_t>(tile.dim(1));
         ValueT* ptr = (r != 0 && c != 0) ? tile.data() : nullptr;
