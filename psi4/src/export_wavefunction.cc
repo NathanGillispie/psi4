@@ -365,7 +365,8 @@ void export_wavefunction(py::module& m) {
                                                              "Complex blocked matrix (einsums TiledTensor).")
         .def(py::init([](const std::string& name, const std::vector<size_t>& block_sizes) {
                  // One size list --> same tiling on both axes (square diagonal tiles).
-                 auto mat = std::make_shared<ComplexMatrix>(name, block_sizes);
+                 Dimension dim({block_sizes.begin(), block_sizes.end()});
+                 auto mat = std::make_shared<ComplexMatrix>(name, dim);
                  for (int h = 0; h < static_cast<int>(block_sizes.size()); ++h) {
                      (void)mat->get(h);  // allocate + zero diagonal tiles
                  }
@@ -379,7 +380,9 @@ void export_wavefunction(py::module& m) {
                      throw py::value_error(
                          "ComplexMatrix: row_sizes and col_sizes must have the same number of irreps.");
                  }
-                 auto mat = std::make_shared<ComplexMatrix>(name, row_sizes, col_sizes);
+                 Dimension row_dim({row_sizes.begin(), row_sizes.end()});
+                 Dimension col_dim({col_sizes.begin(), col_sizes.end()});
+                 auto mat = std::make_shared<ComplexMatrix>(name, row_dim, col_dim);
                  for (int h = 0; h < static_cast<int>(row_sizes.size()); ++h) {
                      (void)mat->get(h);
                  }
