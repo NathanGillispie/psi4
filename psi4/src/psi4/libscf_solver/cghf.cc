@@ -35,8 +35,8 @@
 #include "psi4/libmints/molecule.h"
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/pointgrp.h"
-#include "psi4/libmints/matrix.h"
 #include "psi4/libmints/complexmatrix.h"
+#include "psi4/libmints/matrix.h"
 #include "psi4/libmints/vector.h"
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libpsi4util/process.h"
@@ -49,44 +49,11 @@
 #include <any>
 #endif
 
-// TODO: REMOVE THESE
-#include <Einsums/LinearAlgebra.hpp>
-#include <Einsums/TensorAlgebra.hpp>
-
 #include <cmath>
 #include <complex>
 #include <tuple>
 
-namespace {
-
-// Takes an nsopi_-shaped square SharedMatrix and copies to 2 (two) diagonal
-// blocks **per irrep** into each tile of the provided ComplexMatrix.
-void copy_matrix_to_complex(const psi::Matrix& A, psi::ComplexMatrix& B) {
-    const int nirrep = A.nirrep();
-    psi::Dimension row_dim(nirrep);
-    psi::Dimension col_dim(nirrep);
-
-    for (int h = 0; h < nirrep; h++) {
-        row_dim[h] = A.rowspi(h) * 2;
-        col_dim[h] = A.colspi(h) * 2;
-    }
-
-    B = psi::ComplexMatrix{B.name(), row_dim, col_dim};
-    B.zero();
-
-    for (int h = 0; h < nirrep; h++) {
-        const int r_ = A.rowspi(h);
-        const int c_ = A.colspi(h);
-        for (int i = 0; i < r_; i++) {
-            for (int j = 0; j < c_; j++) {
-				B.set(h, i, j, A(h, i, j));
-				B.set(h, i + r_, j + c_, A(h, i, j));
-            }
-        }
-    }
-}
-
-}
+#include <Einsums/TensorAlgebra.hpp> // TODO: REMOVE
 
 namespace psi {
 namespace scf {
@@ -118,6 +85,8 @@ void CGHF::common_init() {
         throw PSIEXCEPTION("CGHF currently supports only C1 symmetry. Set symmetry c1 in the molecule block.");
     }
 
+    if (options_.get_int("MOM_START") != 0) throw PSIEXCEPTION("MOM not available for CGHF.");
+
     // DFT stuff (would typically go in subclass_init)
     setup_potential();
 
@@ -145,10 +114,10 @@ void CGHF::common_init() {
     K_->zero();
 
     // We don't know the sizes of these until nmopi_ fills in form_Shalf();
-    S_ = std::make_shared<ComplexMatrix>(); S_->set_name("Overlap");
-    X_ = std::make_shared<ComplexMatrix>(); X_->set_name("Orthogonalization");
+    S_ = std::make_shared<ComplexMatrix>("Overlap");
+    X_ = std::make_shared<ComplexMatrix>("Orthogonalization");
     // C_ is resized in form_C once X_ is known
-    C_ = std::make_shared<ComplexMatrix>(); C_->set_name("MO coefficients");
+    C_ = std::make_shared<ComplexMatrix>("MO coefficients");
 
     // How much stuff shall we echo to the user?
     if (options_["PRINT"].has_changed()) print_ = options_.get_int("PRINT");
@@ -178,10 +147,7 @@ void CGHF::common_init() {
         outfile->Printf("  ==> Algorithm <==\n\n");
         outfile->Printf("  SCF Algorithm Type is %s.\n", options_.get_str("SCF_TYPE").c_str());
         outfile->Printf("  DIIS %s.\n", options_.get_bool("DIIS") ? "enabled" : "disabled");
-        if ((options_.get_int("MOM_START") != 0) && (options_["MOM_OCC"].size() != 0))  // TROUBLE, NOT SET YET?
-            outfile->Printf("  Excited-state MOM enabled.\n");
-        else
-            outfile->Printf("  MOM %s.\n", (options_.get_int("MOM_START") == 0) ? "disabled" : "enabled");
+        outfile->Printf("  MOM not available for Complex SCF.\n");
         outfile->Printf("  Fractional occupation %s.\n", (options_.get_int("FRAC_START") == 0) ? "disabled" : "enabled");
         outfile->Printf("  Guess Type is %s.\n", options_.get_str("GUESS").c_str());
         outfile->Printf("  Energy threshold   = %3.2e\n", options_.get_double("E_CONVERGENCE"));
@@ -285,8 +251,8 @@ void CGHF::form_H() {
     SharedMatrix T_real = mintshelper()->so_kinetic();
     SharedMatrix V_real = mintshelper()->so_potential();
 
-    copy_matrix_to_complex(*T_real, *T_);
-    copy_matrix_to_complex(*V_real, *V_);
+    T_ = ComplexMatrix::spin_blocked_from(*T_real);
+    V_ = ComplexMatrix::spin_blocked_from(*V_real);
 
     if (debug_ > 2) T_->print("outfile");
     if (debug_ > 2) V_->print("outfile");
@@ -341,9 +307,9 @@ void CGHF::form_Shalf() {
         }
     }
 
-    // Create the correct sized quantities now.
-    copy_matrix_to_complex(*S_temp, *S_);
-    copy_matrix_to_complex(*X_temp, *X_);
+    // Create the correctly sized complex quantities now.
+    S_ = ComplexMatrix::spin_blocked_from(*S_temp);
+    X_ = ComplexMatrix::spin_blocked_from(*X_temp);
 }
 
 void CGHF::guess() {
@@ -428,7 +394,7 @@ void CGHF::compute_SAD_guess() {
     guess->compute_guess();
 
     // Spin-restricted SAD: Da == Db → block-diagonal spinor density [[Da,0],[0,Da]]
-    copy_matrix_to_complex(*guess->Da(), *D_);
+    D_ = ComplexMatrix::spin_blocked_from(*guess->Da());
 
     // Embed Cholesky factors as temporary occupied spinors for form_G on SAD iter 0:
     // Ca in alpha spatial block (cols [0, nchol)), Cb in beta block (cols [nchol, 2*nchol)).

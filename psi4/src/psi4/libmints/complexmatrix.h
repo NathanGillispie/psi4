@@ -30,14 +30,11 @@
 #define _psi_src_lib_libmints_complexmatrix_h
 
 #include "psi4/pragma.h"
+#include "dimension.h"
 
 #include <complex>
 #include <memory>
-#include <string>
-#include <vector>
-#include <array>
-
-#include "dimension.h"
+#include <array> // TODO: Deprecate with block_sizes
 
 #ifdef USING_OpenOrbitalOptimizer
 #ifdef USING_LAPACK_MKL
@@ -71,6 +68,7 @@ class PSIO;
 // This eliminates the need for adding a public getter for private members.
 class ComplexMatrix;
 using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
+class Matrix;
 
 #ifdef USING_Einsums
 
@@ -109,11 +107,18 @@ SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatri
  *
  *  Adds operations needed by DIIS and the Python layer: clone, axpy, subtract,
  *  vector_dot, save, and load.
+ *
+ *  Einsums::TiledTensor handles its own memory and follows the rule of five.
+ *  Same thing with Dimension. This means that we don't need custom
+ *  copy constructors, operators, destructors, etc. The compiler defaults implicitly
  */
 class PSI_API ComplexMatrix {
    private:
     /// The backed einsums TiledTensor object.
     einsums::TiledTensor<std::complex<double>, 2> tensor_;
+
+    // Free to add Dimension rowspi_, colspi_ later as Dimension
+    // follows the rule of zero
 
    public:
     using BlockT = einsums::Tensor<std::complex<double>, 2>;
@@ -123,10 +128,30 @@ class PSI_API ComplexMatrix {
     // -- Default constructors (forward to TiledTensor) --
 
     ComplexMatrix() = default;
-    ComplexMatrix(const ComplexMatrix&) = default;
-    ComplexMatrix(ComplexMatrix&&) = default;
-    ComplexMatrix& operator=(const ComplexMatrix&) = default;
-    ComplexMatrix& operator=(ComplexMatrix&& other) = default;
+    ComplexMatrix(const std::string& name) : tensor_() { tensor_.set_name(name); }
+
+    // -- Static factory methods --
+
+    /**
+     * Takes an nsopi_-shaped Matrix and creates a new
+     * SharedComplexMatrix with 2 (two) diagonal blocks per irrep for each tile
+     * of the provided ComplexMatrix.
+     * 
+     * @param A Matrix
+     * @return SharedComplexMatrix
+     */
+    static SharedComplexMatrix spin_blocked_from(const Matrix& A);
+
+    /**
+     * Takes an nsopi_-shaped Matrix and copies to two diagonal blocks per
+     * irrep into each tile of the provided ComplexMatrix. Assumes you have
+     * the correct sizes for the input Matrix.
+     *
+     * @param A Matrix
+     * @param B SharedComplexMatrix
+     * @return void
+     */
+    static void copy_matrix_to_spin_blocked(const Matrix& A, SharedComplexMatrix& B);
 
     // -- Constructors for Dimension callers --
 
@@ -158,35 +183,44 @@ class PSI_API ComplexMatrix {
     operator TiledT&() { return tensor_; }
     operator const TiledT&() const { return tensor_; }
 
-    // -- ComplexMatrix-specific operations --
-
-    /// Arithmetic operator ``+=``. Einsums asserts the dimensions at runtime.
-    void operator+=(const ComplexMatrix& other) { tensor_ += other; }
-    /// Arithmetic operator ``-=``. Einsums asserts the dimensions at runtime.
-    void operator-=(const ComplexMatrix& other) { tensor_ -= other; }
+    // -- Copy to shared --
 
     /// Deep copy.
-    std::shared_ptr<ComplexMatrix> clone() const;
+    SharedComplexMatrix clone() const {
+        return std::make_shared<ComplexMatrix>(*this);
+    }
+
+    // -- Math --
 
     /// In-place self += alpha * other (diagonal tiles only).
     void axpy(std::complex<double> alpha, const ComplexMatrix& other);
 
     /// In-place add
     void add(const ComplexMatrix& other) { tensor_ += other; }
+    /// Arithmetic operator ``+=``. Einsums asserts the dimensions at runtime.
+    void operator+=(const ComplexMatrix& other) { tensor_ += other; }
 
     /// In-place subtract
     void subtract(const ComplexMatrix& other) { tensor_ -= other; }
+    /// Arithmetic operator ``-=``. Einsums asserts the dimensions at runtime.
+    void operator-=(const ComplexMatrix& other) { tensor_ -= other; }
 
     /// Re(Tr(self^H other)), summed over diagonal tiles.
     double vector_dot(const ComplexMatrix&) const;
 
+    /// Replicates np.einsum("ij,ji->", this, other).
     std::complex<double> product_trace(const ComplexMatrix&) const;
 
-    /// sqrt(mean(|z|^2)) over the declared diagonal-tile grid.
+    /// sqrt(mean(|z|^2)) over the diagonal tiles.
     double rms() const;
 
     /// max |z| over allocated diagonal tiles.
     double absmax() const;
+
+    /// Return a conjugate transposed SharedComplexMatrix of this.
+    SharedComplexMatrix conjT() const;
+
+    // -- IO operations --
 
     /// Save diagonal tiles as raw complex sub-blocks to a PSIO file.
     void save(std::shared_ptr<PSIO>& psio, size_t fileno);
@@ -204,6 +238,8 @@ class PSI_API ComplexMatrix {
     /// Print to an ostream (delegates to the underlying TiledTensor).
     void print(std::string outfile = "outfile", const char* extra = nullptr) const;
 
+    // -- Row/Column/irrep const getters --
+
     /// Number of possible row tiles (empty or filled)
     int nirrep() const { return tensor_.grid_size(0); }
 
@@ -215,7 +251,7 @@ class PSI_API ComplexMatrix {
     // Unlike Matrix, ComplexMatrix does not have an internal rowspi_ function to return.
     // The lifetime of the reference in `Matrix::rowspi()` lasts as long as the
     // Matrix instance. Here, we have to create a Dimension then return it.
-    // The Dimension lifetime is extended only by assigning it to a variable.
+    // The Dimension lifetime is extended *only* by assigning it to a variable.
     // const Dimension would force a copy (not move) so Dimension is preferred.
 
     Dimension rowspi() const { return Dimension(tensor_.tile_size(0)); }
@@ -232,6 +268,8 @@ class PSI_API ComplexMatrix {
         "Internal einsums type used for constructors. Should be "
         "replaced with rowspi/colspi ASAP.")
     const std::array<std::vector<int>, 2> block_sizes() const { return tensor_.tile_sizes(); }
+
+    // -- Elemental operations --
 
     /// Zero out all blocks. Deallocates tiles.
     void zero() { tensor_.zero(); }
@@ -278,14 +316,13 @@ class PSI_API ComplexMatrix {
     void from_armadillo_matrix(const arma::cx_mat& m, int h = 0);
 #endif
 
+    // -- friendly matmul free methods --
+
     template <bool, bool>
     friend ComplexMatrix linalg::doublet(const ComplexMatrix&, const ComplexMatrix&);
 
     template <bool, bool, bool>
     friend ComplexMatrix linalg::triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexMatrix&);
-
-    /// Return a conjugate transpose ComplexMatrix
-    SharedComplexMatrix conjT() const;
 };
 
 namespace linalg {

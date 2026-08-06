@@ -32,6 +32,7 @@
 #include "psi4/libpsio/psio.hpp"
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libmints/dimension.h"
+#include "psi4/libmints/matrix.h"
 
 // For outfile in ComplexMatrix::print()
 #include "psi4/psi4-dec.h"
@@ -50,7 +51,45 @@ namespace psi {
 
 #ifdef USING_Einsums
 
-std::shared_ptr<ComplexMatrix> ComplexMatrix::clone() const { return std::make_shared<ComplexMatrix>(*this); }
+SharedComplexMatrix ComplexMatrix::spin_blocked_from(const Matrix& A) {
+    const int nirrep = A.nirrep();
+    Dimension row_dim(nirrep);
+    Dimension col_dim(nirrep);
+
+    for (int h = 0; h < nirrep; h++) {
+        row_dim[h] = A.rowspi(h) * 2;
+        col_dim[h] = A.colspi(h) * 2;
+    }
+
+    auto B = std::make_shared<ComplexMatrix>(A.name(), row_dim, col_dim);
+    B->zero();
+
+    for (int h = 0; h < nirrep; h++) {
+        const int r_ = A.rowspi(h);
+        const int c_ = A.colspi(h);
+        for (int i = 0; i < r_; i++) {
+            for (int j = 0; j < c_; j++) {
+				B->set(h, i, j, A(h, i, j));
+				B->set(h, i + r_, j + c_, A(h, i, j));
+            }
+        }
+    }
+
+    return B;
+}
+
+void ComplexMatrix::copy_matrix_to_spin_blocked(const Matrix& A, SharedComplexMatrix& B) {
+    for (int h = 0; h < A.nirrep(); h++) {
+        const int r_ = A.rowspi(h);
+        const int c_ = A.colspi(h);
+        for (int i = 0; i < r_; i++) {
+            for (int j = 0; j < c_; j++) {
+				B->set(h, i, j, A(h, i, j));
+				B->set(h, i + r_, j + c_, A(h, i, j));
+            }
+        }
+    }
+}
 
 #ifdef USING_OpenOrbitalOptimizer
 arma::cx_mat ComplexMatrix::to_armadillo_matrix(int h) {
@@ -113,7 +152,6 @@ double ComplexMatrix::vector_dot(const ComplexMatrix& other) const {
     return total.real();
 }
 
-// np.einsum("ij,ji->", this, other)
 std::complex<double> ComplexMatrix::product_trace(const ComplexMatrix& other) const {
     std::complex<double> E;
 
