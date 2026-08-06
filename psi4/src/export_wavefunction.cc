@@ -608,6 +608,9 @@ void export_wavefunction(py::module& m) {
         .def("set_sad_fitting_basissets", &scf::CGHF::set_sad_fitting_basissets,
              "Sets the Superposition of Atomic Densities density-fitted basisset.")
         .def("guess", &scf::CGHF::guess, "Form SCF guess.")
+        .def("find_occupation", &scf::CGHF::find_occupation, "Determine orbital occupations from orbital energies.")
+        .def("reset_occupation", &scf::CGHF::reset_occupation,
+             "Reset occupations after SAD guess (no-op for CGHF).")
         .def("finalize", &scf::CGHF::finalize, "Clean up temporary data after SCF.")
         .def("jk", &scf::CGHF::jk, "Returns the internal JK object.")
         .def("set_jk", &scf::CGHF::set_jk, "Sets the internal JK object !expert.")

@@ -114,8 +114,8 @@ class CGHF : public ComplexWavefunction, public BaseHF {
 
     void common_init();
 
-    /// Sets nelecpi_
-    void find_occupation();
+    /// Fills real SADGuess into D_/C_
+    void compute_SAD_guess();
 
     // Dimension of irreps. Each irrep (h) size will be 2*nsopi_[h].
     Dimension irrep_sizes_;
@@ -157,6 +157,13 @@ class CGHF : public ComplexWavefunction, public BaseHF {
 
     /// Form the guess (guarantees C, D, and E)
     void guess();
+
+    /// Sets nelecpi_ from orbital energies (Aufbau)
+    void find_occupation();
+
+    /// SAD in Python-side requires this method to be defined
+    /// nelectron_ is not mutated by SAD (unlike HF nalpha_/nbeta_)
+    void reset_occupation() {}
 
     /// Compute 1e energy + nuc
     double compute_initial_E() override;
