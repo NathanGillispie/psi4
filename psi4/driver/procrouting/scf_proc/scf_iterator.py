@@ -728,7 +728,7 @@ def scf_finalize_energy(self):
     else:
         ovlp = self.mintshelper().so_overlap().to_array()
         nelec = self.nelec()
-        mo_coeff = self.get_C().to_array()
+        mo_coeff = self.C().to_array()
         nao = ovlp.shape[0]
         assert 2 * nao == mo_coeff.shape[0]
         mo_a = mo_coeff[:nao, :nelec]
