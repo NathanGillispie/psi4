@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import numpy as np
 from scipy.optimize import minimize
@@ -91,10 +93,64 @@ def _co_oscillating_cocc():
     return np.loadtxt(_CO_CCPVDZ_OSCILLATING_COCC.splitlines()).astype(np.complex128)
 
 
-def _cghf_energy_with_cocc(C_occ, **scf_options):
-    """Run CGHF via the driver factory with an explicit occupied spinor guess_C."""
-    from psi4.driver.procrouting.proc import scf_wavefunction_factory
+def _print_psi_outfile(label=""):
+    """Close/reopen and print the Psi4 outfile (for CI log visibility).
 
+    Call inside ``capsys.disabled()`` so the dump reaches GitHub Actions logs
+    even when the test passes (pytest FDCapture otherwise eats fd 1).
+    ``psi4.core.flush_outfile`` is a no-op; close the stream so buffers hit disk.
+    """
+    name = psi4.core.get_output_file()
+    chunks = [
+        f"===== Psi4 outfile dump{': ' + label if label else ''} =====\n",
+        f"(get_output_file()={name!r}, cwd={os.getcwd()!r})\n",
+    ]
+
+    if not name or name == "stdout":
+        chunks.append("(output was already stdout; nothing to dump from file)\n")
+    else:
+        path = name if os.path.isabs(name) else os.path.join(os.getcwd(), name)
+        try:
+            psi4.core.close_outfile()
+        except Exception:
+            pass
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError as exc:
+            chunks.append(f"(could not read {path!r}: {exc})\n")
+            text = None
+        else:
+            chunks.append(text if text.endswith("\n") else text + "\n")
+            iters = [
+                ln for ln in text.splitlines()
+                if ("@CGHF iter" in ln or "@RHF iter" in ln or "SCF Guess" in ln
+                    or "Could not converge" in ln or "Energy and density converged" in ln
+                    or "DIIS disabled" in ln)
+            ]
+            if iters:
+                chunks.append("--- SCF trail extract ---\n")
+                chunks.append("\n".join(iters) + "\n")
+            chunks.append(f"===== end Psi4 outfile dump ({len(text)} chars) =====\n")
+        # Re-open append so later assertions / cleanups are quiet rather than crashing.
+        try:
+            psi4.core.set_output_file(name, True)
+        except Exception:
+            pass
+
+    print("".join(chunks), end="", flush=True)
+
+
+def _cghf_energy_with_cocc(C_occ, *, capsys=None, **scf_options):
+    """Run CGHF via the driver factory with an explicit occupied spinor guess_C.
+
+    Always dumps the Psi4 outfile afterwards (via ``capsys.disabled`` when
+    provided) so CI — especially M-Intel — shows the SCF iteration history.
+    """
+    from psi4.driver.procrouting.proc import scf_wavefunction_factory
+    from contextlib import nullcontext
+
+    label = f"cghf cocc guess diis={scf_options.get('diis', True)} maxiter={scf_options.get('maxiter', '?')}"
     psi4.core.clean()
     psi4.core.clean_options()
     mol = _co_mol()
@@ -109,10 +165,17 @@ def _cghf_energy_with_cocc(C_occ, **scf_options):
     }
     opts.update(scf_options)
     psi4.set_options(opts)
+    # Fresh file for this calculation so the dump is not mixed with prior tests.
+    psi4.set_output_file("cghf_diis_co_pytest.dat", False)
     base_wfn = psi4.core.ComplexWavefunction.build(mol, opts["basis"])
     wfn = scf_wavefunction_factory("hf", base_wfn, "CGHF")
     wfn.guess_C(psi4.core.ComplexMatrix.from_array(np.asarray(C_occ, dtype=np.complex128), name="oscillating Cocc"))
-    return wfn.compute_energy()
+    try:
+        return wfn.compute_energy()
+    finally:
+        ctx = capsys.disabled() if capsys is not None else nullcontext()
+        with ctx:
+            _print_psi_outfile(label)
 
 
 def _hermitian_dot(A, B):
@@ -272,12 +335,12 @@ def test_ediis_extrapolation_with_complexmatrix_entries(storage_policy):
     np.testing.assert_allclose(F_out.to_array(), F_ref, atol=1e-8)
 
 
-def test_cghf_diis_converges_co():
+def test_cghf_diis_converges_co(capsys):
     """CO/cc-pVDZ started from the oscillating (no-DIIS) occupied MO guess should
     converge with DIIS to the closed-shell RHF energy (~-112.750151 Eh). Paired with
     test_cghf_co_does_not_converge_without_diis, which uses the same guess.
     """
-    e_cghf = _cghf_energy_with_cocc(_co_oscillating_cocc(), diis=True, maxiter=80)
+    e_cghf = _cghf_energy_with_cocc(_co_oscillating_cocc(), capsys=capsys, diis=True, maxiter=80)
 
     assert e_cghf == pytest.approx(-112.750151, abs=1e-5)
 
@@ -285,13 +348,18 @@ def test_cghf_diis_converges_co():
     psi4.core.clean_options()
     mol_rhf = _co_mol()
     psi4.set_options({"basis": "cc-pVDZ", "reference": "rhf", "scf_type": "direct"})
-    e_rhf = psi4.energy("scf", molecule=mol_rhf)
+    psi4.set_output_file("cghf_diis_co_rhf_pytest.dat", False)
+    try:
+        e_rhf = psi4.energy("scf", molecule=mol_rhf)
+    finally:
+        with capsys.disabled():
+            _print_psi_outfile("RHF reference for DIIS CO compare")
 
     assert e_cghf == pytest.approx(e_rhf, abs=1e-6)
 
 
 @pytest.mark.parametrize("accelerator", ["adiis", "ediis"])
-def test_cghf_aediis_converges_co(accelerator):
+def test_cghf_aediis_converges_co(accelerator, capsys):
     """CO/cc-pVDZ with core guess also converges when ADIIS or EDIIS is the initial
     accelerator (blended with DIIS), matching the RHF energy."""
     mol = _co_mol()
@@ -304,7 +372,12 @@ def test_cghf_aediis_converges_co(accelerator):
         "scf_initial_accelerator": accelerator,
         "orbital_optimizer_package": "internal",
     })
-    e_cghf = psi4.energy("scf", molecule=mol)
+    psi4.set_output_file(f"cghf_{accelerator}_co_pytest.dat", False)
+    try:
+        e_cghf = psi4.energy("scf", molecule=mol)
+    finally:
+        with capsys.disabled():
+            _print_psi_outfile(f"CGHF {accelerator} CO core-guess")
 
     assert e_cghf == pytest.approx(-112.750151, abs=1e-5)
 
@@ -312,15 +385,20 @@ def test_cghf_aediis_converges_co(accelerator):
     psi4.core.clean_options()
     mol_rhf = _co_mol()
     psi4.set_options({"basis": "cc-pVDZ", "reference": "rhf", "scf_type": "direct"})
-    e_rhf = psi4.energy("scf", molecule=mol_rhf)
+    psi4.set_output_file(f"cghf_{accelerator}_co_rhf_pytest.dat", False)
+    try:
+        e_rhf = psi4.energy("scf", molecule=mol_rhf)
+    finally:
+        with capsys.disabled():
+            _print_psi_outfile(f"RHF reference for {accelerator} CO compare")
 
     assert e_cghf == pytest.approx(e_rhf, abs=1e-6)
 
 
-def test_cghf_co_does_not_converge_without_diis():
+def test_cghf_co_does_not_converge_without_diis(capsys):
     """Sanity check for the DIIS test above: the same oscillating occupied MO guess that
     DIIS rescues must fail to converge with DIIS disabled (locked two-point oscillation).
     Using a fixed mid-oscillation guess avoids flaky core-guess behavior across platforms.
     """
     with pytest.raises(SCFConvergenceError):
-        _cghf_energy_with_cocc(_co_oscillating_cocc(), diis=False, maxiter=20)
+        _cghf_energy_with_cocc(_co_oscillating_cocc(), capsys=capsys, diis=False, maxiter=20)
