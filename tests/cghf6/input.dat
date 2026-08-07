@@ -11,7 +11,8 @@ symmetry C1
 
 set {
     reference cghf
-    scf_type   pk
+    scf_type   direct
+    df_scf_guess false
     basis def2-SVPD
     guess sad
     diis_start 1

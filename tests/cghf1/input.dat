@@ -13,7 +13,8 @@ molecule h2o {
 
 set = {
     reference cghf
-    scf_type   pk
+    scf_type   direct
+    df_scf_guess false
     basis      cc-pVDZ
     guess core
     e_convergence 1e-9
