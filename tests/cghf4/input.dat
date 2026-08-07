@@ -11,8 +11,7 @@ Symmetry C1
 
 set {
     reference cghf
-    scf_type direct
-    df_scf_guess false
+    scf_type pk
     diis false
     basis 6-31g
     e_convergence 1e-9

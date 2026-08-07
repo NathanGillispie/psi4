@@ -7,8 +7,7 @@ molecule symmetric {
 
 set {
     reference cghf
-    scf_type direct
-    df_scf_guess false
+    scf_type   pk
     basis sto-3g
 }
 
