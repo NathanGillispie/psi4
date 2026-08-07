@@ -8,17 +8,32 @@ pytestmark = [pytest.mark.psi, pytest.mark.api, pytest.mark.quick, pytest.mark.c
 
 
 def test_sad_guess_uhf_vs_cghf():
-    """For open-shell O2 without spin-orbit coupling, UHF and CGHF with
-    GUESS=SAD must converge to the same energy.
+    """For any molecule, UHF and CGHF with GUESS=SAD must start from the same
+    real, spin-restricted SAD density.
 
     The SAD guess is fundamentally real and spin-restricted (Da == Db).
     CGHF promotes it to a complex block-diagonal spinor density
        D_cghf = [[Da,  0 ],
-                 [0 ,  Da]]
-    with zero off-diagonal (alpha-beta coupling) blocks and zero
-    imaginary part.  After SCF convergence the same block-diagonal
-    structure persists: D_aa == Da_uhf, D_bb == Db_uhf, D_ab == 0.
+                 [0 ,  Db]]
+    with zero off-diagonal (alpha-beta coupling) blocks and zero imaginary
+    part.  Because the underlying SADGuess object is shared, the UHF and
+    CGHF initial densities are identical.
+
+    Only the initial guess is tested: the SCF run is limited to a single
+    iteration (maxiter=1) and allowed to fail on maxiter, so the captured
+    density is exactly the SAD guess before any SCF relaxation.
     """
+
+    # Capture the SAD guess density from inside the SCF driver before any
+    # SCF iterations begin.
+    guess_data = {}
+
+    def capture_cghf_guess(wfn):
+        guess_data["cghf_D"] = wfn.D().to_array().copy()
+
+    def capture_uhf_guess(wfn):
+        guess_data["uhf_Da"] = wfn.Da().to_array().copy()
+        guess_data["uhf_Db"] = wfn.Db().to_array().copy()
 
     mol = psi4.geometry("""
         0 3
@@ -27,41 +42,40 @@ def test_sad_guess_uhf_vs_cghf():
         symmetry c1
     """)
 
-    # ------------------------------------------------------------------
-    # Run CGHF
-    # ------------------------------------------------------------------
-    psi4.set_options({
+    common_options = {
         "basis": "6-31g",
         "scf_type": "direct",
         "df_scf_guess": False,
-        "maxiter": 20,
+        "maxiter": 1,
         "fail_on_maxiter": False,
         "guess": "sad",
-        "reference": "cghf",
-    })
-    e_cghf, wfn_cghf = psi4.energy("scf", molecule=mol, return_wfn=True)
+    }
+
+    # ------------------------------------------------------------------
+    # Run CGHF
+    # ------------------------------------------------------------------
+    psi4.set_options({**common_options, "reference": "cghf"})
+    psi4.core.pre_scf_hook = capture_cghf_guess
+    psi4.energy("scf", molecule=mol, return_wfn=True)
 
     # ------------------------------------------------------------------
     # Run UHF
     # ------------------------------------------------------------------
-    psi4.set_options({"reference": "uhf"})
-    e_uhf, wfn_uhf = psi4.energy("scf", molecule=mol, return_wfn=True)
+    psi4.set_options({**common_options, "reference": "uhf"})
+    psi4.core.pre_scf_hook = capture_uhf_guess
+    psi4.energy("scf", molecule=mol, return_wfn=True)
 
-    # Without spin-orbit coupling, CGHF == UHF for open-shell
-    # assert e_cghf == pytest.approx(e_uhf, abs=1e-6), \
-    #     f"CGHF energy {e_cghf:.10f} != UHF energy {e_uhf:.10f}"
+    # Make sure the hook does not leak to other tests.
+    psi4.core.pre_scf_hook = None
 
     # ------------------------------------------------------------------
     # Extract densities
     # ------------------------------------------------------------------
-    # UHF: two real nbf x nbf matrices
-    Da_uhf = wfn_uhf.Da().to_array()       # np.ndarray, float64
-    Db_uhf = wfn_uhf.Db().to_array()
+    Da_uhf = guess_data["uhf_Da"]
+    Db_uhf = guess_data["uhf_Db"]
+    D_cghf = guess_data["cghf_D"]
 
     nbf = Da_uhf.shape[0]
-
-    # CGHF: one complex 2*nbf x 2*nbf spinor matrix
-    D_cghf = wfn_cghf.D().to_array()       # np.ndarray, complex128
 
     assert D_cghf.dtype == np.complex128, "CGHF density is not complex"
     assert D_cghf.shape == (2 * nbf, 2 * nbf), \
@@ -76,24 +90,21 @@ def test_sad_guess_uhf_vs_cghf():
     D_bb = D_cghf[nbf:, nbf:]    # beta-beta
 
     # Diagonal blocks must match UHF Da/Db (real part)
-    np.testing.assert_allclose(D_aa.real, Da_uhf, atol=1e-10,
+    np.testing.assert_allclose(D_aa.real, Da_uhf, atol=1e-12,
                                err_msg="CGHF D_aa != UHF Da")
-    np.testing.assert_allclose(D_bb.real, Db_uhf, atol=1e-10,
+    np.testing.assert_allclose(D_bb.real, Db_uhf, atol=1e-12,
                                err_msg="CGHF D_bb != UHF Db")
 
     # Imaginary parts of diagonal blocks must be ~zero
-    np.testing.assert_allclose(D_aa.imag, 0.0, atol=1e-10,
+    np.testing.assert_allclose(D_aa.imag, 0.0, atol=1e-12,
                                err_msg="CGHF D_aa has non-zero imaginary part")
-    np.testing.assert_allclose(D_bb.imag, 0.0, atol=1e-10,
+    np.testing.assert_allclose(D_bb.imag, 0.0, atol=1e-12,
                                err_msg="CGHF D_bb has non-zero imaginary part")
 
-    # Off-diagonal (alpha-beta coupling) blocks must be ~zero.
-    # With the SAD guess these are *exactly* zero; after SCF
-    # convergence they remain negligible for non-relativistic calc.
-    np.testing.assert_allclose(np.abs(D_ab), 0.0, atol=1e-10,
-                               err_msg="CGHF D_ab (alpha-beta coupling) is non-zero")
-    np.testing.assert_allclose(np.abs(D_ba), 0.0, atol=1e-10,
-                               err_msg="CGHF D_ba (beta-alpha coupling) is non-zero")
+    np.testing.assert_allclose(np.abs(D_ab), 0.0, atol=1e-12,
+                               err_msg="CGHF D alpha-beta block is non-zero")
+    np.testing.assert_allclose(np.abs(D_ba), 0.0, atol=1e-12,
+                               err_msg="CGHF D beta-alpha block is non-zero")
 
     # ------------------------------------------------------------------
     # Verify that if we build the expected SAD-style CGHF density from

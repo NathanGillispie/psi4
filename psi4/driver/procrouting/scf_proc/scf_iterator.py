@@ -225,6 +225,14 @@ def scf_initialize(self):
         self.guess()
         core.timer_off("HF: Guess")
 
+        # User hook to modify the wavefunction after the guess but before SCF.
+        # The hook receives the wavefunction (self) and can modify C/Ca/Cb;
+        # the density is then rebuilt from the modified orbitals so the first
+        # Fock build sees the change.
+        if hasattr(core, 'pre_scf_hook') and callable(core.pre_scf_hook):
+            core.pre_scf_hook(self)
+            self.form_D()
+
         optstash.restore()
 
         # Print out initial docc/socc/etc data
