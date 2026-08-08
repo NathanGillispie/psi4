@@ -26,15 +26,13 @@ def reset_psi4_state():
     psi4.core.clean_options()
 
 
-def _co_mol():
-    return psi4.geometry(
-        """
-        0 1
-        C
-        O 1 1.110
-        symmetry c1
-        """
-    )
+def _co_mol_str():
+    return """
+    0 1
+    C
+    O 1 1.110
+    symmetry c1
+    """
 
 
 def _print_psi_outfile(label=""):
@@ -242,12 +240,71 @@ def test_ediis_extrapolation_with_complexmatrix_entries(storage_policy):
     np.testing.assert_allclose(F_out.to_array(), F_ref, atol=1e-8)
 
 
+def test_rhf_co_does_not_converge_without_diis(capsys):
+    """Sanity check for the DIIS test: CO's core-guess oscillation is real, so
+    the previous test is actually exercising DIIS."""
+    mol = psi4.geometry(_co_mol_str())
+    psi4.set_options({
+        "basis": "cc-pVDZ",
+        "reference": "rhf",
+        "guess": "core",
+        "scf_type": "direct",
+        "df_scf_guess": False,
+        "diis": False,
+        "scf_initial_accelerator": "NONE",
+        "maxiter": 20,
+    })
+    psi4.set_output_file("rhf_co_does_not_converge_wo_diis.dat", False)
+    try:
+        assert not psi4.core.get_option("SCF", "DIIS"), \
+            "DIIS enabled despite setting DIIS to False"
+        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
+            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
+        psi4.energy("scf", molecule=mol)
+    except SCFConvergenceError:
+        pass
+    else:
+        assert False, "RHF CO converged without DIIS. Sanity check failed"
+    finally:
+        with capsys.disabled():
+            _print_psi_outfile("RHF CO does not converge without DIIS")
+
+
+def test_uhf_co_does_not_converge_without_diis(capsys):
+    """Sanity check for the DIIS test: CO's core-guess oscillation is real, so
+    the previous test is actually exercising DIIS."""
+    mol = psi4.geometry(_co_mol_str())
+    psi4.set_options({
+        "basis": "cc-pVDZ",
+        "reference": "uhf",
+        "guess": "core",
+        "scf_type": "direct",
+        "df_scf_guess": False,
+        "diis": False,
+        "scf_initial_accelerator": "NONE",
+        "maxiter": 20,
+    })
+    psi4.set_output_file("uhf_co_does_not_converge_wo_diis.dat", False)
+    try:
+        assert not psi4.core.get_option("SCF", "DIIS"), \
+            "DIIS enabled despite setting DIIS to False"
+        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
+            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
+        psi4.energy("scf", molecule=mol)
+    except SCFConvergenceError:
+        pass
+    else:
+        assert False, "UHF CO converged without DIIS. Sanity check failed"
+    finally:
+        with capsys.disabled():
+            _print_psi_outfile("UHF CO does not converge without DIIS")
+
 def test_cghf_co_does_not_converge_without_diis(capsys):
     """Sanity check for the DIIS test above: CO's core-guess oscillation is real (not an
     artifact of some other change), so the previous test is actually exercising DIIS."""
     psi4.core.clean()
     psi4.core.clean_options()
-    mol = _co_mol()
+    mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
         "reference": "cghf",
@@ -261,12 +318,13 @@ def test_cghf_co_does_not_converge_without_diis(capsys):
     })
     psi4.set_output_file("cghf_co_does_not_converge_wo_diis.dat", False)
     try:
-        try:
-            assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
-            assert not psi4.core.get_option("SCF", "DIIS")
-            psi4.energy("scf", molecule=mol)
-        except SCFConvergenceError:
-            pass
+        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
+        assert not psi4.core.get_option("SCF", "DIIS")
+        psi4.energy("scf", molecule=mol)
+    except SCFConvergenceError:
+        pass
+    else:
+        assert False, "UHF CO converged without DIIS. Sanity check failed"
     finally:
         with capsys.disabled():
             _print_psi_outfile("CGHF CO does not converge without DIIS")
@@ -279,7 +337,7 @@ def test_cghf_diis_converges_co(capsys):
     it should converge cleanly to the closed-shell RHF energy (no spin-orbit coupling),
     matching the ~-112.750151 Eh reference quoted from other software.
     """
-    mol = _co_mol()
+    mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
         "reference": "cghf",
@@ -303,7 +361,7 @@ def test_cghf_diis_converges_co(capsys):
 def test_cghf_aediis_converges_co(accelerator, capsys):
     """CO/cc-pVDZ with core guess also converges when ADIIS or EDIIS is the initial
     accelerator (blended with DIIS), matching the RHF energy."""
-    mol = _co_mol()
+    mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
         "reference": "cghf",
