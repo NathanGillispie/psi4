@@ -291,6 +291,10 @@ def test_uhf_co_does_not_converge_without_diis(capsys):
         assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
             "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
         psi4.energy("scf", molecule=mol)
+        assert not psi4.core.get_option("SCF", "DIIS"), \
+            "DIIS enabled despite setting DIIS to False"
+        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
+            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
     except SCFConvergenceError:
         pass
     else:
@@ -321,10 +325,12 @@ def test_cghf_co_does_not_converge_without_diis(capsys):
         assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
         assert not psi4.core.get_option("SCF", "DIIS")
         psi4.energy("scf", molecule=mol)
+        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
+        assert not psi4.core.get_option("SCF", "DIIS")
     except SCFConvergenceError:
         pass
     else:
-        assert False, "UHF CO converged without DIIS. Sanity check failed"
+        assert False, "CGHF CO converged without DIIS. Sanity check failed"
     finally:
         with capsys.disabled():
             _print_psi_outfile("CGHF CO does not converge without DIIS")
@@ -358,7 +364,7 @@ def test_cghf_diis_converges_co(capsys):
 
 
 @pytest.mark.parametrize("accelerator", ["adiis", "ediis"])
-def test_cghf_aediis_converges_co(accelerator, capsys):
+def test_cghf_aediis_converges_co(accelerator):
     """CO/cc-pVDZ with core guess also converges when ADIIS or EDIIS is the initial
     accelerator (blended with DIIS), matching the RHF energy."""
     mol = psi4.geometry(_co_mol_str())
@@ -371,11 +377,6 @@ def test_cghf_aediis_converges_co(accelerator, capsys):
         "scf_initial_accelerator": accelerator,
         "orbital_optimizer_package": "internal",
     })
-    psi4.set_output_file(f"cghf_{accelerator}_co_pytest.dat", False)
-    try:
-        e_cghf = psi4.energy("scf", molecule=mol)
-    finally:
-        with capsys.disabled():
-            _print_psi_outfile(f"CGHF {accelerator} CO core-guess")
+    e_cghf = psi4.energy("scf", molecule=mol)
 
     assert e_cghf == pytest.approx(-112.750151, abs=1e-5)

@@ -11,18 +11,27 @@ from ..response.scf_products import TDUSCFEngine
 
 
 def diis_engine_helper(self):
+    core.print_out("==== START diis_engine_helper ====\n")
     engines = set()
     if core.get_option('SCF', 'DIIS'):
         engines.add('diis')
+        core.print_out(">>> SCF DIIS true. added diis to engine\n")
     # CGHF/ComplexWavefunction has no same_a_b_orbs/dens (single generalized spinor set).
     if isinstance(self, core.ComplexWavefunction):
         restricted_open = False
+        core.print_out(">>> CGHF instance\n")
     else:
         restricted_open = self.same_a_b_orbs() and not self.same_a_b_dens()
+        core.print_out(">>> HF instance\n")
+    core.print_out(f">>> restricted_open = {restricted_open}\n")
     if not restricted_open:
         aediis = core.get_option('SCF', 'SCF_INITIAL_ACCELERATOR')
+        core.print_out(f">>> SCF_INITIAL_ACCELERATOR = {aediis}\n")
         if aediis != "NONE":
             engines.add(aediis.lower())
+            core.print_out(f">>> added aediis to engine\n")
+    core.print_out(f">>> engines = {engines}\n")
+    core.print_out("====  END diis_engine_helper  ====\n\n")
     return engines
 
 def _RHF_orbital_gradient(self, save_fock: bool, max_diis_vectors: int) -> float:

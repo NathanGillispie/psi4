@@ -272,7 +272,6 @@ def scf_iterate(self, e_conv=None, d_conv=None):
 
     # self.member_data_ signals are non-local, used internally by c-side fns
     self.diis_enabled_ = _validate_diis(self)
-    core.print_out(f">>> self.diis_enabled_ = {self.diis_enabled_}\n")
     self.MOM_excited_ = _validate_MOM()
     self.diis_start_ = core.get_option('SCF', 'DIIS_START')
     damping_enabled = _validate_damping()
