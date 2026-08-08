@@ -21,6 +21,28 @@ jobs:
       matrix:
         cfg:
 
+          - label: "Conda GNU (L)"
+            runs-on: ubuntu-latest
+            python-version: "3.14"
+            mkl-version: ""
+            cmargs: >
+              -D CMAKE_VERBOSE_MAKEFILE=OFF
+              -D ENABLE_v2rdm_casscf=ON
+              -D CMAKE_DISABLE_FIND_PACKAGE_v2rdm_casscf=ON
+
+          - label: "Conda GNU (L)"
+            runs-on: ubuntu-latest
+            python-version: "3.13"
+            mkl-version: ""
+            cmargs: >
+              -D CMAKE_VERBOSE_MAKEFILE=OFF
+              -D ENABLE_v2rdm_casscf=ON
+              -D CMAKE_DISABLE_FIND_PACKAGE_v2rdm_casscf=ON
+            # Notes:
+            # * for all three lanes, can consider:
+            #    -D BUILD_SHARED_LIBS=ON
+            #    -D ENABLE_XHOST=OFF
+
           - label: "Conda Clang (M-Intel)"
             runs-on: macos-15-intel
             python-version: "3.14"
@@ -44,6 +66,30 @@ jobs:
             # * numpy/_core in py310 vs numpy/core in py39 (or maybe a np v1/v2 thing)
             # * -Wno-deprecated-declarations suppresses sprintf -> snprintf warnings
             # * -Wl,-w suppresses 9k warnings of mismatched visibility btwn L2 & psi4
+
+          - label: "Conda Clang (M-Silicon)"
+            runs-on: macos-latest
+            python-version: "3.14"
+            mkl-version: ""
+            target-sdk: "10.10"
+            cmargs: >
+              -D CMAKE_VERBOSE_MAKEFILE=OFF
+              -D ENABLE_v2rdm_casscf=ON
+              -D CMAKE_DISABLE_FIND_PACKAGE_v2rdm_casscf=ON
+              -D CMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
+              -D CMAKE_SHARED_LINKER_FLAGS="-Wl,-w"
+
+          - label: "Conda Clang (M-Silicon)"
+            runs-on: macos-latest
+            python-version: "3.10"
+            mkl-version: ""
+            target-sdk: "10.10"
+            cmargs: >
+              -D CMAKE_VERBOSE_MAKEFILE=OFF
+              -D ENABLE_v2rdm_casscf=ON
+              -D CMAKE_DISABLE_FIND_PACKAGE_v2rdm_casscf=ON
+              -D CMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
+              -D CMAKE_SHARED_LINKER_FLAGS="-Wl,-w"
 
     name: "Eco • 🐍 ${{ matrix.cfg.python-version }} • ${{ matrix.cfg.label }}"
     runs-on: ${{ matrix.cfg.runs-on }}
@@ -193,7 +239,7 @@ jobs:
         path: |
           objdir
           install
-        key: build-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.cfg.python-version }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'codedeps.yaml', 'external/**', 'psi4/CMakeLists.txt', 'psi4/src/**', 'psi4/include/**', 'psi4/share/**', '.github/workflows/ecosystem.yml') }}
+        key: build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cfg.label }}-py${{ matrix.cfg.python-version }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'codedeps.yaml', 'external/**', 'psi4/CMakeLists.txt', 'psi4/src/**', 'psi4/include/**', 'psi4/share/**', '.github/workflows/ecosystem.yml') }}
 
     - name: Configure Psi4, ${{ matrix.cfg.label }}
       run: |
