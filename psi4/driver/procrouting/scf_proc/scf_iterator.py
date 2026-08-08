@@ -271,7 +271,8 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     reference = core.get_option('SCF', "REFERENCE")
 
     # self.member_data_ signals are non-local, used internally by c-side fns
-    self.diis_enabled_ = self.validate_diis()
+    self.diis_enabled_ = _validate_diis(self)
+    core.print_out(f">>> self.diis_enabled_ = {self.diis_enabled_}\n")
     self.MOM_excited_ = _validate_MOM()
     self.diis_start_ = core.get_option('SCF', 'DIIS_START')
     damping_enabled = _validate_damping()
@@ -1151,8 +1152,10 @@ def _validate_soscf():
 
     return enabled
 
-core.HF.validate_diis = _validate_diis
-core.CGHF.validate_diis = _validate_diis
+# The M-Intel GH runner showed that you can't always count on monkeypatched
+# (multiple) inheritance to work. In the future, call _validate_diis directly,
+# however this will remain since it may be used externally.
+core.BaseHF.validate_diis = _validate_diis
 
 def efp_field_fn(xyz):
     """Callback function for PylibEFP to compute electric field from electrons

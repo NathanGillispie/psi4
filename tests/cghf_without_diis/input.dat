@@ -1,0 +1,25 @@
+#! CGHF test for running CO without DIIS
+
+reference_e = -112.750151
+
+molecule bh {
+0 1
+  C
+  O 1 1.11
+symmetry C1
+}
+
+set = {
+    basis      cc-pVDZ
+    reference cghf
+    guess core
+    scf_type   direct
+    df_scf_guess False
+    diis False
+    scf_initial_accelerator none
+    maxiter 20
+    fail_on_maxiter False
+}
+test_e = energy('scf')
+
+compare_values(0, 0, 5, "dummy test")

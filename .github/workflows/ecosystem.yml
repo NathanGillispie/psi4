@@ -160,8 +160,6 @@ jobs:
         printf "\n<<<  env_p4build.yaml  >>>\n"
         cat env_p4build.yaml
         echo "::endgroup::"
-        sed -E -i.bak "s;- openorbitaloptimizer;#- openorbitaloptimizer;g" env_p4build.yaml
-        sed -E -i.bak "s;- armadillo;#- armadillo;g" env_p4build.yaml
         #
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           :
