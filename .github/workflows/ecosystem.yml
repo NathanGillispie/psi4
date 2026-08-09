@@ -337,7 +337,7 @@ jobs:
       run: |
         export PATH=../install/bin:$PATH
         #export KMP_DUPLICATE_LIB_OK=TRUE
-        psi4 ../tests/tu1-h2o-energy/input.dat -o stdout
+        psi4 ../tests/cghf_without_diis/input.dat -o stdout
 
     - name: Psi4 Path Setup Diagnostics
       if: false

@@ -251,6 +251,7 @@ def test_rhf_co_does_not_converge_without_diis(capsys):
         "scf_type": "direct",
         "df_scf_guess": False,
         "diis": False,
+        "orbital_optimizer_package": "internal",
         "scf_initial_accelerator": "NONE",
         "maxiter": 20,
     })
@@ -281,6 +282,7 @@ def test_uhf_co_does_not_converge_without_diis(capsys):
         "scf_type": "direct",
         "df_scf_guess": False,
         "diis": False,
+        "orbital_optimizer_package": "internal",
         "scf_initial_accelerator": "NONE",
         "maxiter": 20,
     })
@@ -350,8 +352,9 @@ def test_cghf_diis_converges_co(capsys):
         "guess": "core",
         "scf_type": "direct",
         "df_scf_guess": False,
-        "scf_initial_accelerator": "none",
+        "diis": True,
         "orbital_optimizer_package": "internal",
+        "scf_initial_accelerator": "none",
     })
     psi4.set_output_file("cghf_diis_converges_co.dat", False)
     try:
