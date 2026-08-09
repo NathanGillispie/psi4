@@ -182,6 +182,12 @@ class PSI_API ComplexMatrix {
 
     std::complex<double> product_trace(const ComplexMatrix&) const;
 
+    /// sqrt(mean(|z|^2)) over the declared diagonal-tile grid.
+    double rms() const;
+
+    /// max |z| over allocated diagonal tiles.
+    double absmax() const;
+
     /// Save diagonal tiles as raw complex sub-blocks to a PSIO file.
     void save(std::shared_ptr<PSIO>& psio, size_t fileno);
 

@@ -418,7 +418,9 @@ void export_wavefunction(py::module& m) {
              "(name, block_sizes) constructor).")
         .def("product_trace", &ComplexMatrix::product_trace, "other"_a,
              "Replicates einsum('ij,ji->', self, other)")
-        .def("conjT", &ComplexMatrix::conjT, "Returns the conjugate transpose of this ComplexMatrix.");
+        .def("conjT", &ComplexMatrix::conjT, "Returns the conjugate transpose of this ComplexMatrix.")
+        .def("rms", &ComplexMatrix::rms, "Returns sqrt(mean(|z|^2)) over the declared tile grid.")
+        .def("absmax", &ComplexMatrix::absmax, "Returns the maximum |z| over allocated diagonal tiles.");
 
     py::class_<ComplexWavefunction, std::shared_ptr<ComplexWavefunction>, BaseWavefunction>(m,
             "ComplexWavefunction", "ComplexWavefunction class docstring")
@@ -626,7 +628,9 @@ void export_wavefunction(py::module& m) {
         .def("spin_square", &scf::CGHF::spin_square,
              "Returns (S^2, multiplicity) for the complex GHF wavefunction.")
         .def("check_phases", &scf::CGHF::check_phases,
-             "Fix MO column phases in place so the first significant AO coefficient is real and positive.");
+             "Fix MO column phases in place so the first significant AO coefficient is real and positive.")
+        .def("form_FDSmSDF", &scf::CGHF::form_FDSmSDF,
+             "Forms the SCF residual FDS-SDF in the X-orthogonal basis.", "Fso"_a, "Dso"_a);
 
 #else
     py::class_<scf::CGHF, std::shared_ptr<scf::CGHF>, ComplexWavefunction, scf::BaseHF>(m, "CGHF", py::multiple_inheritance(),

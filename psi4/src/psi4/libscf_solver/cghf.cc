@@ -923,5 +923,18 @@ void CGHF::check_phases() {
     }
 }
 
+SharedComplexMatrix CGHF::form_FDSmSDF(SharedComplexMatrix Fso, SharedComplexMatrix Dso) {
+    // FDS - SDF in the (spin-blocked) SO basis, then project with X like HF::form_FDSmSDF /
+    // the OOO DIIS error (X^H e X). For Hermitian F, D, S this matches (FDS) - (FDS)^H.
+    auto FDSmSDF = linalg::triplet<false, false, false>(Fso, Dso, S_);
+    auto SDF = linalg::triplet<false, false, false>(S_, Dso, Fso);
+    FDSmSDF->subtract(*SDF);
+    FDSmSDF->set_name("FDS-SDF");
+
+    auto orthog = linalg::triplet<true, false, false>(X_, FDSmSDF, X_);
+    orthog->set_name("Orthogonal FDS-SDF");
+    return orthog;
+}
+
 }  // namespace scf
 }  // namespace psi

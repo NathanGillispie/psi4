@@ -37,6 +37,10 @@
 #include "psi4/psi4-dec.h"
 #include "psi4/libpsi4util/PsiOutStream.h"
 
+#include <algorithm>
+#include <cmath>
+#include <complex>
+
 #ifdef USING_Einsums
 #include <Einsums/TensorAlgebra.hpp>
 #include <Einsums/LinearAlgebra.hpp>
@@ -118,6 +122,41 @@ std::complex<double> ComplexMatrix::product_trace(const ComplexMatrix& other) co
                            other.tensor_);
 
     return E;
+}
+
+double ComplexMatrix::rms() const {
+    double sum = 0.0;
+    long terms = 0;
+    for (int h = 0; h < nirrep(); ++h) {
+        const int nr = rowdim(h);
+        const int nc = coldim(h);
+        terms += static_cast<long>(nr) * nc;
+        if (!tensor_.has_tile(h, h) || nr == 0 || nc == 0) continue;
+        const auto& A = tensor_.tile(h, h);
+        for (int i = 0; i < nr; ++i) {
+            for (int j = 0; j < nc; ++j) {
+                sum += std::norm(A(i, j));
+            }
+        }
+    }
+    if (terms == 0) return 0.0;
+    return std::sqrt(sum / static_cast<double>(terms));
+}
+
+double ComplexMatrix::absmax() const {
+    double max = 0.0;
+    for (int h = 0; h < nirrep(); ++h) {
+        if (!tensor_.has_tile(h, h)) continue;
+        const auto& A = tensor_.tile(h, h);
+        const int nr = static_cast<int>(A.dim(0));
+        const int nc = static_cast<int>(A.dim(1));
+        for (int i = 0; i < nr; ++i) {
+            for (int j = 0; j < nc; ++j) {
+                max = std::max(max, std::abs(A(i, j)));
+            }
+        }
+    }
+    return max;
 }
 
 // Raw per-tile complex sub-blocks to a PSIO file, mirroring Matrix::save with

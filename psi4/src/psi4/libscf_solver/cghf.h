@@ -209,6 +209,9 @@ class CGHF : public ComplexWavefunction, public BaseHF {
 
     /// Fix MO column phases in place: first |C_μp| > 1e-3 becomes real and positive.
     void check_phases();
+
+    /// AO DIIS residual FDS − SDF, transformed to the X-orthogonal basis (X^H e X).
+    SharedComplexMatrix form_FDSmSDF(SharedComplexMatrix Fso, SharedComplexMatrix Dso);
 };
 
 #endif  // USING_Einsums
