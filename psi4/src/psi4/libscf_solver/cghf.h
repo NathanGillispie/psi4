@@ -207,8 +207,8 @@ class CGHF : public ComplexWavefunction, public BaseHF {
     /// Returns {spin_square, multiplicity}.
     std::tuple<double, double> spin_square() const;
 
-    /// Return a copy of C with each column phased so ⟨C_ref[:,k]|C[:,k]⟩ is real and positive.
-    SharedComplexMatrix phase_align(SharedComplexMatrix C, SharedComplexMatrix C_ref) const;
+    /// Fix MO column phases in place: first |C_μp| > 1e-3 becomes real and positive.
+    void check_phases();
 };
 
 #endif  // USING_Einsums

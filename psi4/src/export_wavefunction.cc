@@ -625,9 +625,8 @@ void export_wavefunction(py::module& m) {
         .def("openorbital_scf", &scf::CGHF::openorbital_scf, "Runs the SCF with OpenOrbitalOptimizer")
         .def("spin_square", &scf::CGHF::spin_square,
              "Returns (S^2, multiplicity) for the complex GHF wavefunction.")
-        .def("phase_align", &scf::CGHF::phase_align,
-             "Return a copy of C with column phases aligned so <C_ref[:,k]|C[:,k]> is real and positive.",
-             "C"_a, "C_ref"_a);
+        .def("check_phases", &scf::CGHF::check_phases,
+             "Fix MO column phases in place so the first significant AO coefficient is real and positive.");
 
 #else
     py::class_<scf::CGHF, std::shared_ptr<scf::CGHF>, ComplexWavefunction, scf::BaseHF>(m, "CGHF", py::multiple_inheritance(),

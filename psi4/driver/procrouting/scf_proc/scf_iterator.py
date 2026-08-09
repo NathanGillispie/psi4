@@ -734,6 +734,7 @@ def scf_finalize_energy(self):
         self.compute_spin_contamination()
         self.frac_renormalize()
     else:
+        self.check_phases()
         self.spin_square()
     reference = core.get_option("SCF", "REFERENCE")
 
