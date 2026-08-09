@@ -1,5 +1,12 @@
-import os
+"""
+Test Psi4 INTERNAL DIIS for CGHF.
 
+Note that the M-Intel runner forces orbital optimizer OOO by setting
+ORBITAL_OPTIMIZER_PACKAGE to OOO (changing the default of INTERNAL). This does
+not respect DIIS or SCF_INITIAL_ACCELERATOR options.
+
+OOO-specific tests are in another file.
+"""
 import pytest
 import numpy as np
 from scipy.optimize import minimize
@@ -34,55 +41,6 @@ def _co_mol_str():
     symmetry c1
     """
 
-
-def _print_psi_outfile(label=""):
-    """Close/reopen and print the Psi4 outfile (for CI log visibility).
-
-    Call inside ``capsys.disabled()`` so the dump reaches GitHub Actions logs
-    even when the test passes (pytest FDCapture otherwise eats fd 1).
-    ``psi4.core.flush_outfile`` is a no-op; close the stream so buffers hit disk.
-    """
-    name = psi4.core.get_output_file()
-    chunks = [
-        f"===== Psi4 outfile dump{': ' + label if label else ''} =====\n",
-        f"(get_output_file()={name!r}, cwd={os.getcwd()!r})\n",
-    ]
-
-    if not name or name == "stdout":
-        chunks.append("(output was already stdout; nothing to dump from file)\n")
-    else:
-        path = name if os.path.isabs(name) else os.path.join(os.getcwd(), name)
-        try:
-            psi4.core.close_outfile()
-        except Exception:
-            pass
-        try:
-            with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                text = fh.read()
-        except OSError as exc:
-            chunks.append(f"(could not read {path!r}: {exc})\n")
-            text = None
-        else:
-            chunks.append(text if text.endswith("\n") else text + "\n")
-            iters = [
-                ln for ln in text.splitlines()
-                if ("@CGHF iter" in ln or "@RHF iter" in ln or "SCF Guess" in ln
-                    or "Could not converge" in ln or "Energy and density converged" in ln
-                    or "DIIS disabled" in ln)
-            ]
-            if iters:
-                chunks.append("--- SCF trail extract ---\n")
-                chunks.append("\n".join(iters) + "\n")
-            chunks.append(f"===== end Psi4 outfile dump ({len(text)} chars) =====\n")
-        # Re-open append so later assertions / cleanups are quiet rather than crashing.
-        try:
-            psi4.core.set_output_file(name, True)
-        except Exception:
-            pass
-
-    print("".join(chunks), end="", flush=True)
-
-
 def _hermitian_dot(A, B):
     """Re(Tr(A^H B)), matching ComplexMatrix.vector_dot."""
     return np.vdot(A, B).real
@@ -116,7 +74,7 @@ def _manual_pulay_extrapolation(Fs, Es):
 
 
 def _manual_adiis_extrapolation(Fs, Ds):
-    """Reference ADIIS extrapolation for closed_shell=False (CGHF convention)."""
+    """Reference ADIIS extrapolation for closed_shell=False."""
     n = len(Fs)
     dD = [D - Ds[-1] for D in Ds]
     dF = [F - Fs[-1] for F in Fs]
@@ -140,7 +98,7 @@ def _manual_adiis_extrapolation(Fs, Ds):
 
 
 def _manual_ediis_extrapolation(Fs, Ds, energies):
-    """Reference EDIIS extrapolation for closed_shell=False (CGHF convention)."""
+    """Reference EDIIS extrapolation for closed_shell=False."""
     n = len(Fs)
     DF = np.array([[_hermitian_dot(Ds[i], Fs[j]) for j in range(n)] for i in range(n)])
     diag = np.diag(DF)
@@ -168,7 +126,7 @@ def _manual_ediis_extrapolation(Fs, Ds, energies):
 def test_diis_extrapolation_with_complexmatrix_entries(storage_policy):
     """DIIS (the same class RHF/UHF/ROHF use) works unmodified with core.ComplexMatrix
     target/error entries, for both storage policies, thanks to the clone/axpy/vector_dot/
-    zero/name/save/load pybind lambdas added to ComplexMatrix."""
+    zero/name/save/load methods added to ComplexMatrix."""
     rng = np.random.default_rng(5)
     n = 4
     Fs = [rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n)) for _ in range(3)]
@@ -240,76 +198,8 @@ def test_ediis_extrapolation_with_complexmatrix_entries(storage_policy):
     np.testing.assert_allclose(F_out.to_array(), F_ref, atol=1e-8)
 
 
-def test_rhf_co_does_not_converge_without_diis(capsys):
-    """Sanity check for the DIIS test: CO's core-guess oscillation is real, so
-    the previous test is actually exercising DIIS."""
-    mol = psi4.geometry(_co_mol_str())
-    psi4.set_options({
-        "basis": "cc-pVDZ",
-        "reference": "rhf",
-        "guess": "core",
-        "scf_type": "direct",
-        "df_scf_guess": False,
-        "diis": False,
-        "orbital_optimizer_package": "internal",
-        "scf_initial_accelerator": "NONE",
-        "maxiter": 20,
-    })
-    psi4.set_output_file("rhf_co_does_not_converge_wo_diis.dat", False)
-    try:
-        assert not psi4.core.get_option("SCF", "DIIS"), \
-            "DIIS enabled despite setting DIIS to False"
-        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
-            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
-        psi4.energy("scf", molecule=mol)
-    except SCFConvergenceError:
-        pass
-    else:
-        assert False, "RHF CO converged without DIIS. Sanity check failed"
-    finally:
-        with capsys.disabled():
-            _print_psi_outfile("RHF CO does not converge without DIIS")
-
-
-def test_uhf_co_does_not_converge_without_diis(capsys):
-    """Sanity check for the DIIS test: CO's core-guess oscillation is real, so
-    the previous test is actually exercising DIIS."""
-    mol = psi4.geometry(_co_mol_str())
-    psi4.set_options({
-        "basis": "cc-pVDZ",
-        "reference": "uhf",
-        "guess": "core",
-        "scf_type": "direct",
-        "df_scf_guess": False,
-        "diis": False,
-        "orbital_optimizer_package": "internal",
-        "scf_initial_accelerator": "NONE",
-        "maxiter": 20,
-    })
-    psi4.set_output_file("uhf_co_does_not_converge_wo_diis.dat", False)
-    try:
-        assert not psi4.core.get_option("SCF", "DIIS"), \
-            "DIIS enabled despite setting DIIS to False"
-        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
-            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
-        psi4.energy("scf", molecule=mol)
-        assert not psi4.core.get_option("SCF", "DIIS"), \
-            "DIIS enabled despite setting DIIS to False"
-        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE", \
-            "ADIIS/EDIIS enabled despite setting SCF_INITIAL_ACCELERATOR to NONE"
-    except SCFConvergenceError:
-        pass
-    else:
-        assert False, "UHF CO converged without DIIS. Sanity check failed"
-    finally:
-        with capsys.disabled():
-            _print_psi_outfile("UHF CO does not converge without DIIS")
-
-def test_cghf_co_does_not_converge_without_diis(capsys):
-    """Sanity check for the DIIS test above: CO's core-guess oscillation is real (not an
-    artifact of some other change), so the previous test is actually exercising DIIS."""
-    psi4.core.clean()
-    psi4.core.clean_options()
+def test_cghf_co_does_not_converge_without_diis():
+    """Sanity check for the test below: assert non-convergence without DIIS."""
     mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
@@ -322,29 +212,14 @@ def test_cghf_co_does_not_converge_without_diis(capsys):
         "scf_initial_accelerator": "none",
         "maxiter": 20,
     })
-    psi4.set_output_file("cghf_co_does_not_converge_wo_diis.dat", False)
-    try:
-        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
-        assert not psi4.core.get_option("SCF", "DIIS")
+    with pytest.raises(SCFConvergenceError):
         psi4.energy("scf", molecule=mol)
-        assert psi4.core.get_option("SCF", "SCF_INITIAL_ACCELERATOR") == "NONE"
-        assert not psi4.core.get_option("SCF", "DIIS")
-    except SCFConvergenceError:
-        pass
-    else:
-        assert False, "CGHF CO converged without DIIS. Sanity check failed"
-    finally:
-        with capsys.disabled():
-            _print_psi_outfile("CGHF CO does not converge without DIIS")
 
 
-def test_cghf_diis_converges_co(capsys):
-    """CO/cc-pVDZ is a classic core-guess DIIS torture test: with GUESS=CORE and no
-    convergence acceleration it oscillates between two energies forever (see
-    test_cghf_co_does_not_converge_without_diis below). With CGHF's DIIS implemented,
-    it should converge cleanly to the closed-shell RHF energy (no spin-orbit coupling),
-    matching the ~-112.750151 Eh reference quoted from other software.
-    """
+def test_cghf_diis_converges_co():
+    """Confirms that the addition of DIIS converges CO/cc-pVDZ with GUESS=CORE.
+    Otherwise oscillates between two energies forever. This fact is verified by
+    test_cghf_co_does_not_converge_without_diis."""
     mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
@@ -352,24 +227,17 @@ def test_cghf_diis_converges_co(capsys):
         "guess": "core",
         "scf_type": "direct",
         "df_scf_guess": False,
-        "diis": True,
         "orbital_optimizer_package": "internal",
         "scf_initial_accelerator": "none",
     })
-    psi4.set_output_file("cghf_diis_converges_co.dat", False)
-    try:
-        e_cghf = psi4.energy("scf", molecule=mol)
-    finally:
-        with capsys.disabled():
-            _print_psi_outfile("CGHF DIIS converges CO")
+    e_cghf = psi4.energy("scf", molecule=mol)
 
     assert e_cghf == pytest.approx(-112.750151, abs=1e-5)
 
 
 @pytest.mark.parametrize("accelerator", ["adiis", "ediis"])
 def test_cghf_aediis_converges_co(accelerator):
-    """CO/cc-pVDZ with core guess also converges when ADIIS or EDIIS is the initial
-    accelerator (blended with DIIS), matching the RHF energy."""
+    """CO/cc-pVDZ converges when ADIIS or EDIIS is the initial accelerator."""
     mol = psi4.geometry(_co_mol_str())
     psi4.set_options({
         "basis": "cc-pVDZ",
@@ -377,8 +245,8 @@ def test_cghf_aediis_converges_co(accelerator):
         "guess": "core",
         "scf_type": "direct",
         "df_scf_guess": False,
-        "scf_initial_accelerator": accelerator,
         "orbital_optimizer_package": "internal",
+        "scf_initial_accelerator": accelerator,
     })
     e_cghf = psi4.energy("scf", molecule=mol)
 
