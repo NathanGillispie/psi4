@@ -482,12 +482,14 @@ void CGHF::form_C(double shift) {
         // Hermitian eigensolver one block at a time
         einsums::linear_algebra::heev<true>(&Forth->get(h), &evals);
 
-        double last_value = - std::numeric_limits<double>::infinity();
-        for (int m = 0; m < nmopi_[h]; m++) {
-            const double& current_value = evals(m);
-            if (last_value > current_value + 1e-16) throw PSIEXCEPTION("CGHF Orbitals are not ordered!");
-            epsilon_->set(h, m, current_value);
-            last_value = current_value;
+        if (debug_) {
+            double last_value = - std::numeric_limits<double>::infinity();
+            for (int m = 0; m < nmopi_[h]; m++) {
+                const double& current_value = evals(m);
+                if (last_value > current_value + 1e-16) throw PSIEXCEPTION("CGHF Orbitals are not ordered!");
+                epsilon_->set(h, m, current_value);
+                last_value = current_value;
+            }
         }
     }
 
@@ -531,7 +533,7 @@ void CGHF::form_D() {
     D_->zero();
     for (int h = 0; h < nirrep_; ++h) {
         int nso = C_->rowdim(h);
-        int nocc = static_cast<int>(nelecpi_[h]);
+        int nocc = nelecpi_[h];
         if (!nso || !nocc) continue;
 
         auto const& C_h = C_->get(h);
@@ -802,15 +804,8 @@ void CGHF::openorbital_scf() {
 
 std::tuple<double, double> CGHF::spin_square() const {
     // Spatial SO overlap (not spin-blocked). Alpha/beta blocks of C_ share this metric.
-    SharedMatrix S_real = mintshelper()->so_overlap();
-    ComplexMatrix S("S (spatial)", nsopi_, nsopi_);
-    for (int h = 0; h < nirrep_; h++) {
-        for (int i = 0; i < nsopi_[h]; i++) {
-            for (int j = 0; j < nsopi_[h]; j++) {
-                S.set(h, i, j, S_real->get(h, i, j));
-            }
-        }
-    }
+    ComplexMatrix S{mintshelper()->so_overlap()};
+    S.set_name("S (spatial)");
 
     // Occupied alpha / beta MO coefficients from the spinor C_ (rows: [α; β]).
     ComplexMatrix Ca("Ca occ", nsopi_, nelecpi_);
@@ -833,22 +828,12 @@ std::tuple<double, double> CGHF::spin_square() const {
     auto Sab = linalg::triplet<true, false, false>(Ca, S, Cb);
     auto Sba = linalg::triplet<true, false, false>(Cb, S, Ca);
 
-    auto mat_trace = [](const ComplexMatrix& M) {
-        std::complex<double> tr{0.0, 0.0};
-        for (int h = 0; h < M.nirrep(); h++) {
-            for (int i = 0; i < M.rowdim(h); i++) {
-                tr += M.get(h, i, i);
-            }
-        }
-        return tr;
-    };
-
-    const auto nocc_a = mat_trace(Saa);
-    const auto nocc_b = mat_trace(Sbb);
+    const auto nocc_a = Saa.trace();
+    const auto nocc_b = Sbb.trace();
 
     // ⟨S+S- + S-S+⟩/2 contribution
     std::complex<double> ssxy = (nocc_a + nocc_b) * 0.5;
-    ssxy += mat_trace(Sba) * mat_trace(Sab) - Sba.product_trace(Sab);
+    ssxy += Sba.trace() * Sab.trace() - Sba.product_trace(Sab);
 
     // ⟨Sz²⟩ contribution
     std::complex<double> ssz = (nocc_a + nocc_b) * 0.25;
@@ -861,8 +846,13 @@ std::tuple<double, double> CGHF::spin_square() const {
     const double s = std::sqrt(ss + 0.25) - 0.5;
     const double multiplicity = 2.0 * s + 1.0;
 
-    outfile->Printf("   @S^2:              %17.9f\n", ss);
-    outfile->Printf("   @2S+1:             %17.9f\n\n", multiplicity);
+    if (ss < 5e-10) {
+        outfile->Printf("   @S^2:              0\n");
+        outfile->Printf("   @2S+1:             1\n\n");
+    } else {
+        outfile->Printf("   @S^2:              %17.9f\n", ss);
+        outfile->Printf("   @2S+1:             %17.9f\n\n", multiplicity);
+    }
 
     return std::make_tuple(ss, multiplicity);
 }

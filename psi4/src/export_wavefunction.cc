@@ -614,8 +614,8 @@ void export_wavefunction(py::module& m) {
         .def("find_occupation", &scf::CGHF::find_occupation, "Determine orbital occupations from orbital energies.")
         .def("reset_occupation", &scf::CGHF::reset_occupation,
              "Reset occupations after SAD guess (no-op for CGHF).")
-        .def("same_a_b_orbs", []() { return false; }, "Alpha and beta orbitals are equated? (always returns False for CGHF)")
-        .def("same_a_b_dens", []() { return false; }, "Alpha and beta densities are equated? (always returns False for CGHF)")
+        .def("same_a_b_orbs", [](scf::CGHF& self) { return false; }, "Alpha and beta orbitals are equated? (always returns False for CGHF)")
+        .def("same_a_b_dens", [](scf::CGHF& self) { return false; }, "Alpha and beta densities are equated? (always returns False for CGHF)")
         .def("finalize", &scf::CGHF::finalize, "Clean up temporary data after SCF.")
         .def("jk", &scf::CGHF::jk, "Returns the internal JK object.")
         .def("set_jk", &scf::CGHF::set_jk, "Sets the internal JK object !expert.")

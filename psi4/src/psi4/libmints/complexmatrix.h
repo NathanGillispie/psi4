@@ -34,7 +34,6 @@
 
 #include <complex>
 #include <memory>
-#include <array> // TODO: Deprecate with block_sizes
 
 #ifdef USING_OpenOrbitalOptimizer
 #ifdef USING_LAPACK_MKL
@@ -113,18 +112,22 @@ SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatri
  *  copy constructors, operators, destructors, etc. The compiler defaults implicitly
  */
 class PSI_API ComplexMatrix {
+   public:
+    /// Aliases for common objects
+    using ValueT = std::complex<double>;
+    using BlockT = einsums::Tensor<std::complex<double>, 2>;
+    using TiledT = einsums::TiledTensor<std::complex<double>, 2>;
    private:
     /// The backed einsums TiledTensor object.
-    einsums::TiledTensor<std::complex<double>, 2> tensor_;
+    TiledT tensor_;
 
     // Free to add Dimension rowspi_, colspi_ later as Dimension
     // follows the rule of zero
 
-   public:
-    using BlockT = einsums::Tensor<std::complex<double>, 2>;
-    using TiledT = einsums::TiledTensor<std::complex<double>, 2>;
-    using ValueT = std::complex<double>;
+    /// Helper for Matrix-valued constructors
+    static TiledT matrix_to_tiled_tensor(const Matrix&);
 
+   public:
     // -- Default constructors (forward to TiledTensor) --
 
     ComplexMatrix() = default;
@@ -168,11 +171,18 @@ class PSI_API ComplexMatrix {
         : ComplexMatrix("", row_sizes) {}
 
     /// Overload for single block of size
-    ComplexMatrix(const std::string& name, int rows, int cols)
+    explicit ComplexMatrix(const std::string& name, int rows, int cols)
         : tensor_(name, std::vector<int>{rows}, std::vector<int>{cols}) {}
 
-    ComplexMatrix(int rows, int cols)
+    explicit ComplexMatrix(int rows, int cols)
         : ComplexMatrix("", rows, cols) {}
+
+    // -- Constructors for Matrix callers --
+
+    ComplexMatrix(const Matrix& A)
+        : tensor_(matrix_to_tiled_tensor(A)) {}
+
+    ComplexMatrix(std::shared_ptr<Matrix> A);
 
     // -- implicit conversion --
 
@@ -210,6 +220,9 @@ class PSI_API ComplexMatrix {
 
     /// Replicates np.einsum("ij,ji->", this, other).
     std::complex<double> product_trace(const ComplexMatrix&) const;
+
+    /// Computes the trace, does not check squareness.
+    std::complex<double> trace() const;
 
     /// sqrt(mean(|z|^2)) over the diagonal tiles.
     double rms() const;
@@ -263,11 +276,6 @@ class PSI_API ComplexMatrix {
     int nrow() const { return static_cast<int>(tensor_.dim(0)); }
     /// Returns the total number of columns
     int ncol() const { return static_cast<int>(tensor_.dim(1)); }
-
-    PSI_DEPRECATED(
-        "Internal einsums type used for constructors. Should be "
-        "replaced with rowspi/colspi ASAP.")
-    const std::array<std::vector<int>, 2> block_sizes() const { return tensor_.tile_sizes(); }
 
     // -- Elemental operations --
 

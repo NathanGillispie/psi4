@@ -40,17 +40,38 @@
 
 #include <algorithm>
 #include <cmath>
-#include <complex>
 
 #ifdef USING_Einsums
 #include <Einsums/TensorAlgebra.hpp>
-#include <Einsums/LinearAlgebra.hpp>
 #endif
 
 namespace psi {
 
 #ifdef USING_Einsums
 
+// Matrix is an incomplete type in header. Define this constructor here.
+ComplexMatrix::ComplexMatrix(std::shared_ptr<Matrix> A)
+    : ComplexMatrix(*A) {}
+
+// Static helper for Matrix-valued constructor.
+ComplexMatrix::TiledT ComplexMatrix::matrix_to_tiled_tensor(const Matrix& M) {
+    const auto& rowspi = M.rowspi().blocks();
+    const auto& colspi = M.colspi().blocks();
+    const auto& name = M.name();
+    TiledT T{name, rowspi, colspi};
+    for (int h = 0; h < M.nirrep(); h++) {
+        BlockT& Tb = T.tile(h, h);
+        for (int i = 0; i < rowspi[h]; i++) {
+            for (int j = 0; j < colspi[h]; j++) {
+                Tb(i, j) = M.get(h, i, j);
+            }
+        }
+    }
+    return T;
+}
+
+// Public static method to create spin-blocked ComplexMatrix from Matrix.
+// Each irrep becomes: A --> [[A, 0], [0, A]].as_type(complex)
 SharedComplexMatrix ComplexMatrix::spin_blocked_from(const Matrix& A) {
     const int nirrep = A.nirrep();
     Dimension row_dim(nirrep);
@@ -78,6 +99,7 @@ SharedComplexMatrix ComplexMatrix::spin_blocked_from(const Matrix& A) {
     return B;
 }
 
+// Same as above, but you pass in the SharedComplexMatrix.
 void ComplexMatrix::copy_matrix_to_spin_blocked(const Matrix& A, SharedComplexMatrix& B) {
     for (int h = 0; h < A.nirrep(); h++) {
         const int r_ = A.rowspi(h);
@@ -162,6 +184,18 @@ std::complex<double> ComplexMatrix::product_trace(const ComplexMatrix& other) co
     return E;
 }
 
+std::complex<double> ComplexMatrix::trace() const {
+    std::complex<double> tr{0.0, 0.0};
+    for (int h = 0; h < tensor_.grid_size(0); h++) {
+        if (!tensor_.has_tile(h, h)) continue;
+        const auto& tile = tensor_.tile(h, h);
+        for (int i = 0; i < tensor_.tile_size(0)[h]; i++) {
+            tr += tile(i, i);
+        }
+    }
+    return tr;
+}
+
 double ComplexMatrix::rms() const {
     double sum = 0.0;
     long terms = 0;
@@ -183,17 +217,17 @@ double ComplexMatrix::rms() const {
 
 double ComplexMatrix::absmax() const {
     double max = 0.0;
-    for (int h = 0; h < nirrep(); ++h) {
-        if (!tensor_.has_tile(h, h)) continue;
-        const auto& A = tensor_.tile(h, h);
-        const int nr = static_cast<int>(A.dim(0));
-        const int nc = static_cast<int>(A.dim(1));
-        for (int i = 0; i < nr; ++i) {
-            for (int j = 0; j < nc; ++j) {
-                max = std::max(max, std::abs(A(i, j)));
+
+    // Gets all filled tiles, unfilled are zeros
+    for (const auto& [dims, tile] : tensor_.tiles()) {
+        const auto& [nrow, ncol] = dims;
+        for (int i = 0; i < nrow; ++i) {
+            for (int j = 0; j < ncol; ++j) {
+                max = std::max(max, std::abs(tile(i, j)));
             }
         }
     }
+
     return max;
 }
 
@@ -207,6 +241,7 @@ void ComplexMatrix::save(std::shared_ptr<PSIO>& psio, size_t fileno) {
         if (!tensor_.has_tile(h, h) || tensor_.has_zero_size(h, h)) continue;
         auto& t = tensor_.tile(h, h);
         std::string entry = tensor_.name() + " Tile " + std::to_string(h);
+#pragma message("Dangerous einsums tensor pointer operation used! A different solution is needed!")
         psio->write_entry(fileno, entry, (char*)t.data(), sizeof(std::complex<double>) * t.size());
     }
 
@@ -220,9 +255,10 @@ void ComplexMatrix::load(std::shared_ptr<PSIO>& psio, size_t fileno) {
     if (!already_open) psio->open(fileno, PSIO_OPEN_OLD);
 
     for (int h = 0; h < static_cast<int>(tensor_.grid_size(0)); ++h) {
-        if (tensor_.tile_size(0)[h] == 0 || tensor_.tile_size(1)[h] == 0) continue;
+        if (tensor_.has_zero_size(h, h)) continue;
         auto& t = tensor_.tile(h, h);  // lazily allocated to the declared size
         std::string entry = tensor_.name() + " Tile " + std::to_string(h);
+#pragma message("Dangerous einsums tensor pointer operation used! A different solution is needed!")
         psio->read_entry(fileno, entry, (char*)t.data(), sizeof(std::complex<double>) * t.size());
     }
 
