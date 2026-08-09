@@ -55,6 +55,7 @@
 
 #include <cmath>
 #include <complex>
+#include <tuple>
 
 namespace {
 
@@ -833,7 +834,7 @@ void CGHF::openorbital_scf() {
 #endif
 }
 
-std::array<double, 2> CGHF::spin_square() const {
+std::tuple<double, double> CGHF::spin_square() const {
     // Spatial SO overlap (not spin-blocked). Alpha/beta blocks of C_ share this metric.
     SharedMatrix S_real = mintshelper()->so_overlap();
     ComplexMatrix S("S (spatial)", nsopi_, nsopi_);
@@ -897,7 +898,7 @@ std::array<double, 2> CGHF::spin_square() const {
     outfile->Printf("   @S^2:              %17.9f\n", ss);
     outfile->Printf("   @2S+1:             %17.9f\n\n", multiplicity);
 
-    return {ss, multiplicity};
+    return std::make_tuple(ss, multiplicity);
 }
 
 }  // namespace scf

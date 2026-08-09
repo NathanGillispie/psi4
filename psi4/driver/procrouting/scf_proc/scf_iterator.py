@@ -734,34 +734,7 @@ def scf_finalize_energy(self):
         self.compute_spin_contamination()
         self.frac_renormalize()
     else:
-        ovlp = self.mintshelper().so_overlap().to_array()
-        nelec = self.nelec()
-        mo_coeff = self.C().to_array()
-        nao = ovlp.shape[0]
-        assert 2 * nao == mo_coeff.shape[0]
-        mo_a = mo_coeff[:nao, :nelec]
-        mo_b = mo_coeff[nao:, :nelec]
-
-
-        saa = mo_a.conj().T @ ovlp @ mo_a
-        sbb = mo_b.conj().T @ ovlp @ mo_b
-        sab = mo_a.conj().T @ ovlp @ mo_b
-        sba = sab.conj().T
-
-        nocc_a = saa.trace()
-        nocc_b = sbb.trace()
-
-        ssxy = (nocc_a+nocc_b) * .5
-        ssxy+= sba.trace() * sab.trace() - np.einsum('ij,ji->', sba, sab)
-        ssz  = (nocc_a+nocc_b) * .25
-        ssz += (nocc_a-nocc_b)**2 * .25
-        tmp  = saa - sbb
-        ssz -= np.einsum('ij,ji', tmp, tmp) * .25
-        ss = (ssxy + ssz).real
-        s = np.sqrt(ss+.25) - .5
-
-        core.print_out(f"   @S^2:              {ss:17.9f}\n")
-        core.print_out(f"   @2S+1:             {s:17.9f}\n\n")
+        self.spin_square()
     reference = core.get_option("SCF", "REFERENCE")
 
     energy = self.get_energies("Total Energy")

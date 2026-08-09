@@ -30,6 +30,7 @@
 #include <string>
 
 #include "psi4/pybind11.h"
+#include <pybind11/stl.h>
 
 #include "psi4/libmints/basisset.h"
 #include "psi4/libmints/sobasis.h"
@@ -623,13 +624,8 @@ void export_wavefunction(py::module& m) {
         .def("get_J", &scf::CGHF::get_J, "Returns the Coulomb matrix (spin-blocked).")
         .def("get_K", &scf::CGHF::get_K, "Returns the exchange matrix (spin-blocked).")
         .def("openorbital_scf", &scf::CGHF::openorbital_scf, "Runs the SCF with OpenOrbitalOptimizer")
-        .def(
-            "spin_square",
-            [](const scf::CGHF& self) {
-                const auto result = self.spin_square();
-                return py::make_tuple(result[0], result[1]);
-            },
-            "Returns (S^2, multiplicity) for the complex GHF wavefunction.");
+        .def("spin_square", &scf::CGHF::spin_square,
+             "Returns (S^2, multiplicity) for the complex GHF wavefunction.");
 
 #else
     py::class_<scf::CGHF, std::shared_ptr<scf::CGHF>, ComplexWavefunction, scf::BaseHF>(m, "CGHF", py::multiple_inheritance(),
