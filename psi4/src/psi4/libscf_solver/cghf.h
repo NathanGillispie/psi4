@@ -35,6 +35,7 @@
 #include "psi4/libscf_solver/basehf.h"
 #include "psi4/libpsi4util/exception.h"
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -201,6 +202,10 @@ class CGHF : public ComplexWavefunction, public BaseHF {
     SharedComplexMatrix get_G() const { return G_; }
     SharedComplexMatrix get_J() const { return J_; }
     SharedComplexMatrix get_K() const { return K_; }
+
+    /// Compute ⟨S²⟩ and multiplicity (2S+1) for the complex GHF determinant.
+    /// Returns {spin_square, multiplicity}.
+    std::array<double, 2> spin_square() const;
 };
 
 #endif  // USING_Einsums

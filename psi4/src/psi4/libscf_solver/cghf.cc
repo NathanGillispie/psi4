@@ -42,6 +42,7 @@
 #include "psi4/libpsi4util/process.h"
 #include "psi4/libfock/ComplexJK.h"
 #include "psi4/libfock/v.h"
+#include "psi4/libpsi4util/PsiOutStream.h"
 
 #ifdef USING_OpenOrbitalOptimizer
 #include <openorbitaloptimizer/scfsolver.hpp>
@@ -51,6 +52,9 @@
 // TODO: REMOVE THESE
 #include <Einsums/LinearAlgebra.hpp>
 #include <Einsums/TensorAlgebra.hpp>
+
+#include <cmath>
+#include <complex>
 
 namespace {
 
@@ -827,6 +831,73 @@ void CGHF::openorbital_scf() {
     // Compute the energy
     compute_E();
 #endif
+}
+
+std::array<double, 2> CGHF::spin_square() const {
+    // Spatial SO overlap (not spin-blocked). Alpha/beta blocks of C_ share this metric.
+    SharedMatrix S_real = mintshelper()->so_overlap();
+    ComplexMatrix S("S (spatial)", nsopi_, nsopi_);
+    for (int h = 0; h < nirrep_; h++) {
+        for (int i = 0; i < nsopi_[h]; i++) {
+            for (int j = 0; j < nsopi_[h]; j++) {
+                S.set(h, i, j, S_real->get(h, i, j));
+            }
+        }
+    }
+
+    // Occupied alpha / beta MO coefficients from the spinor C_ (rows: [α; β]).
+    ComplexMatrix Ca("Ca occ", nsopi_, nelecpi_);
+    ComplexMatrix Cb("Cb occ", nsopi_, nelecpi_);
+    for (int h = 0; h < nirrep_; h++) {
+        const int nso = nsopi_[h];
+        const int nocc = nelecpi_[h];
+        if (!nso || !nocc) continue;
+        for (int i = 0; i < nso; i++) {
+            for (int j = 0; j < nocc; j++) {
+                Ca.set(h, i, j, C_->get(h, i, j));
+                Cb.set(h, i, j, C_->get(h, i + nso, j));
+            }
+        }
+    }
+
+    // Sσστ = Cσ^H S Cτ
+    auto Saa = linalg::triplet<true, false, false>(Ca, S, Ca);
+    auto Sbb = linalg::triplet<true, false, false>(Cb, S, Cb);
+    auto Sab = linalg::triplet<true, false, false>(Ca, S, Cb);
+    auto Sba = linalg::triplet<true, false, false>(Cb, S, Ca);
+
+    auto mat_trace = [](const ComplexMatrix& M) {
+        std::complex<double> tr{0.0, 0.0};
+        for (int h = 0; h < M.nirrep(); h++) {
+            for (int i = 0; i < M.rowdim(h); i++) {
+                tr += M.get(h, i, i);
+            }
+        }
+        return tr;
+    };
+
+    const auto nocc_a = mat_trace(Saa);
+    const auto nocc_b = mat_trace(Sbb);
+
+    // ⟨S+S- + S-S+⟩/2 contribution
+    std::complex<double> ssxy = (nocc_a + nocc_b) * 0.5;
+    ssxy += mat_trace(Sba) * mat_trace(Sab) - Sba.product_trace(Sab);
+
+    // ⟨Sz²⟩ contribution
+    std::complex<double> ssz = (nocc_a + nocc_b) * 0.25;
+    ssz += (nocc_a - nocc_b) * (nocc_a - nocc_b) * 0.25;
+    ComplexMatrix tmp = Saa;
+    tmp.subtract(Sbb);
+    ssz -= tmp.product_trace(tmp) * 0.25;
+
+    const double ss = (ssxy + ssz).real();
+    const double s = std::sqrt(ss + 0.25) - 0.5;
+    const double multiplicity = 2.0 * s + 1.0;
+
+    outfile->Printf("   @S^2:              %17.9f\n", ss);
+    outfile->Printf("   @2S+1:             %17.9f\n\n", multiplicity);
+
+    return {ss, multiplicity};
 }
 
 }  // namespace scf
