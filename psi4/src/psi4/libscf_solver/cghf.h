@@ -206,6 +206,9 @@ class CGHF : public ComplexWavefunction, public BaseHF {
     /// Compute ⟨S²⟩ and multiplicity (2S+1) for the complex GHF determinant.
     /// Returns {spin_square, multiplicity}.
     std::tuple<double, double> spin_square() const;
+
+    /// Return a copy of C with each column phased so ⟨C_ref[:,k]|C[:,k]⟩ is real and positive.
+    SharedComplexMatrix phase_align(SharedComplexMatrix C, SharedComplexMatrix C_ref) const;
 };
 
 #endif  // USING_Einsums

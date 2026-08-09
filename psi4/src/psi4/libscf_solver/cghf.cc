@@ -901,5 +901,38 @@ std::tuple<double, double> CGHF::spin_square() const {
     return std::make_tuple(ss, multiplicity);
 }
 
+SharedComplexMatrix CGHF::phase_align(SharedComplexMatrix C, SharedComplexMatrix C_ref) const {
+    if (!C || !C_ref) {
+        throw PSIEXCEPTION("CGHF::phase_align: C and C_ref must be non-null.");
+    }
+    if (C->nirrep() != C_ref->nirrep()) {
+        throw PSIEXCEPTION("CGHF::phase_align: C and C_ref must have the same number of irreps.");
+    }
+
+    auto Cout = C->clone();
+    for (int h = 0; h < C->nirrep(); h++) {
+        const int nso = C->rowdim(h);
+        const int nmo = C->coldim(h);
+        if (C_ref->rowdim(h) != nso || C_ref->coldim(h) != nmo) {
+            throw PSIEXCEPTION("CGHF::phase_align: C and C_ref block dimensions must match.");
+        }
+        for (int k = 0; k < nmo; k++) {
+            // np.vdot(C_ref[:,k], C[:,k]) = sum_mu conj(C_ref[mu,k]) * C[mu,k]
+            std::complex<double> ov{0.0, 0.0};
+            for (int mu = 0; mu < nso; mu++) {
+                ov += std::conj(C_ref->get(h, mu, k)) * Cout->get(h, mu, k);
+            }
+            const double abs_ov = std::abs(ov);
+            if (abs_ov > 1.0e-14) {
+                const std::complex<double> phase = std::conj(ov) / abs_ov;
+                for (int mu = 0; mu < nso; mu++) {
+                    Cout->set(h, mu, k, Cout->get(h, mu, k) * phase);
+                }
+            }
+        }
+    }
+    return Cout;
+}
+
 }  // namespace scf
 }  // namespace psi
