@@ -1008,10 +1008,7 @@ def _validate_diis(self):
 
     """
 
-    if isinstance(self, core.ComplexWavefunction):
-        restricted_open = False
-    else:
-        restricted_open = self.same_a_b_orbs() and not self.same_a_b_dens()
+    restricted_open = self.same_a_b_orbs() and not self.same_a_b_dens()
 
     aediis_active = core.get_option('SCF', 'SCF_INITIAL_ACCELERATOR') != "NONE" and not restricted_open
 
