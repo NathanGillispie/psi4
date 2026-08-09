@@ -271,7 +271,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     reference = core.get_option('SCF', "REFERENCE")
 
     # self.member_data_ signals are non-local, used internally by c-side fns
-    self.diis_enabled_ = _validate_diis(self)
+    self.diis_enabled_ = self.validate_diis()
     self.MOM_excited_ = _validate_MOM()
     self.diis_start_ = core.get_option('SCF', 'DIIS_START')
     damping_enabled = _validate_damping()
@@ -1034,20 +1034,13 @@ def _validate_diis(self):
 
     """
 
-    core.print_out("============= START _validate_diis ==============\n")
-
     if isinstance(self, core.ComplexWavefunction):
-        core.print_out(">>> CGHF instance\n")
         restricted_open = False
     else:
-        core.print_out(">>> HF instance\n")
         restricted_open = self.same_a_b_orbs() and not self.same_a_b_dens()
 
-    core.print_out(f">>> restricted_open = {restricted_open}\n")
-    core.print_out(f">>> SCF_INITIAL_ACCELERATOR = {core.get_option('SCF', 'SCF_INITIAL_ACCELERATOR')}\n")
     aediis_active = core.get_option('SCF', 'SCF_INITIAL_ACCELERATOR') != "NONE" and not restricted_open
 
-    core.print_out(f">>> aediis_active = {aediis_active}\n")
     if aediis_active:
         start = core.get_option('SCF', 'SCF_INITIAL_START_DIIS_TRANSITION')
         stop = core.get_option('SCF', 'SCF_INITIAL_FINISH_DIIS_TRANSITION')
@@ -1058,15 +1051,12 @@ def _validate_diis(self):
         elif stop < 0:
             raise ValidationError('SCF_INITIAL_FINISH_DIIS_TRANSITION cannot be negative.')
 
-    core.print_out(f">>> DIIS = {core.get_option('SCF', 'DIIS')}\n")
     enabled = bool(core.get_option('SCF', 'DIIS')) or aediis_active
-    core.print_out(f">>> enabled = {enabled}\n")
     if enabled:
         start = core.get_option('SCF', 'DIIS_START')
         if start < 1:
             raise ValidationError('SCF DIIS_START ({}) must be at least 1'.format(start))
 
-    core.print_out("============= END _validate_diis ==============\n\n")
     return enabled
 
 
@@ -1151,9 +1141,6 @@ def _validate_soscf():
 
     return enabled
 
-# The M-Intel GH runner showed that you can't always count on monkeypatched
-# (multiple) inheritance to work. In the future, call _validate_diis directly,
-# however this will remain since it may be used externally.
 core.BaseHF.validate_diis = _validate_diis
 
 def efp_field_fn(xyz):
