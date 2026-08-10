@@ -422,6 +422,13 @@ void export_wavefunction(py::module& m) {
         .def("rms", &ComplexMatrix::rms, "Returns sqrt(mean(|z|^2)) over the declared tile grid.")
         .def("absmax", &ComplexMatrix::absmax, "Returns the maximum |z| over allocated diagonal tiles.");
 
+    m.def("diagonalize", &linalg::diagonalize, "F"_a, "X"_a,
+          "Diagonalize a Hermitian ComplexMatrix F with metric X.\n\n"
+          "Forms Forth = X^H @ F @ X, diagonalizes it with a Hermitian eigensolver,\n"
+          "and returns (eigenvalues: Vector, U^H: ComplexMatrix) where U^H has\n"
+          "eigenvectors as columns.  The caller typically computes MO coefficients\n"
+          "as C = X @ U^H.  X should be real (e.g. S^{-1/2} of the overlap matrix).");
+
     py::class_<ComplexWavefunction, std::shared_ptr<ComplexWavefunction>, BaseWavefunction>(m,
             "ComplexWavefunction", "ComplexWavefunction class docstring")
         .def(py::init<>())

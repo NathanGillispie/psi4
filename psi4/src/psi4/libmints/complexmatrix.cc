@@ -33,6 +33,7 @@
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libmints/dimension.h"
 #include "psi4/libmints/matrix.h"
+#include "psi4/libmints/vector.h"
 
 // For outfile in ComplexMatrix::print()
 #include "psi4/psi4-dec.h"
@@ -297,6 +298,46 @@ SharedComplexMatrix ComplexMatrix::conjT() const {
 
     return temp;
 }
+
+namespace linalg {
+
+std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(
+        const ComplexMatrix& F_, const ComplexMatrix& X_) {
+
+    // Form F' = X'FX for canonical orthogonalization
+    auto Forth = triplet<true, false, false>(X_, F_, X_);
+    Forth.set_name("Orthogonalized Fock");
+
+    Dimension nmopi_ = X_.colspi();
+    auto epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
+
+    for (int h = 0; h < Forth.nirrep(); h++) {
+        // Do not diagonalize 0x0 matrix
+        if (nmopi_[h] == 0) continue;
+
+
+        einsums::Tensor<double, 1> evals("Fock evals", nmopi_[h]);
+        evals.zero();
+
+        // C' = eig(F')
+        // Hermitian eigensolver one block at a time
+        einsums::linear_algebra::heev<true>(&Forth.get(h), &evals);
+
+        double last_value = - std::numeric_limits<double>::infinity();
+        for (int m = 0; m < nmopi_[h]; m++) {
+            const double& current_value = evals(m);
+            if (last_value > current_value + 1e-16) throw PSIEXCEPTION("CGHF Orbitals are not ordered!");
+            epsilon_->set(h, m, current_value);
+            last_value = current_value;
+        }
+    }
+
+    // heev retuns the wrong side, so we need to take the conjugate transpose for the proper eigenvectors
+    SharedComplexMatrix temp = Forth.conjT();
+    return std::make_tuple(epsilon_, temp);
+}
+
+}  // namespace linalg
 
 #endif  // USING_Einsums
 

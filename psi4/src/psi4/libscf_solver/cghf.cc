@@ -36,8 +36,9 @@
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/pointgrp.h"
 #include "psi4/libmints/complexmatrix.h"
+// TODO: find a way to remove include by passing in SharedMatrix to ComplexMatrix
+// callers, rather than dereferencing SharedMatrix type here.
 #include "psi4/libmints/matrix.h"
-#include "psi4/libmints/vector.h"
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libpsi4util/process.h"
 #include "psi4/libfock/ComplexJK.h"
@@ -51,7 +52,6 @@
 
 #include <cmath>
 #include <complex>
-#include <tuple>
 
 #include <Einsums/TensorAlgebra.hpp> // TODO: REMOVE
 
@@ -465,39 +465,11 @@ double CGHF::compute_E() {
 void CGHF::form_C(double shift) {
     if (shift != 0.0) throw PSIEXCEPTION("Level shifting not available for CGHF.");
 
-    // Form F' = X'FX for canonical orthogonalization
-    auto Forth = linalg::triplet<true, false, false>(X_, F_, X_);
-    Forth->set_name("Orthogonalized Fock");
+    auto [evals, evecs] = linalg::diagonalize(*F_, *X_);
+    epsilon_ = evals;
 
-    // Form C' = eig(F')
-    epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
-
-    for (int h = 0; h < nirrep_; h++) {
-        // Do not diagonalize 0x0 matrix
-        if (nmopi_[h] == 0) continue;
-
-        auto evals = einsums::Tensor<double, 1>("Fock evals", nmopi_[h]);
-        evals.zero();
-
-        // Hermitian eigensolver one block at a time
-        einsums::linear_algebra::heev<true>(&Forth->get(h), &evals);
-
-        if (debug_) {
-            double last_value = - std::numeric_limits<double>::infinity();
-            for (int m = 0; m < nmopi_[h]; m++) {
-                const double& current_value = evals(m);
-                if (last_value > current_value + 1e-16) throw PSIEXCEPTION("CGHF Orbitals are not ordered!");
-                epsilon_->set(h, m, current_value);
-                last_value = current_value;
-            }
-        }
-    }
-
-    // heev retuns the wrong side, so we need to take the conjugate transpose for the proper eigenvectors
-    auto temp = Forth->conjT();
-
-    // Form C_ := X_ @ C' (temp)
-    C_ = linalg::doublet<false, false>(X_, temp);
+    // Form C_ := X_ @ C' (evecs)
+    C_ = linalg::doublet<false, false>(X_, evecs);
     C_->set_name("MO coefficients");
 
     find_occupation();

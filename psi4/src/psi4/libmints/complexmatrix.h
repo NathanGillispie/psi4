@@ -34,6 +34,7 @@
 
 #include <complex>
 #include <memory>
+#include <tuple>
 
 #ifdef USING_OpenOrbitalOptimizer
 #ifdef USING_LAPACK_MKL
@@ -68,6 +69,7 @@ class PSIO;
 class ComplexMatrix;
 using SharedComplexMatrix = std::shared_ptr<ComplexMatrix>;
 class Matrix;
+class Vector;
 
 #ifdef USING_Einsums
 
@@ -84,6 +86,9 @@ ComplexMatrix triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexM
 
 template <bool, bool, bool>
 SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatrix&, const SharedComplexMatrix&);
+
+std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(const ComplexMatrix& F_, const ComplexMatrix& X_);
+
 }  // namespace linalg
 
 /*! \ingroup MINTS
