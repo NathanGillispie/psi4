@@ -1,0 +1,30 @@
+#! CGHF test for spin_square function using nitric oxide.
+#! Gives same result as UHF spin_square if it returned a value.
+
+ref_E = -129.174262
+
+molecule no {
+0 2
+  N
+  O 1 1.165
+symmetry C1
+}
+
+set = {
+    basis          6-31g
+    reference      cghf
+    guess          core
+    scf_type       direct
+    df_scf_guess   false
+    e_convergence  5e-7
+    maxiter 33
+}
+
+calc_E, wfn = energy('scf', return_wfn=True)
+
+compare_values(ref_E, calc_E, 6, "total E")       #TEST
+
+ss, mult = wfn.spin_square()
+
+compare_values(ss, .932, 2, "Spin-squared")       #TEST
+compare_values(mult, 2.174, 2, "Multiplicity")    #TEST
