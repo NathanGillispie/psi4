@@ -342,9 +342,13 @@ namespace linalg {
 
 /**
  *  If this were placed in the source, no explicit specializations would be compiled,
- *  resulting in a linking error. Practically, this **is** a runtime error in Psi4.
+ *  resulting in a linking error. Practically, this **is** a runtime error for Psi4.
  */
 
+/**
+ *  The einsums::linalg::gemm<bool, bool> call does the transpose (without conjugate)
+ *  as of v1.1.3. This explicit function is defined until v2 upgrade.
+ */
 template <bool AdjoinA, bool AdjoinB>
 ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
     const Dimension C_rowspi = (AdjoinA) ? A.colspi() : A.rowspi();
@@ -352,8 +356,32 @@ ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {
 
     ComplexMatrix C{"T", C_rowspi, C_colspi};
 
-    einsums::linear_algebra::gemm<AdjoinA, AdjoinB>(std::complex<double>{1.0}, A.tensor_, B.tensor_,
-                                                    std::complex<double>{0.0}, &C.tensor_);
+    const int nirrep = A.nirrep();
+
+    // ComplexMatrix stores only diagonal tiles (h,h).  For C = op(A) * op(B)
+    // with diagonal-only storage this reduces to independent per-irrep gemms:
+    //   C(h,h) = op(A(h,h)) * op(B(h,h))
+    // Use einsums::blas::gemm directly so we can pass 'c' (conjugate-transpose)
+    // instead of 't' (plain transpose) for the adjoint operations.
+    for (int h = 0; h < nirrep; h++) {
+        if (A.tensor_.has_zero_size(h, h) || B.tensor_.has_zero_size(h, h)) continue;
+        if (!A.tensor_.has_tile(h, h) || !B.tensor_.has_tile(h, h)) continue;
+
+        auto const &Atile = A.tensor_.tile(h, h);
+        auto const &Btile = B.tensor_.tile(h, h);
+        auto &Ctile = C.tensor_.tile(h, h);
+
+        using int_t = einsums::blas::int_t;
+
+        const int_t m = static_cast<int_t>(AdjoinA ? Atile.dim(1) : Atile.dim(0));
+        const int_t n = static_cast<int_t>(AdjoinB ? Btile.dim(0) : Btile.dim(1));
+        const int_t k = static_cast<int_t>(AdjoinA ? Atile.dim(0) : Atile.dim(1));
+
+        einsums::blas::gemm(AdjoinA ? 'c' : 'n', AdjoinB ? 'c' : 'n', m, n, k,
+                            std::complex<double>{1.0}, Atile.data(), static_cast<int_t>(Atile.stride(0)),
+                            Btile.data(), static_cast<int_t>(Btile.stride(0)),
+                            std::complex<double>{0.0}, Ctile.data(), static_cast<int_t>(Ctile.stride(0)));
+    }
 
     return C;
 }

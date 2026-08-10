@@ -429,6 +429,13 @@ void export_wavefunction(py::module& m) {
           "eigenvectors as columns.  The caller typically computes MO coefficients\n"
           "as C = X @ U^H.  X should be real (e.g. S^{-1/2} of the overlap matrix).");
 
+    m.def("_doublet_aH_b",
+          static_cast<ComplexMatrix (*)(const ComplexMatrix&, const ComplexMatrix&)>(
+              &linalg::doublet<true, false>),
+          "A"_a, "B"_a,
+          "Compute A^H @ B (intended: conjugate-transpose of A times B).\n"
+          "Exposed for testing the Einsums gemm conjugation convention.");
+
     py::class_<ComplexWavefunction, std::shared_ptr<ComplexWavefunction>, BaseWavefunction>(m,
             "ComplexWavefunction", "ComplexWavefunction class docstring")
         .def(py::init<>())

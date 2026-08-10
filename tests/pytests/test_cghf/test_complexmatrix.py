@@ -115,17 +115,39 @@ def test_complexmatrix_to_array_multiblock():
 
 
 # ---------------------------------------------------------------------------
+#   GEMM operations
+# ---------------------------------------------------------------------------
+
+
+def test_doublet_aH_b_conjugation():
+    """Verify that doublet<true, false>(A, I) computes conjugate-transpose A."""
+    rng = np.random.default_rng(19)
+    n = 4
+
+    A_np = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
+    I_np = np.eye(n, dtype=np.complex128)
+
+    A_cm = psi4.core.ComplexMatrix.from_array(A_np, name="A")
+    I_cm = psi4.core.ComplexMatrix.from_array(I_np, name="I")
+
+    result = psi4.core._doublet_aH_b(A_cm, I_cm).to_array()
+
+    A_H = A_np.conj().T
+
+    assert np.allclose(result, A_H, atol=1e-14)
+
+
+# ---------------------------------------------------------------------------
 #  diagonalize
 # ---------------------------------------------------------------------------
 
 
 def _inv_sqrt_hermitian(M):
     """Inverse matrix square root of a Hermitian positive-definite matrix M.
-
-    M = U @ diag(s) @ U^H  →  M^{-1/2} = U @ diag(1/sqrt(s)) @ U^H
-    """
+    By the spectral theorem, this matrix exists and is unique.
+    Given  M := U @ diag(s) @ U^H,   M^{-1/2} = U @ diag(1/sqrt(s)) @ U^H"""
     s, U = np.linalg.eigh(M)
-    assert np.all(s > 0), "S must be positive-definite"
+    assert np.all(s > 0), "M must be positive-definite"
     return U @ np.diag(1.0 / np.sqrt(s)) @ U.conj().T
 
 
