@@ -53,8 +53,6 @@
 #include <cmath>
 #include <complex>
 
-#include <Einsums/TensorAlgebra.hpp> // TODO: REMOVE
-
 namespace psi {
 namespace scf {
 
@@ -502,20 +500,22 @@ void CGHF::find_occupation() {
 }
 
 void CGHF::form_D() {
-    D_->zero();
+    // Build C_occ: the occupied-column submatrix of the spinor coefficient matrix.
+    // C_ is (2*nsopi_) × (2*nsopi_), nelecpi_ occupied spinor columns per irrep.
+    auto C_occ = std::make_shared<ComplexMatrix>("C_occ", C_->rowspi(), nelecpi_);
+
     for (int h = 0; h < nirrep_; ++h) {
         int nso = C_->rowdim(h);
         int nocc = nelecpi_[h];
         if (!nso || !nocc) continue;
 
-        auto const& C_h = C_->get(h);
-        auto& D_h = D_->get(h);
-
-        // D_h = C_occ * C_occ^H using the leading occupied columns (lda = full MO stride)
-        einsums::blas::gemm('n', 'c', nso, nso, nocc, std::complex<double>{1.0}, C_h.data(),
-                            static_cast<int>(C_h.stride(0)), C_h.data(), static_cast<int>(C_h.stride(0)),
-                            std::complex<double>{0.0}, D_h.data(), static_cast<int>(D_h.stride(0)));
+        // Copy occupied columns: C_occ(h) = C(h)[:, :nocc]
+        C_occ->get(h) = C_->get(h)(einsums::All, einsums::Range{0, nocc});
     }
+
+    // D = C_occ * C_occ^H   (conjugate-transpose via doublet<false, true>)
+    D_ = linalg::doublet<false, true>(C_occ, C_occ);
+    D_->set_name("Density");
 
     if (debug_ > 0) {
         outfile->Printf("in CGHF::form_D:\n");

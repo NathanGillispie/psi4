@@ -137,6 +137,18 @@ def test_doublet_aH_b_conjugation():
     assert np.allclose(result, A_H, atol=1e-14)
 
 
+def test_doublet_atypical_shapes():
+    """Test linalg::doublet<true, false> edge cases where a tile is zero or not allocated."""
+    A_cm = psi4.core.ComplexMatrix("A", [1, 4, 3], [4, 0, 2])
+    B_cm = psi4.core.ComplexMatrix("B", [1, 4, 3], [3, 0, 5])
+
+    result = psi4.core._doublet_aH_b(A_cm, B_cm).to_array()
+
+    assert result[0].shape == (4, 3)
+    assert result[1].shape == (0, 0)
+    assert result[2].shape == (2, 5)
+
+
 # ---------------------------------------------------------------------------
 #  diagonalize
 # ---------------------------------------------------------------------------
