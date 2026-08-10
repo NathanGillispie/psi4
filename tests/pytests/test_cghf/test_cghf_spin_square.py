@@ -47,7 +47,7 @@ def test_cghf_spin_square_helium():
 
 
 def test_cghf_spin_square_nitric_oxide():
-    """NO should be a pure doublet: (.75, 2)."""
+    """NO should be about a doublet: (.75, 2), but it's contaminated."""
     mol = psi4.geometry("""
     0 2
       N
@@ -71,3 +71,27 @@ def test_cghf_spin_square_nitric_oxide():
     assert ss == pytest.approx(0.932, abs=1e-2)
     assert multiplicity == pytest.approx(2.174, abs=1e-2)
 
+
+def test_cghf_spin_square_nitrogen():
+    """N should be about a quartet: (3.75, 4)."""
+    mol = psi4.geometry("""
+    0 4
+      N
+    symmetry c1
+    """)
+    psi4.set_options({
+        "basis": "6-31G",
+        "reference": "cghf",
+        "guess": "core",
+        "scf_type": "direct",
+        "df_scf_guess": False,
+        "e_convergence": 1e-8
+    })
+    calc_e, wfn = psi4.energy("scf", molecule=mol, return_wfn=True)
+
+    assert calc_e == pytest.approx(-54.38500771,abs=2e-8)
+
+    ss, multiplicity = wfn.spin_square()
+
+    assert ss == pytest.approx(3.75, abs=1e-2)
+    assert multiplicity == pytest.approx(4, abs=1e-2)
