@@ -796,7 +796,23 @@ void export_mints(py::module& m) {
              "(name, block_sizes) constructor).")
         .def("product_trace", &ComplexMatrix::product_trace, "other"_a,
              "Replicates einsum('ij,ji->', self, other)")
-        .def("conjT", &ComplexMatrix::conjT, "Returns the conjugate transpose of this ComplexMatrix.");
+        .def("conjT", &ComplexMatrix::conjT, "Returns the conjugate transpose of this ComplexMatrix.")
+        .def("rms", &ComplexMatrix::rms, "Returns sqrt(mean(|z|^2)) over the declared tile grid.")
+        .def("absmax", &ComplexMatrix::absmax, "Returns the maximum |z| over allocated diagonal tiles.");
+
+    m.def("diagonalize", &linalg::diagonalize, "F"_a, "X"_a,
+          "Diagonalize a Hermitian ComplexMatrix F with metric X.\n\n"
+          "Forms Forth = X^H @ F @ X, diagonalizes it with a Hermitian eigensolver,\n"
+          "and returns (eigenvalues: Vector, U^H: ComplexMatrix) where U^H has\n"
+          "eigenvectors as columns.  The caller typically computes MO coefficients\n"
+          "as C = X @ U^H.  X should be real (e.g. S^{-1/2} of the overlap matrix).");
+
+    m.def("_doublet_aH_b",
+          static_cast<ComplexMatrix (*)(const ComplexMatrix&, const ComplexMatrix&)>(
+              &linalg::doublet<true, false>),
+          "A"_a, "B"_a,
+          "Compute A^H @ B (intended: conjugate-transpose of A times B).\n"
+          "Exposed for testing the Einsums gemm conjugation convention.");
 
 #else
     // Type-only stubs so Python monkey-patches and isinstance checks still resolve.
