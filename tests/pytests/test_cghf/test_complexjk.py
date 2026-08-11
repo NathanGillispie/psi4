@@ -402,3 +402,97 @@ def test_complexdirectjk_h2_dimer_screening():
     assert n_schwarz < n_none
     # Without uniqueness, unscreened count is nshell^4
     assert n_none == basis.nshell() ** 4
+
+
+def _h2o_c2v_sto3g():
+    """C2v H2O / STO-3G molecule, orbital basis, and nsopi."""
+    mol = psi4.geometry(
+        """
+        0 1
+        O
+        H 1 0.96
+        H 1 0.96 2 104.5
+        symmetry c2v
+        """
+    )
+    psi4.set_options({"SCF_TYPE": "DIRECT", "SCREENING": "NONE", "DF_SCF_GUESS": False})
+    basis = psi4.core.BasisSet.build(mol, "ORBITAL", "sto-3g")
+    mints = psi4.core.MintsHelper(basis)
+    aotoso = mints.petite_list().aotoso()
+    nirrep = aotoso.nirrep()
+    nsopi = [aotoso.coldim()[h] for h in range(nirrep)]
+    return mol, basis, nsopi, aotoso
+
+
+def test_complexdirectjk_multi_irrep_matches_einsum():
+    """Multi-irrep (C2v) C: J/K via USO2AO/AO2USO match the AO einsum reference.
+
+    Builds a multi-irrep C matrix matching the symmetry of a C2v H2O/STO-3G
+    molecule.  ComplexDirectJK computes J/K in the SO (symmetry-blocked) basis
+    internally (USO2AO → compute → AO2USO).  The test transforms the resulting
+    SO J/K back to the AO basis using the AO2USO matrix and compares against
+    an explicit einsum contraction of the full AO ERI tensor.
+    """
+    mol, basis, nsopi, aotoso = _h2o_c2v_sto3g()
+    nirrep = len(nsopi)
+    nbf = basis.nbf()
+
+    # Build random multi-irrep C with 1 occupied orbital per non-empty irrep.
+    rng = np.random.default_rng(42)
+    occ_per_irrep = [1 if s > 0 else 0 for s in nsopi]
+    C = psi4.core.ComplexMatrix("C", nsopi, occ_per_irrep)
+    for h, view in enumerate(C.array_interface()):
+        if view.shape[1] > 0:
+            view[:] = _random_complex(view.shape, rng)
+
+    jk = psi4.core.ComplexJK.build_JK(basis, basis)
+    jk.initialize()
+    jk.C_clear()
+    jk.C_left_add(C)
+    jk.compute()
+    jk.finalize()
+
+    D_so = jk.D()[0]
+    J_so = jk.J()[0]
+    K_so = jk.K()[0]
+
+    assert D_so.nirrep() == nirrep
+    assert J_so.nirrep() == nirrep
+    assert K_so.nirrep() == nirrep
+
+    # Collect per-irrep U blocks from the AO2USO matrix.
+    U = [np.asarray(aotoso.nph[h]) if nsopi[h] > 0 else None for h in range(nirrep)]
+
+    # Build full AO density from the SO blocks: D_ao = sum_h U_h @ D_so[h] @ U_h^T
+    D_ao = np.zeros((nbf, nbf), dtype=np.complex128)
+    for h in range(nirrep):
+        if nsopi[h] == 0:
+            continue
+        D_ao += U[h] @ D_so.to_array()[h] @ U[h].T
+
+    # Reference J/K in the AO basis via explicit ERI contraction.
+    mints = psi4.core.MintsHelper(basis)
+    I = np.asarray(mints.ao_eri())
+    J_ao_ref = np.einsum("pqrs,rs->pq", I, D_ao, optimize=True)
+    K_ao_ref = np.einsum("pqrs,qs->pr", I, D_ao, optimize=True)
+
+    # Transform the computed SO J/K back to AO.
+    J_ao_test = np.zeros((nbf, nbf), dtype=np.complex128)
+    K_ao_test = np.zeros((nbf, nbf), dtype=np.complex128)
+    for h in range(nirrep):
+        if nsopi[h] == 0:
+            continue
+        J_ao_test += U[h] @ J_so.to_array()[h] @ U[h].T
+        K_ao_test += U[h] @ K_so.to_array()[h] @ U[h].T
+
+    np.testing.assert_allclose(J_ao_test, J_ao_ref, atol=1e-7)
+    np.testing.assert_allclose(K_ao_test, K_ao_ref, atol=1e-7)
+
+    # Sanity: the SO blocks are non-zero (the transform is non-trivial).
+    for h in range(nirrep):
+        if nsopi[h] == 0:
+            continue
+        J_blk = J_so.to_array()[h]
+        assert not np.allclose(J_blk, 0.0)
+        K_blk = K_so.to_array()[h]
+        assert not np.allclose(K_blk, 0.0)

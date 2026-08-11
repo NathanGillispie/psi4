@@ -61,6 +61,9 @@ void ComplexDirectJK::common_init() {
     }
     do_csam_ = (screening_type == "CSAM");
     computed_shells_per_iter_["Quartets"] = {};
+
+    // Set up AO2USO transform 
+    ComplexJK::common_init();
 }
 
 size_t ComplexDirectJK::num_computed_shells() { return num_computed_shells_; }
@@ -83,19 +86,16 @@ void ComplexDirectJK::compute_JK() {
     auto factory = std::make_shared<IntegralFactory>(primary_, primary_, primary_, primary_);
     const int nbf = primary_->nbf();
 
-    for (size_t N = 0; N < D_.size(); N++) {
-        if (D_[N]->nirrep() != 1)
-            throw PSIEXCEPTION("Non-C1 symmetries not allowed with ComplexJK and SCF_TYPE DIRECT");
-
+    for (size_t N = 0; N < D_ao_.size(); N++) {
         if (!(do_J_ && do_K_)) {
             // TODO: figure out later
             throw PSIEXCEPTION("Both J and K must be computed with ComplexJK and SCF_TYPE DIRECT");
         }
 
-        const auto& D_ref = D_[N]->get(0);
+        const auto& D_ref = D_ao_[N]->get(0);
         const int dim = D_ref.dim(0);
-        auto& J_out = J_[N]->get(0);
-        auto& K_out = K_[N]->get(0);
+        auto& J_out = J_ao_[N]->get(0);
+        auto& K_out = K_ao_[N]->get(0);
 
         auto ints = std::shared_ptr<TwoBodyAOInt>(factory->eri());
 
