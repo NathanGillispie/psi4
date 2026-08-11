@@ -8,6 +8,7 @@ import pytest
 
 import psi4
 from addons import using
+import numpy as np
 
 pytestmark = [pytest.mark.psi, pytest.mark.api, pytest.mark.quick, pytest.mark.cghf, *using("einsums")]
 
@@ -73,7 +74,9 @@ def test_cghf_spin_square_nitric_oxide():
 
 
 def test_cghf_spin_square_nitrogen():
-    """N should be about a quartet: (3.75, 4)."""
+    """N should be about a quartet: (3.75, 4).
+    Starting with a UHF guess until stability analysis is implemented.
+    """
     mol = psi4.geometry("""
     0 4
       N
@@ -81,13 +84,42 @@ def test_cghf_spin_square_nitrogen():
     """)
     psi4.set_options({
         "basis": "6-31G",
-        "reference": "cghf",
+        "reference": "uhf",
         "guess": "core",
         "scf_type": "direct",
         "df_scf_guess": False,
-        "e_convergence": 1e-8
     })
-    calc_e, wfn = psi4.energy("scf", molecule=mol, return_wfn=True)
+    _, wfn_uhf = psi4.energy("scf", molecule=mol, return_wfn=True)
+
+    Ca = wfn_uhf.Ca().to_array()
+    Cb = wfn_uhf.Cb().to_array()
+    nso = wfn_uhf.nso()
+    nalpha = wfn_uhf.nalpha()
+    nbeta = wfn_uhf.nbeta()
+    nocc = nalpha + nbeta
+
+    C_guess = np.zeros((2 * nso, nocc), dtype=np.complex128)
+    C_guess[:nso, :nalpha] = Ca[:, :nalpha]
+    C_guess[nso:, nalpha:] = Cb[:, :nbeta]
+
+    # Save as a ComplexWavefunction checkpoint (bare wfn + set_C is sufficient;
+    # from_file / restart_file only needs C and nelec, both available here).
+    psi4.core.clean()
+    save_wfn = psi4.core.ComplexWavefunction(mol,
+        psi4.core.BasisSet.build(mol, "ORBITAL", "6-31G"))
+    save_wfn.set_C(psi4.core.ComplexMatrix.from_array(C_guess, name="C"))
+    checkpoint = "cghf_nitrogen_uhf_guess"
+    save_wfn.to_file(checkpoint)
+
+    psi4.core.clean()
+    psi4.set_options({
+        "basis": "6-31G",
+        "reference": "cghf",
+        "scf_type": "direct",
+        "df_scf_guess": False,
+        "e_convergence": 1e-8,
+    })
+    calc_e, wfn = psi4.energy("scf", molecule=mol, return_wfn=True, restart_file=checkpoint)
 
     assert calc_e == pytest.approx(-54.38500771,abs=2e-8)
 
