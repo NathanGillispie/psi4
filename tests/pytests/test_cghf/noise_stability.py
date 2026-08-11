@@ -206,7 +206,11 @@ def main():
             print(f"{sample_no:3g}  {"N/A":>18}  {str(conv):>5}  {"N/A":>5}  {"N/A":>5}")
             continue
 
-        ss, mult = wfn.spin_square()
+        if isinstance(wfn, psi4.core.ComplexWavefunction):
+            ss, mult = wfn.spin_square()
+        else:
+            ss, mult = -1, -1
+
 
         print(f"{sample_no:3g}  {e:18.10f}  {str(conv):>5}  {ss:5.2f}  {mult:5.2f}")
 

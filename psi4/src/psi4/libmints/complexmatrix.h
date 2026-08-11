@@ -149,6 +149,7 @@ class PSI_API ComplexMatrix {
      * @return SharedComplexMatrix
      */
     static SharedComplexMatrix spin_blocked_from(const Matrix& A);
+    static SharedComplexMatrix spin_blocked_from(const std::shared_ptr<Matrix>& A);
 
     /**
      * Takes an nsopi_-shaped Matrix and copies to two diagonal blocks per
@@ -187,7 +188,7 @@ class PSI_API ComplexMatrix {
     ComplexMatrix(const Matrix& A)
         : tensor_(matrix_to_tiled_tensor(A)) {}
 
-    ComplexMatrix(std::shared_ptr<Matrix> A);
+    ComplexMatrix(const std::shared_ptr<Matrix>& A);
 
     // -- implicit conversion --
 
@@ -346,8 +347,10 @@ namespace linalg {
  */
 
 /**
- *  The einsums::linalg::gemm<bool, bool> call does the transpose (without conjugate)
- *  as of v1.1.3. This explicit function is defined until v2 upgrade.
+ *  Previously, ``einsums::linalg::gemm<bool, bool>`` was used instead of this,
+ *  hence the template arguments. However, linalg::gemm does the transpose
+ *  **without conjugate** as of (v1.1.3). Substituting direct blas call until v2
+ *  upgrade. Don't worry, I have unit tests for it.
  */
 template <bool AdjoinA, bool AdjoinB>
 ComplexMatrix doublet(const ComplexMatrix& A, const ComplexMatrix& B) {

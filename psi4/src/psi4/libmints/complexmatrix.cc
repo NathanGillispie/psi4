@@ -50,8 +50,10 @@ namespace psi {
 
 #ifdef USING_Einsums
 
-// Matrix is an incomplete type in header. Define this constructor here.
-ComplexMatrix::ComplexMatrix(std::shared_ptr<Matrix> A)
+// Dereferencing a SharedMatrix requires Matrix to be fully qualified. To save
+// compilation time, complexmatrix.h includes don't require matrix.h as well.
+// Thus, SharedMatrix dereference is put here where matrix.h is included.
+ComplexMatrix::ComplexMatrix(const std::shared_ptr<Matrix>& A)
     : ComplexMatrix(*A) {}
 
 // Static helper for Matrix-valued constructor.
@@ -98,6 +100,10 @@ SharedComplexMatrix ComplexMatrix::spin_blocked_from(const Matrix& A) {
     }
 
     return B;
+}
+
+SharedComplexMatrix ComplexMatrix::spin_blocked_from(const SharedMatrix& A) {
+    return ComplexMatrix::spin_blocked_from(*A);
 }
 
 // Same as above, but you pass in the SharedComplexMatrix.

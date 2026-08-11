@@ -36,9 +36,6 @@
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/pointgrp.h"
 #include "psi4/libmints/complexmatrix.h"
-// TODO: find a way to remove include by passing in SharedMatrix to ComplexMatrix
-// callers, rather than dereferencing SharedMatrix type here.
-#include "psi4/libmints/matrix.h"
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libpsi4util/process.h"
 #include "psi4/libfock/ComplexJK.h"
@@ -249,8 +246,8 @@ void CGHF::form_H() {
     SharedMatrix T_real = mintshelper()->so_kinetic();
     SharedMatrix V_real = mintshelper()->so_potential();
 
-    T_ = ComplexMatrix::spin_blocked_from(*T_real);
-    V_ = ComplexMatrix::spin_blocked_from(*V_real);
+    T_ = ComplexMatrix::spin_blocked_from(T_real);
+    V_ = ComplexMatrix::spin_blocked_from(V_real);
 
     if (debug_ > 2) T_->print("outfile");
     if (debug_ > 2) V_->print("outfile");
@@ -306,8 +303,8 @@ void CGHF::form_Shalf() {
     }
 
     // Create the correctly sized complex quantities now.
-    S_ = ComplexMatrix::spin_blocked_from(*S_temp);
-    X_ = ComplexMatrix::spin_blocked_from(*X_temp);
+    S_ = ComplexMatrix::spin_blocked_from(S_temp);
+    X_ = ComplexMatrix::spin_blocked_from(X_temp);
 }
 
 void CGHF::guess() {
@@ -356,7 +353,7 @@ void CGHF::guess() {
     } else if (guess_type == "CORE") {
         if (print_) outfile->Printf("  SCF Guess: Core (One-Electron) Hamiltonian.\n\n");
 
-        (*F_) = (*H_); // Try the core Hamiltonian as the Fock Matrix
+        F_->add(*H_); // Try the core Hamiltonian as the Fock Matrix
         form_initial_C(); // calls only CGHF::form_C()
         form_D();
         guess_E = compute_initial_E();
@@ -392,7 +389,7 @@ void CGHF::compute_SAD_guess() {
     guess->compute_guess();
 
     // Spin-restricted SAD: Da == Db → block-diagonal spinor density [[Da,0],[0,Da]]
-    D_ = ComplexMatrix::spin_blocked_from(*guess->Da());
+    D_ = ComplexMatrix::spin_blocked_from(guess->Da());
 
     // Embed Cholesky factors as temporary occupied spinors for form_G on SAD iter 0:
     // Ca in alpha spatial block (cols [0, nchol)), Cb in beta block (cols [nchol, 2*nchol)).
