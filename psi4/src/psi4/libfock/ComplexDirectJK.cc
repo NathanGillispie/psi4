@@ -56,9 +56,9 @@ void ComplexDirectJK::common_init() {
     }
 
     auto screening_type = options_.get_str("SCREENING");
-    if (screening_type == "DENSITY") {
-        throw PSIEXCEPTION("ComplexDirectJK does not support SCREENING=DENSITY yet.");
-    }
+    // if (screening_type == "DENSITY") {
+    //     throw PSIEXCEPTION("ComplexDirectJK does not support SCREENING=DENSITY yet.");
+    // }
     do_csam_ = (screening_type == "CSAM");
     computed_shells_per_iter_["Quartets"] = {};
 
@@ -86,7 +86,10 @@ void ComplexDirectJK::compute_JK() {
     auto factory = std::make_shared<IntegralFactory>(primary_, primary_, primary_, primary_);
     const int nbf = primary_->nbf();
 
-    for (size_t N = 0; N < D_ao_.size(); N++) {
+    auto ints = std::shared_ptr<TwoBodyAOInt>(factory->eri());
+    if (options_.get_str("SCREENING") == "DENSITY") ints->update_density_complex(D_);
+
+    for (size_t N = 0; N < D_.size(); N++) {
         if (!(do_J_ && do_K_)) {
             // TODO: figure out later
             throw PSIEXCEPTION("Both J and K must be computed with ComplexJK and SCF_TYPE DIRECT");
@@ -96,8 +99,6 @@ void ComplexDirectJK::compute_JK() {
         const int dim = D_ref.dim(0);
         auto& J_out = J_ao_[N]->get(0);
         auto& K_out = K_ao_[N]->get(0);
-
-        auto ints = std::shared_ptr<TwoBodyAOInt>(factory->eri());
 
         if (dim == nbf) {
             // Plain (non spin-blocked) complex density

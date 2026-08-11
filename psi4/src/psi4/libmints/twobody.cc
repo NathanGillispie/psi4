@@ -34,6 +34,7 @@
 #include "psi4/libmints/basisset.h"
 #include "psi4/libmints/molecule.h"
 #include "psi4/libpsi4util/process.h"
+#include "psi4/libmints/complexmatrix.h"
 
 #include "libint2/shell.h"
 
@@ -158,6 +159,45 @@ void TwoBodyAOInt::update_density(const std::vector<SharedMatrix>& D) {
 
 }
 
+// Complex generalization of above method
+void TwoBodyAOInt::update_density_complex(const std::vector<std::shared_ptr<ComplexMatrix>>& D) {
+    if (max_dens_shell_pair_.size() == 0) {
+        max_dens_shell_pair_.resize(D.size());
+        for (int i = 0; i < D.size(); i++) {
+            max_dens_shell_pair_[i].resize(nshell_ * nshell_);
+        }
+    }
+
+    timer_on("Update Density");
+#pragma omp parallel for
+    for (int M = 0; M < nshell_; M++) {
+        for (int N = M; N < nshell_; N++) {
+            int m_start = bs1_->shell(M).function_index();
+            int num_m = bs1_->shell(M).nfunction();
+
+            int n_start = bs1_->shell(N).function_index();
+            int num_n = bs1_->shell(N).nfunction();
+
+            for (int i = 0; i < D.size(); i++) {
+                double max_dens = 0.0;
+                // const int nso = D[i]->rowspi(0) / 2;
+                for (int m = m_start; m < m_start + num_m; m++) {
+                    for (int n = n_start; n < n_start + num_n; n++) {
+                        // alpha-alpha density only! TODO: figure out correct formula
+                        // + how to account for spin-blocked as well as regular complex
+                        // density matrices!
+                        max_dens = std::max(max_dens, std::abs(D[i]->get(0, m, n)));
+                                            // + std::abs(D[i]->get(0, m+nso, n+nso)));
+                    }
+                }
+                max_dens_shell_pair_[i][M * nshell_ + N] = max_dens;
+                if (M != N) max_dens_shell_pair_[i][N * nshell_ + M] = max_dens;
+            }
+
+        }
+    }
+    timer_off("Update Density");
+}
 
 double TwoBodyAOInt::shell_pair_max_density(int M, int N) const {
     if (max_dens_shell_pair_.empty()) {

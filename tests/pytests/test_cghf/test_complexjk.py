@@ -404,6 +404,47 @@ def test_complexdirectjk_h2_dimer_screening():
     assert n_none == basis.nshell() ** 4
 
 
+def test_complexdirectjk_h2_dimer_density_screening():
+    """H2···H2 at ~10 Å: Schwarz screening must match the full einsum reference and skip work."""
+    mol = psi4.geometry(
+        """
+        0 1
+        H  0.0  0.0   0.00
+        H  0.0  0.0   0.74
+        H  0.0  0.0  10.00
+        H  0.0  0.0  10.74
+        units angstrom
+        symmetry c1
+        """
+    )
+
+    psi4.set_options({"SCF_TYPE": "DIRECT", "SCREENING": "NONE", "DF_SCF_GUESS": True})
+    basis = psi4.core.BasisSet.build(mol, "ORBITAL", "sto-3g")
+    assert mol.natom() == 4
+    assert basis.nshell() == 4
+
+    nbf = basis.nbf()
+    rng = np.random.default_rng(19)
+    C_arr = _random_complex((nbf, 2), rng)
+    D_ref = C_arr @ C_arr.conj().T
+    J_ref, K_ref = _jk_reference(basis, D_ref)
+
+    jk_none = _run_complex_jk(basis, C_arr, screening="NONE", bench=True)
+    n_none = jk_none.computed_shells_per_iter()["Quartets"][-1]
+
+    jk_dens = _run_complex_jk(basis, C_arr, screening="DENSITY", ints_tol=1.0e-10, bench=True)
+    n_dens = jk_dens.computed_shells_per_iter()["Quartets"][-1]
+
+    np.testing.assert_allclose(jk_dens.J()[0].to_array(), J_ref, atol=1e-8)
+    np.testing.assert_allclose(jk_dens.K()[0].to_array(), K_ref, atol=1e-8)
+    assert n_dens < n_none
+    # Without uniqueness, unscreened count is nshell^4
+    assert n_none == basis.nshell() ** 4
+
+#    --------------------
+#    |   Non-C1 tests   |
+#    --------------------
+
 def _h2o_c2v_sto3g():
     """C2v H2O / STO-3G molecule, orbital basis, and nsopi."""
     mol = psi4.geometry(

@@ -57,6 +57,7 @@ class IntegralFactory;
 class AOShellCombinationsIterator;
 class BasisSet;
 class GaussianShell;
+class ComplexMatrix;
 
 /*! \ingroup MINTS
  *  \class TwoBodyInt
@@ -210,6 +211,8 @@ class PSI_API TwoBodyAOInt {
     bool sieve_initialized() { return sieve_initialized_; };
     /// Update max_dens_shell_pair_ given an updated density matrix (Haser 1989)
     void update_density(const std::vector<SharedMatrix>& D);
+    /// Update max_dens_shell_pair_ given an updated complex density matrix
+    void update_density_complex(const std::vector<std::shared_ptr<ComplexMatrix>>& D);
     /// Ask the built in sieve whether this quartet contributes
     bool shell_significant(int M, int N, int R, int S) const { return sieve_impl_(M, N, R, S); };
     /// Are any of the quartets within a given shellpair list significant
