@@ -44,6 +44,7 @@
 #endif
 #include "psi4/libpsi4util/exception.h"
 #include "psi4/libmints/matrix.h"
+#include "psi4/libmints/complexmatrix.h"
 
 namespace psi {
 
@@ -57,7 +58,6 @@ class IntegralFactory;
 class AOShellCombinationsIterator;
 class BasisSet;
 class GaussianShell;
-class ComplexMatrix;
 
 /*! \ingroup MINTS
  *  \class TwoBodyInt
@@ -211,8 +211,10 @@ class PSI_API TwoBodyAOInt {
     bool sieve_initialized() { return sieve_initialized_; };
     /// Update max_dens_shell_pair_ given an updated density matrix (Haser 1989)
     void update_density(const std::vector<SharedMatrix>& D);
+#ifdef USING_Einsums
     /// Update max_dens_shell_pair_ given an updated complex density matrix
-    void update_density_complex(const std::vector<std::shared_ptr<ComplexMatrix>>& D);
+    void update_density_complex(const std::vector<SharedComplexMatrix>& D);
+#endif
     /// Ask the built in sieve whether this quartet contributes
     bool shell_significant(int M, int N, int R, int S) const { return sieve_impl_(M, N, R, S); };
     /// Are any of the quartets within a given shellpair list significant

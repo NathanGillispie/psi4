@@ -34,7 +34,6 @@
 #include "psi4/libmints/basisset.h"
 #include "psi4/libmints/molecule.h"
 #include "psi4/libpsi4util/process.h"
-#include "psi4/libmints/complexmatrix.h"
 
 #include "libint2/shell.h"
 
@@ -159,6 +158,7 @@ void TwoBodyAOInt::update_density(const std::vector<SharedMatrix>& D) {
 
 }
 
+#ifdef USING_Einsums
 // Complex generalization of above method
 void TwoBodyAOInt::update_density_complex(const std::vector<std::shared_ptr<ComplexMatrix>>& D) {
     if (max_dens_shell_pair_.size() == 0) {
@@ -198,6 +198,7 @@ void TwoBodyAOInt::update_density_complex(const std::vector<std::shared_ptr<Comp
     }
     timer_off("Update Density");
 }
+#endif
 
 double TwoBodyAOInt::shell_pair_max_density(int M, int N) const {
     if (max_dens_shell_pair_.empty()) {
