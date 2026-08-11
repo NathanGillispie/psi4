@@ -21,6 +21,7 @@ psi4.set_options({
     "basis": "6-31G",
     "reference": "uhf",
     "scf_type": "direct",
+    "orbital_optimizer_package": "internal",
     "e_convergence": 1e-8,
 })
 _, wfn_uhf = psi4.energy("scf", molecule=mol, return_wfn=True)
