@@ -87,7 +87,7 @@ void ComplexDirectJK::compute_JK() {
     const int nbf = primary_->nbf();
 
     auto ints = std::shared_ptr<TwoBodyAOInt>(factory->eri());
-    if (options_.get_str("SCREENING") == "DENSITY") ints->update_density_complex(D_);
+    if (options_.get_str("SCREENING") == "DENSITY") ints->update_density_complex(D_ao_);
 
     for (size_t N = 0; N < D_.size(); N++) {
         if (!(do_J_ && do_K_)) {
