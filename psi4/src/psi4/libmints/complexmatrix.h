@@ -86,7 +86,7 @@ ComplexMatrix triplet(const ComplexMatrix&, const ComplexMatrix&, const ComplexM
 SharedComplexMatrix triplet(const SharedComplexMatrix&, const SharedComplexMatrix&, const SharedComplexMatrix&,
                             bool = false, bool = false, bool = false);
 
-std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(ComplexMatrix& F_);
+std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(const ComplexMatrix& F_);
 
 std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(const ComplexMatrix& F_, const ComplexMatrix& X_);
 

@@ -307,7 +307,8 @@ SharedComplexMatrix ComplexMatrix::conjT() const {
 
 namespace linalg {
 
-std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(ComplexMatrix& Forth) {
+std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize(const ComplexMatrix& F_) {
+    ComplexMatrix Forth = F_; // copy as to not destroy original F_
     Dimension nmopi_ = Forth.colspi();
     auto epsilon_ = std::make_shared<Vector>("Orbital energies", nmopi_);
 
