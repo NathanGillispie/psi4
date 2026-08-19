@@ -800,7 +800,14 @@ void export_mints(py::module& m) {
         .def("rms", &ComplexMatrix::rms, "Returns sqrt(mean(|z|^2)) over the declared tile grid.")
         .def("absmax", &ComplexMatrix::absmax, "Returns the maximum |z| over allocated diagonal tiles.");
 
-    m.def("diagonalize", &linalg::diagonalize, "F"_a, "X"_a,
+    m.def("diagonalize", static_cast<std::tuple<SharedVector, SharedComplexMatrix>
+          (*)(ComplexMatrix&)>(&linalg::diagonalize), "Forth"_a,
+          "Diagonalize a Hermitian ComplexMatrix Forth.\n\n"
+          "Uses a Hermitian eigensolver, and returns (eigenvalues: Vector, U^H: ComplexMatrix) "
+          "where U^H has eigenvectors as columns.");
+
+    m.def("diagonalize", static_cast<std::tuple<SharedVector, SharedComplexMatrix>
+          (*)(const ComplexMatrix&, const ComplexMatrix&)>(&linalg::diagonalize), "F"_a, "X"_a,
           "Diagonalize a Hermitian ComplexMatrix F with metric X.\n\n"
           "Forms Forth = X^H @ F @ X, diagonalizes it with a Hermitian eigensolver,\n"
           "and returns (eigenvalues: Vector, U^H: ComplexMatrix) where U^H has\n"
