@@ -823,7 +823,7 @@ void export_mints(py::module& m) {
             "A"_a, "B"_a, "C"_a, "AdjoinA"_a = false, "AdjoinB"_a = false, "AdjoinC"_a = false,
             "Compute A @ B @ C with optional boolean arguments to conjugate transpose "
             "respective matrices.")
-        .def_static("expm", &linalg::expm, "A"_a, "c"_a,
+        .def_static("expm", &linalg::expm, "A"_a, "c"_a = std::complex<double>{1},
             "Matrix exponential for a Hermitian ``A`` and optional prefactor ``c``.\n\n"
             "Computes :math:`e^{cA}` using diagonalization. Does **not** check for Hermiticity.");
 

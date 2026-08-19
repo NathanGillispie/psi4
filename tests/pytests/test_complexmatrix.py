@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import scipy
 
 import psi4
 from addons import using
@@ -440,7 +441,7 @@ def test_complexmatrix_conjT_multi_block():
 
 def test_complexmatrix_conjT_roundtrip():
     """(A^H)^H == A."""
-    rng = np.random.default_rng(31)
+    rng = np.random.default_rng(1684630636)
     n = 3
     ref = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
 
@@ -456,8 +457,8 @@ def test_complexmatrix_conjT_roundtrip():
 
 @pytest.mark.smoke
 def test_complexmatrix_expm_smoke():
-    """exp(0) = 1"""
-    rng = np.random.default_rng(1492)
+    """Test that expm(0) == Id."""
+    rng = np.random.default_rng(405597024094)
     n = 6
     ref = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
     ref += ref.conj().T # Make Hermitian
@@ -467,3 +468,36 @@ def test_complexmatrix_expm_smoke():
     id = np.eye(n).astype(complex)
 
     np.testing.assert_allclose(result, id, atol=1e-14)
+
+
+def test_complexmatrix_expm():
+    """Test expm against scipy implementation."""
+    rng = np.random.default_rng(1819241594)
+    n = 6
+    Anp = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
+    Anp += Anp.conj().T # Make Hermitian
+
+    A = psi4.core.ComplexMatrix.from_array(Anp, name="A")
+    result = psi4.core.ComplexMatrix.expm(A).to_array()
+    ref = scipy.linalg.expm(Anp)
+
+    np.testing.assert_allclose(result, ref, atol=1e-14)
+
+
+# @pytest.mark.long
+def test_complexmatrix_expm_unitary():
+    """Assert that exp(i*A) is unitary."""
+    rng = np.random.default_rng(1819241594)
+    n = 6
+    Anp = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
+    Anp += Anp.conj().T # Make Hermitian
+
+    A = psi4.core.ComplexMatrix.from_array(Anp, name="A")
+    result = psi4.core.ComplexMatrix.expm(A, 1j).to_array()
+
+    test = result @ result.conj().T
+    id = np.eye(n).astype(complex)
+
+    np.testing.assert_allclose(test, id, atol=1e-14)
+
+
