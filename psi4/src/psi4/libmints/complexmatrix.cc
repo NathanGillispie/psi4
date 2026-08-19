@@ -408,6 +408,24 @@ SharedComplexMatrix triplet(const SharedComplexMatrix& A, const SharedComplexMat
     return std::make_shared<ComplexMatrix>(std::move(triplet(*A, *B, *C, AdjoinA, AdjoinB, AdjoinC)));
 }
 
+SharedComplexMatrix expm(const ComplexMatrix& A, std::complex<double> c) {
+    // A == U.H @ np.diag(evals) @ U
+    auto [evals, Uh] = diagonalize(A);
+    const auto nirrep = A.nirrep();
+
+    auto U = Uh->conjT();
+
+    for (auto h = 0; h < nirrep; h++) {
+        const auto dim = evals->dim(h);
+        for (auto i = 0; i < dim; i++) {
+            auto f = std::exp(c * evals->get(h, i));
+            einsums::linear_algebra::scale_row(i, f, &U->get(h));
+        }
+    }
+
+    return doublet(Uh, U);
+}
+
 }  // namespace linalg
 
 #endif  // USING_Einsums

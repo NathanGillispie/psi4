@@ -449,3 +449,21 @@ def test_complexmatrix_conjT_roundtrip():
 
     np.testing.assert_allclose(roundtrip.to_array(), ref, atol=1e-14)
     assert roundtrip.name == "A^H^H"
+
+# ---------------------------------------------------------------------------
+#  Expm
+# ---------------------------------------------------------------------------
+
+@pytest.mark.smoke
+def test_complexmatrix_expm_smoke():
+    """exp(0) = 1"""
+    rng = np.random.default_rng(1492)
+    n = 6
+    ref = rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))
+    ref += ref.conj().T # Make Hermitian
+
+    mat = psi4.core.ComplexMatrix.from_array(ref, name="A")
+    result = psi4.core.ComplexMatrix.expm(mat, 0).to_array()
+    id = np.eye(n).astype(complex)
+
+    np.testing.assert_allclose(result, id, atol=1e-14)

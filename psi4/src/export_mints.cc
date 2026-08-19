@@ -822,7 +822,10 @@ void export_mints(py::module& m) {
                 const SharedComplexMatrix&, bool, bool, bool)>(&linalg::triplet),
             "A"_a, "B"_a, "C"_a, "AdjoinA"_a = false, "AdjoinB"_a = false, "AdjoinC"_a = false,
             "Compute A @ B @ C with optional boolean arguments to conjugate transpose "
-            "respective matrices.");
+            "respective matrices.")
+        .def_static("expm", &linalg::expm, "A"_a, "c"_a,
+            "Matrix exponential for a Hermitian ``A`` and optional prefactor ``c``.\n\n"
+            "Computes :math:`e^{cA}` using diagonalization. Does **not** check for Hermiticity.");
 
 #else
     // Type-only stubs so Python monkey-patches and isinstance checks still resolve.
