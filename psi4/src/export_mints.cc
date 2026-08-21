@@ -774,7 +774,9 @@ void export_mints(py::module& m) {
         .def("coldim", static_cast<Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::colspi),
              py::return_value_policy::move, "Per-irrep column tile sizes as a Dimension.")
         .def("array_interface", &tiled_tensor_array_interface, py::return_value_policy::reference_internal,
-             "List of per-irrep diagonal-tile NumPy views sharing the tensor's memory.")
+             "List of per-irrep diagonal-tile NumPy views sharing the tensor's memory. "
+             "Views are mutable aliases and retain the parent ComplexMatrix, but are invalid after "
+             "zero() or any operation that destroys or replaces tile storage.")
         .def_property("name", [](const ComplexMatrix& m) { return m.name(); },
                       [](ComplexMatrix& m, const std::string& name) { m.set_name(name); },
                       "The name of this ComplexMatrix.")

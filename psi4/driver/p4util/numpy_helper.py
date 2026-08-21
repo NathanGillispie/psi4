@@ -626,8 +626,12 @@ def _complexmatrix_to_array(
     """
     Converts a :class:`~psi4.core.ComplexMatrix` (einsums TiledTensor) to a NumPy
     array via its per-tile ``array_interface`` views. Returns a single 2D array
-    for a one-block (C1) tensor, otherwise a list of per-block arrays. Copies
-    unless ``copy=False``.
+    for a one-block (C1) tensor, otherwise a list of per-block arrays.
+
+    ``copy=True`` returns independent arrays. ``copy=False`` returns mutable
+    aliases of the ComplexMatrix storage; the arrays retain the parent
+    ComplexMatrix, but their data is invalid after ``zero()`` or any other
+    operation that destroys or replaces tile storage.
     """
     views = self.array_interface()
     if self.nirrep() == 1:
