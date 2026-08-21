@@ -100,10 +100,14 @@ target_link_libraries(expm_bench
 # in the transitive link interface, which can land the backend's LAPACK library
 # after conda's openblas (pulled in via libambit & co.), letting openblas win
 # symbol interposition. Force the backend's LAPACK library to the very front of
-# the link line with --no-as-needed so it becomes the first DT_NEEDED.
+# the link line with --no-as-needed so it becomes the first DT_NEEDED. This
+# matters for core.so too: python resolves its undefined LAPACK symbols against
+# its own dependency order before the global scope, so a late mkl_rt would be
+# shadowed by the openblas numpy loads.
 get_target_property(_backend_lapack tgt::lapk INTERFACE_LINK_LIBRARIES)
 if(_backend_lapack)
     target_link_options(expm_bench PRIVATE "-Wl,--no-as-needed;${_backend_lapack};-Wl,--as-needed")
+    target_link_options(core PRIVATE "-Wl,--no-as-needed;${_backend_lapack};-Wl,--as-needed")
 endif()
 unset(_backend_lapack)
 
