@@ -770,11 +770,9 @@ void export_mints(py::module& m) {
              "Construct a ComplexMatrix with diagonal tiles of shape (row_sizes[h], col_sizes[h]).")
         .def("nirrep", [](const ComplexMatrix& m) { return m.nirrep(); }, "Returns number of tiles")
         .def("rowdim", static_cast<Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::rowspi),
-             py::return_value_policy::copy,
-             "Per-irrep row tile sizes as a Dimension (C1 returns size-1 Dimension).")
+             py::return_value_policy::move, "Per-irrep row tile sizes as a Dimension (C1 returns size-1 Dimension).")
         .def("coldim", static_cast<Dimension (ComplexMatrix::*)() const>(&ComplexMatrix::colspi),
-             py::return_value_policy::copy,
-             "Per-irrep column tile sizes as a Dimension.")
+             py::return_value_policy::move, "Per-irrep column tile sizes as a Dimension.")
         .def("array_interface", &tiled_tensor_array_interface, py::return_value_policy::reference_internal,
              "List of per-irrep diagonal-tile NumPy views sharing the tensor's memory.")
         .def_property("name", [](const ComplexMatrix& m) { return m.name(); },
