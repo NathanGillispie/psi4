@@ -22,7 +22,12 @@ endif()
                                               # 3.2: continue()
                                               # 3.1: CMAKE_CXX_STANDARD, BUILD_ALWAYS
 
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build.")  # foil Ninja Debug on Windows
+set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build.")  # foil Ninja Debug on Windows
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer")
+# BLAS/LAPACK backend is a configure-time choice: pass
+#   -DBLAS_LIBRARIES=... -DLAPACK_LIBRARIES=... [-DBLAS_INCLUDE_DIRS=...] [-DLAPACK_INCLUDE_DIRS=...]
+# (see the "Detecting BLAS/LAPACK" comment block below). Use devtools/backend.sh
+# to configure per-backend build dirs without hand-editing this file.
 
 project(psi4
         LANGUAGES C CXX)

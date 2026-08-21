@@ -78,6 +78,35 @@ target_link_libraries(core
     tgt::lapack # OpenMP flags to core.cc
   )
 
+# Standalone benchmark for psi::linalg::expm. Links the same static module set
+# as core (without --whole-archive, so only the expm closure is pulled), plus a
+# tiny stubs TU for the runtime globals core.cc would otherwise provide. No
+# Python dependency: runnable directly under perf/strace.
+add_executable(expm_bench
+  expm_bench.cc
+  expm_bench_stubs.cc
+)
+target_link_libraries(expm_bench
+  PRIVATE
+    # tgt::lapack first so the configured backend's BLAS/LAPACK libraries land
+    # first in DT_NEEDED and win ELF symbol interposition over any BLAS/LAPACK
+    # pulled in transitively by add-on libraries (e.g. conda openblas via ambit).
+    tgt::lapack
+    ${psi4_binmodules}
+    ${psi4_libmodules}
+)
+
+# CMake expands tgt::lapack's libraries at the position of the *last* reference
+# in the transitive link interface, which can land the backend's LAPACK library
+# after conda's openblas (pulled in via libambit & co.), letting openblas win
+# symbol interposition. Force the backend's LAPACK library to the very front of
+# the link line with --no-as-needed so it becomes the first DT_NEEDED.
+get_target_property(_backend_lapack tgt::lapk INTERFACE_LINK_LIBRARIES)
+if(_backend_lapack)
+    target_link_options(expm_bench PRIVATE "-Wl,--no-as-needed;${_backend_lapack};-Wl,--as-needed")
+endif()
+unset(_backend_lapack)
+
 if(Fortran_ENABLED AND CMAKE_Fortran_COMPILER_ID MATCHES Intel)
   # Enable call to for_rtl_init_() which is required if using the
   # Intel fortran compiler
