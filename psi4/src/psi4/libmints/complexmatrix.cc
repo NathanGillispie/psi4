@@ -44,6 +44,27 @@
 
 #ifdef USING_Einsums
 #include <Einsums/TensorAlgebra.hpp>
+
+// Raw LAPACK interface for ZHEEVR (Hermitian expert driver, MRRR algorithm),
+// used by linalg::diagonalize() below. Declared locally instead of in
+// libqt/lapack_intfc.h, which only wraps the real (D/S) LAPACK routines.
+// When building with MKL (USING_LAPACK_MKL) plus OpenOrbitalOptimizer, the
+// <mkl.h> pulled in by complexmatrix.h already declares the Fortran zheevr_
+// (with MKL_Complex16* args), so only declare it ourselves otherwise.
+#if !defined(USING_OpenOrbitalOptimizer) || !defined(USING_LAPACK_MKL)
+extern "C" void zheevr_(char *jobz, char *range, char *uplo, int *n, std::complex<double> *a, int *lda, double *vl,
+                        double *vu, int *il, int *iu, double *abstol, int *m, double *w, std::complex<double> *z,
+                        int *ldz, int *isuppz, std::complex<double> *work, int *lwork, double *rwork, int *lrwork,
+                        int *iwork, int *liwork, int *info);
+#endif
+
+// MKL_Complex16 (mkl_types.h, via <mkl.h>) is ABI-identical to
+// std::complex<double>; adapt the complex pointers to the active declaration.
+#if defined(USING_OpenOrbitalOptimizer) && defined(USING_LAPACK_MKL)
+inline MKL_Complex16 *zheevr_cplx(std::complex<double> *p) { return reinterpret_cast<MKL_Complex16 *>(p); }
+#else
+inline std::complex<double> *zheevr_cplx(std::complex<double> *p) { return p; }
+#endif
 #endif
 
 namespace psi {
@@ -322,8 +343,57 @@ std::tuple<std::shared_ptr<Vector>, SharedComplexMatrix> diagonalize_in_place(Co
         evals.zero();
 
         // C' = eig(F')
-        // Hermitian eigensolver one block at a time
-        einsums::linear_algebra::heev<true>(&Forth.get(h), &evals);
+        // Hermitian eigensolver one block at a time. Raw LAPACK zheevr_
+        // (expert driver, MRRR) rather than einsums::linear_algebra::heev,
+        // which only wraps plain zheev: that routine is threaded under MKL but
+        // serial in OpenBLAS/AOCL, so the raw expert driver gives a fairer
+        // cross-vendor benchmark and reaches the backend's own code directly.
+        auto &block = Forth.get(h);
+        int n = nmopi_[h];
+        int lda = static_cast<int>(block.stride(0));
+        char jobz = 'V', range = 'A', uplo = 'U';
+        double vl = 0.0, vu = 0.0;  // unused for RANGE='A'
+        int il = 1, iu = n;         // unused for RANGE='A'
+        double abstol = 0.0;        // 0 -> default (EPS * ||T||) tolerance
+        int nevals = 0;             // out: number of eigenvalues found
+        double *w = evals.data();
+        std::vector<std::complex<double>> z(n * n);  // out: eigenvectors, column-major
+        int ldz = n;
+        std::vector<int> isuppz(2 * n);  // unreferenced for RANGE='A'; kept for safety
+        int info = 0;
+
+        // Workspace query (LWORK = LRWORK = LIWORK = -1 together), then the real
+        // call. Querying keeps the buffer sizes portable across vendors.
+        int lwork = -1, lrwork = -1, liwork = -1;
+        std::complex<double> work_query[1];
+        double rwork_query[1];
+        int iwork_query[1];
+        zheevr_(&jobz, &range, &uplo, &n, zheevr_cplx(block.data()), &lda, &vl, &vu, &il, &iu, &abstol, &nevals, w,
+                zheevr_cplx(z.data()), &ldz, isuppz.data(), zheevr_cplx(work_query), &lwork, rwork_query, &lrwork,
+                iwork_query, &liwork, &info);
+        if (info != 0) throw PSIEXCEPTION("CGHF diagonalize: zheevr_ workspace query failed");
+        lwork = static_cast<int>(work_query[0].real());
+        lrwork = static_cast<int>(rwork_query[0]);
+        liwork = iwork_query[0];
+
+        std::vector<std::complex<double>> work(lwork);
+        std::vector<double> rwork(lrwork);
+        std::vector<int> iwork(liwork);
+        zheevr_(&jobz, &range, &uplo, &n, zheevr_cplx(block.data()), &lda, &vl, &vu, &il, &iu, &abstol, &nevals, w,
+                zheevr_cplx(z.data()), &ldz, isuppz.data(), zheevr_cplx(work.data()), &lwork, rwork.data(), &lrwork,
+                iwork.data(), &liwork, &info);
+        if (info != 0) throw PSIEXCEPTION("CGHF diagonalize: zheevr_ failed!");
+        if (nevals != n) throw PSIEXCEPTION("CGHF diagonalize: zheevr_ returned the wrong number of eigenvalues");
+
+        // zheevr_ writes the eigenvectors Q (of the column-major view V = block^T)
+        // into z. LAPACK stored them column-major, so z[i + j*n] = Q[i][j], and the
+        // row-major block must hold Q^T (block(i,j) = Q[j][i]) so that the conjT()
+        // below yields the same eigenvector matrix as the einsums heev path.
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                block(i, j) = z[j + i * n];
+            }
+        }
 
         double last_value = - std::numeric_limits<double>::infinity();
         for (int m = 0; m < nmopi_[h]; m++) {
