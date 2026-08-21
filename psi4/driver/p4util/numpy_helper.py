@@ -633,7 +633,7 @@ def _complexmatrix_to_array(
     ComplexMatrix, but their data is invalid after ``zero()`` or any other
     operation that destroys or replaces tile storage.
     """
-    views = self.array_interface()
+    views = self.array_interface() if not copy else self.array_interface_readonly()
     if self.nirrep() == 1:
         return np.array(views[0]) if copy else np.asarray(views[0])
     return [np.array(v) if copy else np.asarray(v) for v in views]
