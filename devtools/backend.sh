@@ -22,15 +22,19 @@
 #              downloads). libiomp5 is required at link time by Psi4's
 #              FindMathOpenMP; it is searched in the MKL dir, then the active
 #              env, then /opt/miniconda3 (base), then other conda envs.
-#   openblas - conda OpenBLAS from the active env.
+#   openblas - conda OpenBLAS from the active env. DEFAULT backend.
 #
 # Examples:
 #   conda activate p4addons
+#   devtools/backend.sh build                       # -> objdir_p4addons (openblas)
 #   devtools/backend.sh build mkl                   # -> objdir_p4addons_mkl
 #   devtools/backend.sh build openblas objdir_ob    # custom build dir
 #   devtools/backend.sh env mkl                     # run with these exports
 # =============================================================================
 set -euo pipefail
+
+# Backend chosen when none is given. Override with PSI4_DEFAULT_BACKEND.
+DEFAULT_BACKEND="${PSI4_DEFAULT_BACKEND:-openblas}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -68,8 +72,18 @@ resolve_mkl() {
         mkl_libdir="$(ls -d "$pkgs"/mkl-[0-9]*/lib 2>/dev/null | sort -V | tail -1 || true)"
         mkl_incdir="$(ls -d "$pkgs"/mkl-include-[0-9]*/include 2>/dev/null | sort -V | tail -1 || true)"
     fi
+    if [[ -z "$mkl_libdir" || ! -f "$mkl_libdir/libmkl_rt.so" ]]; then
+        # last resort: any other conda env with MKL installed (e.g. psidev)
+        for d in "$HOME"/.conda/envs/*/lib; do
+            if [[ -f "$d/libmkl_rt.so" ]]; then
+                mkl_libdir="$d"
+                [[ -z "$mkl_incdir" && -f "${d%/lib}/include/mkl.h" ]] && mkl_incdir="${d%/lib}/include"
+                break
+            fi
+        done
+    fi
     [[ -n "$mkl_libdir" && -f "$mkl_libdir/libmkl_rt.so" ]] \
-        || die "no MKL found (looked in active env and ~/.conda/pkgs for libmkl_rt.so)"
+        || die "no MKL found (looked in active env, ~/.conda/pkgs, and other conda envs)"
     BLAS_LIB="$mkl_libdir/libmkl_rt.so"
     LAPACK_LIB="$mkl_libdir/libmkl_rt.so"
     BLAS_INC="${mkl_incdir:-}"
@@ -107,7 +121,16 @@ resolve() {
     esac
 }
 
-default_objdir() { echo "objdir_${CONDA_DEFAULT_ENV:-p4dev}_$1"; }
+default_objdir() {
+    # The default backend gets the canonical objdir name (objdir_<env>), other
+    # backends get a suffix (objdir_<env>_<backend>).
+    local env="${CONDA_DEFAULT_ENV:-p4dev}"
+    if [[ "$1" == "$DEFAULT_BACKEND" ]]; then
+        echo "objdir_${env}"
+    else
+        echo "objdir_${env}_$1"
+    fi
+}
 
 # ---------------- commands ----------------
 
@@ -127,6 +150,15 @@ cmd_configure() {
     local backend="$1" objdir="${2:-$(default_objdir "$1")}"
     [[ -n "${CONDA_PREFIX:-}" ]] || die "activate the conda env first (CONDA_PREFIX unset)"
     resolve "$backend"
+    # Refuse to silently switch an existing objdir to another backend: cmake
+    # configure would overwrite the cached BLAS/LAPACK selection.
+    if [[ -f "$objdir/CMakeCache.txt" ]]; then
+        local cached
+        cached="$(grep -E '^LAPACK_LIBRARIES:' "$objdir/CMakeCache.txt" | head -1 | cut -d= -f2- || true)"
+        if [[ -n "$cached" && "$cached" != "$LAPACK_LIB" ]]; then
+            die "'$objdir' is configured with LAPACK_LIBRARIES=$cached; refusing to overwrite with $LAPACK_LIB (use a fresh objdir or pick the matching backend)"
+        fi
+    fi
     local cache=""
     [[ -f "$REPO_ROOT/cache_${CONDA_DEFAULT_ENV}.cmake" ]] && cache="-C $REPO_ROOT/cache_${CONDA_DEFAULT_ENV}.cmake"
     local omp_dirs="$CONDA_PREFIX/lib"
@@ -166,7 +198,9 @@ cmd_build() {
 cmd_env() {
     local backend="$1"
     resolve "$backend"
-    [[ -n "$MKL_LIBDIR" ]] && echo "export LD_LIBRARY_PATH=$MKL_LIBDIR:\$LD_LIBRARY_PATH"
+    if [[ -n "$MKL_LIBDIR" ]]; then
+        echo "export LD_LIBRARY_PATH=$MKL_LIBDIR:\$LD_LIBRARY_PATH"
+    fi
 }
 
 # ---------------- main ----------------
@@ -174,8 +208,8 @@ cmd="${1:-}"
 [[ -n "$cmd" ]] || { echo "usage: backend.sh {list|configure|build|env} [backend] [objdir]" >&2; exit 1; }
 case "$cmd" in
     list)      cmd_list ;;
-    configure) [[ $# -ge 2 ]] || die "configure needs a backend"; cmd_configure "$2" "${3:-}" ;;
-    build)     [[ $# -ge 2 ]] || die "build needs a backend"; cmd_build "$2" "${3:-}" ;;
-    env)       [[ $# -ge 2 ]] || die "env needs a backend"; cmd_env "$2" ;;
+    configure) cmd_configure "${2:-$DEFAULT_BACKEND}" "${3:-}" ;;
+    build)     cmd_build "${2:-$DEFAULT_BACKEND}" "${3:-}" ;;
+    env)       cmd_env "${2:-$DEFAULT_BACKEND}" ;;
     *) die "unknown command '$cmd' (list | configure | build | env)" ;;
 esac
