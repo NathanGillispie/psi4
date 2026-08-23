@@ -32,7 +32,6 @@
  *  A multireference coupled cluster code
  ***************************************************************************/
 #include "mrcc.h"
-#include "matrix.h"
 #include "blas.h"
 #include "psi4/libpsi4util/libpsi4util.h"
 

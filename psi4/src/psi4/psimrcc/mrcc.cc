@@ -32,7 +32,6 @@
 
 #include "algebra_interface.h"
 #include "mrcc.h"
-#include "matrix.h"
 #include "blas.h"
 #include "updater.h"
 

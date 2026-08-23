@@ -31,7 +31,6 @@
 
 #include "blas.h"
 #include "mp2_ccsd.h"
-#include "matrix.h"
 
 namespace psi {
 namespace psimrcc {

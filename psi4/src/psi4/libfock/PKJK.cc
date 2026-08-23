@@ -35,7 +35,6 @@
 #include "psi4/libiwl/iwl.hpp"
 #include "jk.h"
 #include "PKmanagers.h"
-#include "psi4/libmints/matrix.h"
 #include "psi4/libmints/basisset.h"
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/sobasis.h"
