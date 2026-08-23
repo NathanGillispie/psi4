@@ -27,6 +27,7 @@
  */
 
 #include "jk.h"
+#include "snLinK.h"
 #include "psi4/libqt/qt.h"
 #include "psi4/libfock/cubature.h"
 #include "psi4/libfock/points.h"
