@@ -33,8 +33,6 @@
 #include "psi4/libfock/v.h"
 #include "hf.h"
 
-#include "psi4/pybind11.h"
-
 namespace psi {
 namespace scf {
 

@@ -123,8 +123,7 @@ void HF::frac() {
 
         // Make sure diis restarts correctly/frac plays well with MOM
         if (initialized_diis_manager_) {
-            diis_manager_.attr("delete_diis_file")();
-            diis_manager_ = py::none();
+            clear_diis_manager();
             initialized_diis_manager_ = false;
             diis_start_ += iteration_ + 1;
         }

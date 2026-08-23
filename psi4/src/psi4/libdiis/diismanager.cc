@@ -27,6 +27,28 @@
  */
 
 #include "diismanager.h"
+#include "psi4/pybind11.h"
+
+// pybind11 3.x declares pybind11::detail::make_new_instance and
+// pybind11::detail::deregister_instance in detail/type_caster_base.h but defines
+// them only in detail/class.h, which the lean includes in diismanager.h
+// (pybind11/cast.h + pybind11/pytypes.h) do not pull in. TUs that cast raw
+// pointers through the DIISManager variadic templates therefore emit external
+// references to these symbols. The anchor below ODR-uses them at DSO load time,
+// guaranteeing a definition in this DSO so the shared library stays
+// self-contained (volatile reads so the references survive constant folding and
+// --gc-sections).
+namespace {
+struct pybind11_detail_anchor_t {
+    pybind11_detail_anchor_t() {
+        PyObject* (*volatile fn1)(PyTypeObject*) = &pybind11::detail::make_new_instance;
+        bool (*volatile fn2)(pybind11::detail::instance*, void*, const pybind11::detail::type_info*) = &pybind11::detail::deregister_instance;
+        (void)fn1;
+        (void)fn2;
+    }
+};
+[[maybe_unused]] pybind11_detail_anchor_t pybind11_detail_anchor;
+}
 
 using namespace psi;
 

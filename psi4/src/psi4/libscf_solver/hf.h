@@ -29,13 +29,17 @@
 #ifndef HF_H
 #define HF_H
 
-#include <vector>
 #include <functional>
+#include <memory>
+#include <vector>
+
 #include "psi4/libmints/wavefunction.h"
 #include "psi4/libmints/vector3.h"
 #include "psi4/psi4-dec.h"
 
-#include "psi4/pybind11.h"
+namespace pybind11 {
+class object;
+}
 
 namespace psi {
 using PerturbedPotentialFunction = std::function<SharedMatrix(SharedMatrix)>;
@@ -147,7 +151,7 @@ class HF : public Wavefunction {
     /// DIIS manager intiialized?
     bool initialized_diis_manager_;
     /// DIIS manager for all SCF wavefunctions
-    py::object diis_manager_;
+    std::shared_ptr<pybind11::object> diis_manager_;
 
     /// When do we start collecting vectors for DIIS
     int diis_start_;
@@ -289,11 +293,10 @@ class HF : public Wavefunction {
 
     virtual void compute_spin_contamination();
 
-    /// The DIIS object
-    // std::shared_ptr<py::object> is probably saner, but that hits a compile error.
-    // Quite probably https://github.com/pybind/pybind11/issues/787
-    py::object& diis_manager() { return diis_manager_; }
-    void set_diis_manager(py::object& manager) { diis_manager_ = manager; }
+    /// The DIIS object (defined in hf.cc so non-binding TUs don't need pybind11)
+    pybind11::object& diis_manager();
+    void set_diis_manager(pybind11::object& manager);
+    void clear_diis_manager();
     bool initialized_diis_manager() const { return initialized_diis_manager_; }
     void set_initialized_diis_manager(bool tf) { initialized_diis_manager_ = tf; }
 

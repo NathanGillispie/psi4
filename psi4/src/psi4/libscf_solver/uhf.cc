@@ -306,8 +306,7 @@ void UHF::form_C(double shift) {
             // Since we've changed the orbitals, delete the DIIS history
             // so that we don't fall back to spin-restricted orbitals
             if (initialized_diis_manager_) {
-                diis_manager_.attr("delete_diis_file")();
-                diis_manager_ = py::none();
+                clear_diis_manager();
                 initialized_diis_manager_ = false;
             }
         }

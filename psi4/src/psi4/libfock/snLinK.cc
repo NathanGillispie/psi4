@@ -33,6 +33,7 @@
 #include "psi4/libfock/points.h"
 #include "psi4/libmints/vector.h"
 #include "psi4/libmints/basisset.h"
+#include "psi4/libmints/pointgrp.h"
 #include "psi4/libmints/electrostatic.h"
 #include "psi4/libmints/mintshelper.h"
 #include "psi4/libmints/matrix_eigen.h"

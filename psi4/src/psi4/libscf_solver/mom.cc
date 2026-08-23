@@ -86,8 +86,7 @@ void HF::MOM_start() {
 
     // Reset DIIS (will automagically restart)
     if (initialized_diis_manager_) {
-        diis_manager_.attr("delete_diis_file")();
-        diis_manager_ = py::none();
+        clear_diis_manager();
         initialized_diis_manager_ = false;
     }
 

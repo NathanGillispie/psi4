@@ -68,6 +68,7 @@
 #include "psi4/libmints/sobasis.h"
 
 #include "hf.h"
+#include "psi4/pybind11.h"
 
 #include "psi4/psi4-dec.h"
 
@@ -85,6 +86,15 @@ extern bool brianEnable;
 
 namespace psi {
 namespace scf {
+
+py::object& HF::diis_manager() { return *diis_manager_; }
+void HF::set_diis_manager(py::object& manager) { diis_manager_ = std::make_shared<py::object>(manager); }
+void HF::clear_diis_manager() {
+    if (diis_manager_ && diis_manager_->ptr()) {
+        diis_manager().attr("delete_diis_file")();
+    }
+    diis_manager_ = std::make_shared<py::object>(py::none());
+}
 
 HF::HF(SharedWavefunction ref_wfn, std::shared_ptr<SuperFunctional> func, Options& options, std::shared_ptr<PSIO> psio)
     : Wavefunction(options), functional_(func) {
@@ -253,6 +263,7 @@ void HF::common_init() {
     if (options_["PRINT"].has_changed()) print_ = options_.get_int("PRINT");
 
     initialized_diis_manager_ = false;
+    diis_manager_ = std::make_shared<py::object>(py::none());
 
     MOM_performed_ = false;  // duplicated py-side (needed before iterate)
 
@@ -383,8 +394,7 @@ void HF::finalize() {
     }
 
     // Clean up after DIIS
-    if (initialized_diis_manager_) diis_manager_.attr("delete_diis_file")();
-    diis_manager_ = py::none();
+    if (initialized_diis_manager_) clear_diis_manager();
     initialized_diis_manager_ = false;
 
     // Figure out how many frozen virtual and frozen core per irrep
