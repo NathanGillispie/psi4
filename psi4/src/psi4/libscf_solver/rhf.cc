@@ -59,6 +59,7 @@
 #include "psi4/libtrans/integraltransform.h"
 
 #ifdef USING_OpenOrbitalOptimizer
+#include "psi4/libmints/matrix_armadillo.h"
 #include <openorbitaloptimizer/scfsolver.hpp>
 #endif
 
@@ -1084,9 +1085,9 @@ void RHF::openorbital_scf() {
         // Skip case of nothing to do
         continue;
       // Get the block of X
-      const arma::mat Xblock(X_->to_armadillo_matrix(h));
+      const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
       arma::mat Cblock = Xblock*orbitals[h]*arma::diagmat(arma::sqrt(occupations[h]));
-      Cdummy->from_armadillo_matrix(Cblock,h);
+      linalg::from_armadillo_matrix(*Cdummy, Cblock,h);
     }
 
     std::vector<SharedMatrix>& jkC = jk_->C_left();
@@ -1120,7 +1121,7 @@ void RHF::openorbital_scf() {
         if(nsopi_[h]==0)
           // Skip case of nothing to do
           continue;
-        Vxc[h] = Va_->to_armadillo_matrix(h);
+        Vxc[h] = linalg::to_armadillo_matrix(*Va_, h);
       }
     }
 
@@ -1131,20 +1132,20 @@ void RHF::openorbital_scf() {
       if(nsopi_[h]==0)
         // Skip case of nothing to do
         continue;
-      const arma::mat Xblock(X_->to_armadillo_matrix(h));
-      const arma::mat J_AO(Jvec[0]->to_armadillo_matrix(h));
-      const arma::mat coreH(H_->to_armadillo_matrix(h));
-      const arma::mat Cblock(Cdummy->to_armadillo_matrix(h));
+      const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
+      const arma::mat J_AO(linalg::to_armadillo_matrix(*Jvec[0], h));
+      const arma::mat coreH(linalg::to_armadillo_matrix(*H_, h));
+      const arma::mat Cblock(linalg::to_armadillo_matrix(*Cdummy, h));
       arma::mat K_AO;
 
       if (functional_->is_x_hybrid() && !(functional_->is_x_lrc() && jk_->get_wcombine())) {
-        K_AO = -alpha*(Kvec[0]->to_armadillo_matrix(h));
+        K_AO = -alpha*(linalg::to_armadillo_matrix(*Kvec[0], h));
       } else {
         K_AO.zeros(coreH.n_rows, coreH.n_cols);
       }
 
       if (functional_->is_x_lrc()) {
-        const arma::mat wK_AO(wKvec[0]->to_armadillo_matrix(h));
+        const arma::mat wK_AO(linalg::to_armadillo_matrix(*wKvec[0], h));
         if (jk_->get_wcombine()) {
           K_AO -= wK_AO;
         } else {
@@ -1228,9 +1229,9 @@ void RHF::openorbital_scf() {
     if(nsopi_[h]==0)
       continue;
 
-    auto Xblock(X_->to_armadillo_matrix(h));
-    auto Sblock(S_->to_armadillo_matrix(h));
-    auto Cblock(Ca_->to_armadillo_matrix(h));
+    auto Xblock(linalg::to_armadillo_matrix(*X_, h));
+    auto Sblock(linalg::to_armadillo_matrix(*S_, h));
+    auto Cblock(linalg::to_armadillo_matrix(*Ca_, h));
 
     if(Cblock.n_cols) {
       orbitals[h] = Xblock.t()*Sblock*Cblock;
@@ -1298,10 +1299,10 @@ void RHF::openorbital_scf() {
   for(int h=0;h<nirrep_;h++) {
     if(nsopi_[h]==0)
       continue;
-    const arma::mat Xblock(X_->to_armadillo_matrix(h));
-    const arma::mat Sblock(S_->to_armadillo_matrix(h));
+    const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
+    const arma::mat Sblock(linalg::to_armadillo_matrix(*S_, h));
     arma::mat Cblock(Xblock*orbitals[h]);
-    Ca_->from_armadillo_matrix(Cblock,h);
+    linalg::from_armadillo_matrix(*Ca_, Cblock,h);
 
     // We hope that the occupations are integer...
     arma::uvec nonzero(arma::find(occupations[h]>0.0));

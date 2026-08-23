@@ -61,6 +61,7 @@
 #include "psi4/libtrans/integraltransform.h"
 
 #ifdef USING_OpenOrbitalOptimizer
+#include "psi4/libmints/matrix_armadillo.h"
 #include <openorbitaloptimizer/scfsolver.hpp>
 #endif
 
@@ -1294,9 +1295,9 @@ void UHF::openorbital_scf() {
         // Skip case of nothing to do
         continue;
       // Get the block of X
-      const arma::mat Xblock(X_->to_armadillo_matrix(h));
+      const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
       arma::mat Cablock = Xblock*orbitals[h]*arma::diagmat(arma::sqrt(occupations[h]));
-      Cadummy->from_armadillo_matrix(Cablock,h);
+      linalg::from_armadillo_matrix(*Cadummy, Cablock,h);
     }
     auto Cbdummy = std::make_shared<Matrix>("Dummy beta orbitals", nsopi_, nbmopi);
     for(int h=0;h<nirrep_;h++) {
@@ -1304,10 +1305,10 @@ void UHF::openorbital_scf() {
         // Skip case of nothing to do
         continue;
       // Get the block of X
-      const arma::mat Xblock(X_->to_armadillo_matrix(h));
+      const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
       int hd=h+nirrep_;
       arma::mat Cbblock = Xblock*orbitals[hd]*arma::diagmat(arma::sqrt(occupations[hd]));
-      Cbdummy->from_armadillo_matrix(Cbblock,h);
+      linalg::from_armadillo_matrix(*Cbdummy, Cbblock,h);
     }
 
     std::vector<SharedMatrix>& jkC = jk_->C_left();
@@ -1341,8 +1342,8 @@ void UHF::openorbital_scf() {
         if(nsopi_[h]==0)
           // Skip case of nothing to do
           continue;
-        Vxca[h] = Va_->to_armadillo_matrix(h);
-        Vxcb[h] = Vb_->to_armadillo_matrix(h);
+        Vxca[h] = linalg::to_armadillo_matrix(*Va_, h);
+        Vxcb[h] = linalg::to_armadillo_matrix(*Vb_, h);
       }
     }
 
@@ -1354,26 +1355,26 @@ void UHF::openorbital_scf() {
         // Skip case of nothing to do
         continue;
 
-      const arma::mat Xblock(X_->to_armadillo_matrix(h));
-      arma::mat J_AO(Jvec[0]->to_armadillo_matrix(h));
-      J_AO += Jvec[1]->to_armadillo_matrix(h);
-      const arma::mat coreH(H_->to_armadillo_matrix(h));
-      const arma::mat Cablock(Cadummy->to_armadillo_matrix(h));
-      const arma::mat Cbblock(Cbdummy->to_armadillo_matrix(h));
+      const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
+      arma::mat J_AO(linalg::to_armadillo_matrix(*Jvec[0], h));
+      J_AO += linalg::to_armadillo_matrix(*Jvec[1], h);
+      const arma::mat coreH(linalg::to_armadillo_matrix(*H_, h));
+      const arma::mat Cablock(linalg::to_armadillo_matrix(*Cadummy, h));
+      const arma::mat Cbblock(linalg::to_armadillo_matrix(*Cbdummy, h));
       arma::mat Ka_AO;
       arma::mat Kb_AO;
 
       if (functional_->is_x_hybrid() && !(functional_->is_x_lrc() && jk_->get_wcombine())) {
-        Ka_AO = -alpha*(Kvec[0]->to_armadillo_matrix(h));
-        Kb_AO = -alpha*(Kvec[1]->to_armadillo_matrix(h));
+        Ka_AO = -alpha*(linalg::to_armadillo_matrix(*Kvec[0], h));
+        Kb_AO = -alpha*(linalg::to_armadillo_matrix(*Kvec[1], h));
       } else {
         Ka_AO.zeros(coreH.n_rows, coreH.n_cols);
         Kb_AO.zeros(coreH.n_rows, coreH.n_cols);
       }
 
       if (functional_->is_x_lrc()) {
-        const arma::mat wKa_AO(wKvec[0]->to_armadillo_matrix(h));
-        const arma::mat wKb_AO(wKvec[1]->to_armadillo_matrix(h));
+        const arma::mat wKa_AO(linalg::to_armadillo_matrix(*wKvec[0], h));
+        const arma::mat wKb_AO(linalg::to_armadillo_matrix(*wKvec[1], h));
         if (jk_->get_wcombine()) {
           Ka_AO -= wKa_AO;
           Kb_AO -= wKb_AO;
@@ -1489,10 +1490,10 @@ void UHF::openorbital_scf() {
     if(nsopi_[h]==0)
       continue;
 
-    auto Xblock(X_->to_armadillo_matrix(h));
-    auto Sblock(S_->to_armadillo_matrix(h));
-    auto Cablock(Ca_->to_armadillo_matrix(h));
-    auto Cbblock(Cb_->to_armadillo_matrix(h));
+    auto Xblock(linalg::to_armadillo_matrix(*X_, h));
+    auto Sblock(linalg::to_armadillo_matrix(*S_, h));
+    auto Cablock(linalg::to_armadillo_matrix(*Ca_, h));
+    auto Cbblock(linalg::to_armadillo_matrix(*Cb_, h));
 
     if(Cablock.n_cols) {
       int hd=h+nirrep_;
@@ -1562,12 +1563,12 @@ void UHF::openorbital_scf() {
     if(nsopi_[h]==0)
       continue;
     int hd=h+nirrep_;
-    const arma::mat Xblock(X_->to_armadillo_matrix(h));
-    const arma::mat Sblock(S_->to_armadillo_matrix(h));
+    const arma::mat Xblock(linalg::to_armadillo_matrix(*X_, h));
+    const arma::mat Sblock(linalg::to_armadillo_matrix(*S_, h));
     arma::mat Cablock(Xblock*orbitals[h]);
-    Ca_->from_armadillo_matrix(Cablock,h);
+    linalg::from_armadillo_matrix(*Ca_, Cablock,h);
     arma::mat Cbblock(Xblock*orbitals[hd]);
-    Cb_->from_armadillo_matrix(Cbblock,h);
+    linalg::from_armadillo_matrix(*Cb_, Cbblock,h);
 
     // We hope that the occupations are integer...
     arma::uvec nonzero(arma::find(occupations[h]>0.0));

@@ -37,23 +37,6 @@
 
 #include "dimension.h"
 
-#ifdef USING_OpenOrbitalOptimizer
-#ifdef USING_LAPACK_MKL
-#include <mkl.h>
-#define ARMA_USE_MKL
-#define ARMA_USE_MKL_TYPES
-#endif
-#define ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS
-#define ARMA_DONT_USE_WRAPPER
-#include <armadillo>
-#else
-// Forward declaration
-namespace arma {
-  class mat;
-}
-#endif
-
-
 namespace psi {
 
 struct dpdfile2;
@@ -290,11 +273,6 @@ class PSI_API Matrix : public std::enable_shared_from_this<Matrix> {
     void copy(const Matrix& cp);
     void copy(const Matrix* cp);
     /** @} */
-
-    /// Returns an Armadillo matrix
-    arma::mat to_armadillo_matrix(int h=0);
-    /// Copies data from an Armadillo matrix
-    void from_armadillo_matrix(const arma::mat & m, int h=0);
 
     /**
     ** For a matrix of 3D vectors (ncol==3), rotate a set of points around an

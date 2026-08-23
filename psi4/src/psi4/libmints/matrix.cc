@@ -401,26 +401,6 @@ void Matrix::copy(const Matrix &cp) { copy(&cp); }
 
 void Matrix::copy(const SharedMatrix &cp) { copy(cp.get()); }
 
-#ifdef USING_OpenOrbitalOptimizer
-arma::mat Matrix::to_armadillo_matrix(int h) {
-    int nc = coldim(h);
-    int nr = rowdim(h);
-    arma::mat m(nr, nc);
-    for(int ir=0;ir<nr;ir++)
-      for(int ic=0;ic<nc;ic++)
-        m(ir,ic) = get(h,ir,ic);
-    return m;
-}
-
-void Matrix::from_armadillo_matrix(const arma::mat & m, int h) {
-    int nc = coldim(h);
-    int nr = rowdim(h);
-    for(int ir=0;ir<nr;ir++)
-      for(int ic=0;ic<nc;ic++)
-        set(h,ir,ic,m(ir,ic));
-}
-#endif
-
 void Matrix::alloc() {
     if (matrix_) release();
 

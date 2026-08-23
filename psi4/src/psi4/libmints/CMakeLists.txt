@@ -39,6 +39,7 @@ list(APPEND sources
   coordentry.cc
   matrix.cc
   matrix_eigen.cc
+  matrix_armadillo.cc
   gshell.cc
   integraliter.cc
   pointgrp.cc
