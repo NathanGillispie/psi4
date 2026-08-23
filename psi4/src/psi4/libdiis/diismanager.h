@@ -33,9 +33,10 @@
 #include <vector>
 #include <map>
 
-#include "psi4/pragma.h"
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
 
-#include "psi4/pybind11.h"
+#include "psi4/pragma.h"
 
 namespace psi {
 
@@ -80,7 +81,7 @@ class PSI_API DIISManager {
     }
     template <typename... types>
     bool extrapolate(types... arrays) {
-        return py::len(pydiis.attr("extrapolate")(arrays...));
+        return pybind11::len(pydiis.attr("extrapolate")(arrays...));
     }
     template <typename ... types>
     bool add_entry(types... arrays) {
@@ -96,7 +97,7 @@ class PSI_API DIISManager {
 
   protected:
 
-    py::object pydiis;
+    pybind11::object pydiis;
 
 };
 

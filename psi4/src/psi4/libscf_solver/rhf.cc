@@ -28,6 +28,7 @@
 
 #include <any>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>

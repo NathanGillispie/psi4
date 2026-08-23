@@ -33,9 +33,11 @@
 #ifndef _psi_src_bin_detci_civect_h
 #define _psi_src_bin_detci_civect_h
 
-#include "psi4/pybind11.h"
-
 // Forward declarations
+namespace pybind11 {
+struct buffer_info;
+}
+
 namespace psi {
 namespace detci {
 struct calcinfo;
@@ -137,7 +139,7 @@ class CIvect {
     ~CIvect();
 
     /// Numpy interface to the current buffer
-    py::buffer_info array_interface();
+    pybind11::buffer_info array_interface();
 
     /// BLAS equivalents for CIVectors
     void axpy(double a, SharedCIVector x, int tvec, int ovec);
