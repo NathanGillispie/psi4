@@ -347,7 +347,7 @@ py::list tiled_tensor_array_interface(psi::ComplexMatrix& tt, bool allocate_tile
         std::vector<py::ssize_t> shape{r, c};
         std::vector<py::ssize_t> strides{static_cast<py::ssize_t>(tile.stride(0) * sizeof(ValueT)),
                                          static_cast<py::ssize_t>(tile.stride(1) * sizeof(ValueT))};
-        py::array arr(value_dtype, shape, strides, ptr, owner);
+        py::array arr(py::dtype::of<ValueT>(), shape, strides, ptr, owner);
         if (!writable) arr.attr("setflags")(false);
         ret.append(arr);
     };
