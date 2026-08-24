@@ -28,10 +28,7 @@
 
 #include "psi4/libmints/matrix_armadillo.h"
 
-#ifdef USING_OpenOrbitalOptimizer
-
-namespace psi {
-namespace linalg {
+namespace psi::linalg {
 
 arma::mat to_armadillo_matrix(const Matrix& matrix, int h) {
     int nc = matrix.coldim(h);
@@ -51,7 +48,4 @@ void from_armadillo_matrix(Matrix& matrix, const arma::mat& m, int h) {
             matrix.set(h, ir, ic, m(ir, ic));
 }
 
-}  // namespace linalg
-}  // namespace psi
-
-#endif
+}  // namespace psi::linalg

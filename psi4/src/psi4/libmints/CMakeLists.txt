@@ -39,7 +39,6 @@ list(APPEND sources
   coordentry.cc
   matrix.cc
   matrix_eigen.cc
-  matrix_armadillo.cc
   gshell.cc
   integraliter.cc
   pointgrp.cc
@@ -140,5 +139,9 @@ if(TARGET OpenOrbitalOptimizer::OpenOrbitalOptimizer)
   target_compile_definitions(mints
     PUBLIC
       USING_OpenOrbitalOptimizer
+    )
+  target_sources(mints
+    PRIVATE
+      matrix_armadillo.cc
     )
 endif()

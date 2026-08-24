@@ -26,11 +26,13 @@
  * @END LICENSE
  */
 
-#pragma once
+#ifndef _psi_src_lib_libmints_matrix_armadillo_h
+#define _psi_src_lib_libmints_matrix_armadillo_h
+
+#ifdef USING_OpenOrbitalOptimizer
 
 #include "psi4/libmints/matrix.h"
 
-#ifdef USING_OpenOrbitalOptimizer
 #ifdef USING_LAPACK_MKL
 #include <mkl.h>
 #define ARMA_USE_MKL
@@ -40,8 +42,7 @@
 #define ARMA_DONT_USE_WRAPPER
 #include <armadillo>
 
-namespace psi {
-namespace linalg {
+namespace psi::linalg {
 
 /// Copy a Psi4 Matrix irrep block into an Armadillo matrix.
 PSI_API arma::mat to_armadillo_matrix(const Matrix& matrix, int h = 0);
@@ -49,6 +50,8 @@ PSI_API arma::mat to_armadillo_matrix(const Matrix& matrix, int h = 0);
 /// Copy data from an Armadillo matrix into a Psi4 Matrix irrep block.
 PSI_API void from_armadillo_matrix(Matrix& matrix, const arma::mat& m, int h = 0);
 
-}  // namespace linalg
-}  // namespace psi
+}  // namespace psi::linalg
+
+#endif
+
 #endif
