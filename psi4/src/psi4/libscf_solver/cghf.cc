@@ -284,12 +284,13 @@ void CGHF::form_H() {
             for (int p = 0; p < nso; p++) {
                 for (int q = 0; q < nso; q++) {
                     // Note that I multiply by i to get H_SO Hermitian
-                    Hb(p, q+nso)     += Hx.get(p,q)*i; // +Hx [0,1]
-                    Hb(p+nso, q)     += Hx.get(p,q)*i; // +Hx [1,0]
-                    Hb(p, q+nso)     += Hy.get(p,q);   //-iHy [0,1]
-                    Hb(p+nso, q)     -= Hy.get(p,q);   //+iHy [1,0]
-                    Hb(p, q)         += Hz.get(p,q)*i; // +Hz [0,0]
-                    Hb(p+nso, q+nso) -= Hz.get(p,q)*i; // -Hz [1,1]
+                    // i σ·H: H_ab = Hy + i Hx, H_ba = -Hy + i Hx, H_aa/bb = ± i Hz
+                    Hb(p, q+nso)     += Hx.get(p,q)*i; // i Hx [αβ]
+                    Hb(p+nso, q)     += Hx.get(p,q)*i; // i Hx [βα]
+                    Hb(p, q+nso)     += Hy.get(p,q);   //  Hy [αβ]
+                    Hb(p+nso, q)     -= Hy.get(p,q);   // -Hy [βα]
+                    Hb(p, q)         += Hz.get(p,q)*i; //  i Hz [αα]
+                    Hb(p+nso, q+nso) -= Hz.get(p,q)*i; // -i Hz [ββ]
                 }
             }
         }
