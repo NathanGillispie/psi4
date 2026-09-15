@@ -46,6 +46,7 @@
 
 #include <string>
 #include <cmath>
+#include <vector>
 
 namespace psi {
 
@@ -70,7 +71,7 @@ void ZORA::setup() {
         {"DFT_PRUNING_SCHEME", options_.get_str("ZORA_PRUNING_SCHEME")},
         {"DFT_NUCLEAR_SCHEME", "BECKE"},
         {"DFT_GRID_NAME",      ""},
-        {"DFT_BLOCK_SCHEME",   "OCTREE"},
+        {"DFT_BLOCK_SCHEME",   options_.get_str("ZORA_BLOCK_SCHEME")},
     };
 
     std::map<std::string, int> grid_int_options = {
@@ -166,6 +167,7 @@ void ZORA::compute_veff()
     for (int a = 0; a < natoms; a++) {
         if (molecule_->Z(a) > 104) throw PSIEXCEPTION("Too heavy atom for ZORA implementation. Tabulation only available to Z=104, Rf.\n");
     }
+    const bool atomic_blocking = options_.get_str("ZORA_BLOCK_SCHEME") == "ATOMIC";
 
 #pragma omp parallel for schedule(auto) num_threads(nthreads)
     for (const auto &block : grid_->blocks()) {
@@ -179,12 +181,10 @@ void ZORA::compute_veff()
         auto veff_block = std::make_shared<Vector>(npoints);
         veff_block->zero();
 
-        // If we were using "ATOMIC" blocking, it would be sufficient to just
-        // int a = block->parent_atom(); but overall speed suffers without
-        // "OCTREE". Below is not a bottleneck (and won't be due to scaling)
-        for (int a = 0; a < natoms; a++) {
+        const auto add_atom_potential = [&](int a) {
             const int Z = molecule_->Z(a);
-            if (Z == 0) continue; // avert ghost atom segfault
+            if (Z == 0) return; // avert ghost atom segfault
+
             auto pos_a = molecule_->xyz(a);
 
             const double* coef_a  = &coeffs[c_aIndex[Z-1]];
@@ -201,6 +201,16 @@ void ZORA::compute_veff()
                 outer -= Z;
                 outer /= dist;
                 veff_block->add(p, outer);
+            }
+        };
+
+        if (atomic_blocking) {
+            // Atomic blocking assigns each block to the atom whose atomic grid
+            // generated it. Distant atoms' model potentials are neglected.
+            add_atom_potential(static_cast<int>(block->parent_atom()));
+        } else {
+            for (int a = 0; a < natoms; a++) {
+                add_atom_potential(a);
             }
         }
 
@@ -223,6 +233,7 @@ void ZORA::compute_TSR(std::vector<std::shared_ptr<BasisFunctions>> pworkers, Sh
 #endif
 
     int max_points = grid_->max_points(); //Set in grid_int_options
+
 #pragma omp parallel num_threads(nthreads)
     {
         // Give each thread their own scratch space

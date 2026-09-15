@@ -54,8 +54,10 @@ class BasisFunctions;
  *
  *  The effective potential :math:`v_\text{eff}(\mathbf{r})` is the potential experienced
  *  at a point due to nuclear attraction and electron repulsion. The generated matrix
- *  replaces the kinetic energy for SCF etc. Because this is only evaluated once, don't
- *  cheap out on the grid! The ZORA time is usually negligible.
+ *  replaces the kinetic energy for SCF etc. With atomic blocking, the grid retains
+ *  only the parent atom's model potential on each atomic block. Contributions from
+ *  other atoms are neglected because the tabulated model atoms are neutral and their
+ *  potentials decay rapidly outside their own atomic regions.
  *
  *  \author Nathan Gillispie, University of Memphis, 2025
  */

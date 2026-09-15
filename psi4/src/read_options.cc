@@ -256,6 +256,11 @@ int read_options(const std::string &name, Options &options, bool suppress_printi
 	/*- Basis tolerance for the ZORA effective potential grid !expert -*/
     options.add_double("ZORA_BASIS_TOLERANCE", 1e-12);
 
+    /*- Blocking scheme for the ZORA effective potential grid. ``ATOMIC`` uses
+    associates each grid-point to its parent atom. This ensures linear-scaling
+    during the ZORA kernel computation. !expert -*/
+    options.add_str("ZORA_BLOCK_SCHEME", "OCTREE", "OCTREE ATOMIC");
+
     /*- Compute the non-relativistic kinetic energy with the ZORA code.
     Useful when comparing analytic and grid-based methods. !expert -*/
     options.add_bool("ZORA_NR_DEBUG", false);
