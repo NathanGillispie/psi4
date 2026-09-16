@@ -35,6 +35,8 @@ isort:skip_file
 # * some full paths are computed here using the prefix, but all outputs are relative to __file__, so relocatability preserved
 # * note that all path entities are directories except for "executable" that is a file
 import os
+import shutil
+import sysconfig
 from pathlib import Path
 psi4_module_loc = Path(__file__).resolve().parent
 
@@ -49,11 +51,24 @@ full_bin = (prefix / cmake_install_bindir).resolve()
 rel_data = os.path.relpath(full_data, start=full_pymod)
 rel_bin = os.path.relpath(full_bin, start=full_pymod)
 
-executable = psi4_module_loc.joinpath(rel_bin, "psi4")
-executable_exe = (Path(r"/opt/anaconda1anaconda2anaconda3") / "Scripts" / "psi4.exe").resolve(strict=False)
-if executable_exe.exists():
-    # Win conda-build generates this unbeknownst to CMake
-    executable = executable_exe
+executable_exe = None
+if "@PSI4_WHEEL@".upper() in ("1", "ON", "YES", "TRUE", "Y"):
+    # pip places console scripts in the environment's scripts directory,
+    # outside the prefix-style site-packages/lib tree.
+    scripts_dir = Path(sysconfig.get_path("scripts"))
+    script_candidates = [scripts_dir / "psi4", scripts_dir / "psi4.exe", scripts_dir / "psi4.bat"]
+    executable = next((str(candidate) for candidate in script_candidates if candidate.exists()), None)
+    if executable is None:
+        executable = shutil.which("psi4")
+    if executable is None:
+        executable = str(scripts_dir / "psi4")
+    executable = Path(executable)
+else:
+    executable = psi4_module_loc.joinpath(rel_bin, "psi4")
+    executable_exe = (Path(r"/opt/anaconda1anaconda2anaconda3") / "Scripts" / "psi4.exe").resolve(strict=False)
+    if executable_exe.exists():
+        # Win conda-build generates this unbeknownst to CMake
+        executable = executable_exe
 executable = str(executable.resolve())
 
 data_dir = psi4_module_loc.joinpath(rel_data)

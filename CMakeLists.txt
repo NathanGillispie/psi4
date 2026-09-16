@@ -172,6 +172,7 @@ include(xhost)  # defines: option(ENABLE_XHOST "Enable processor-specific optimi
 option_with_print(ENABLE_OPENMP "Enables OpenMP parallelization" ON)
 option_with_print(ENABLE_AUTO_BLAS "Enables CMake to auto-detect BLAS" ON)
 option_with_print(ENABLE_AUTO_LAPACK "Enables CMake to auto-detect LAPACK" ON)
+option(PSI4_WHEEL "Build a relocatable Python wheel" OFF)
 option_with_print(ENABLE_PLUGIN_TESTING "Test the plugin templates build and run" OFF)
 option_with_print(ENABLE_CYTHONIZE "Compile each python file rather than plaintext (requires cython) !experimental!" OFF)
 # sadly, it seems FORCE_PEDANTIC runs into issues with GauXC when option_with_flag is used
@@ -321,6 +322,11 @@ ExternalProject_Add(psi4-core
               -DCMAKE_UNITY_BUILD=${psi4_CMAKE_UNITY_BUILD}
               -DCMAKE_UNITY_BUILD_BATCH_SIZE=${psi4_CMAKE_UNITY_BUILD_BATCH_SIZE}
               -Dpsi4_ENABLE_PRECOMPILE_HEADERS=${psi4_ENABLE_PRECOMPILE_HEADERS}
+              -DPSI4_WHEEL=${PSI4_WHEEL}
+              -DBLAS_TYPE=${BLAS_TYPE}
+              -DLAPACK_TYPE=${LAPACK_TYPE}
+              -DBLAS_LIBRARIES=${BLAS_LIBRARIES}
+              -DLAPACK_LIBRARIES=${LAPACK_LIBRARIES}
               -DPYMOD_INSTALL_LIBDIR=${PYMOD_INSTALL_LIBDIR}
               -DMAX_AM_ERI=${MAX_AM_ERI}
               -DPython_EXECUTABLE=${Python_EXECUTABLE}
@@ -395,6 +401,13 @@ add_subdirectory(doc)
 include(ConfigTesting)
 
 # <<<  Install  >>>
+
+if(SKBUILD_STATE STREQUAL "wheel")
+    # Keep the prefix-style wheel layout importable like an editable install.
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/psi4-lib.pth" "lib\n")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/psi4-lib.pth"
+            DESTINATION .)
+endif()
 
 install(DIRECTORY ${STAGED_INSTALL_PREFIX}/
         DESTINATION ${CMAKE_INSTALL_PREFIX}

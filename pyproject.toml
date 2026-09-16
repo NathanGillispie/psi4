@@ -38,3 +38,11 @@ wheel.packages = ["objdir_pyproject/stage/lib/psi4"]
 
 [tool.scikit-build.cmake]
 version = ">=3.19"
+
+[[tool.scikit-build.overrides]]
+if = {state = "wheel"}
+
+[tool.scikit-build.overrides.cmake.define]
+BLAS_TYPE = "OPENBLAS"
+LAPACK_TYPE = "OPENBLAS"
+PSI4_WHEEL = "ON"

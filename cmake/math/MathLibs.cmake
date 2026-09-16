@@ -100,8 +100,8 @@ set(OPENBLAS_LAPACK_INCLUDE_PATH_SUFFIXES)
 set(OPENBLAS_BLAS_HEADERS cblas.h openblas_config.h f77blas.h)
 set(OPENBLAS_LAPACK_HEADERS lapacke.h lapacke_config.h lapacke_mangling.h lapacke_utils.h)
 
-set(OPENBLAS_BLAS_LIBRARY_PATH_SUFFIXES openblas)
-set(OPENBLAS_LAPACK_LIBRARY_PATH_SUFFIXES openblas)
+set(OPENBLAS_BLAS_LIBRARY_PATH_SUFFIXES openblas "")
+set(OPENBLAS_LAPACK_LIBRARY_PATH_SUFFIXES openblas "")
 
 set(OPENBLAS_BLAS_LIBS  openblas)
 set(OPENBLAS_LAPACK_LIBS openblas)

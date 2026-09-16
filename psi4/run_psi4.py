@@ -31,6 +31,7 @@
 import argparse
 import atexit
 import datetime
+import importlib.util
 import json
 import os
 import re
@@ -124,11 +125,8 @@ def main(argv=None):
     args, unknown = parser.parse_known_args(argv)
     args = args.__dict__  # Namespace object seems silly
 
-    # Figure out paths
-    # * some full paths are computed here using the prefix, but all outputs are relative to __file__, so relocatability preserved
-    # * note that all path entities are directories except for "executable" that is a file
-    executable = Path(__file__).resolve()
-    psi4_exe_loc = executable.parent
+    # executable = Path(__file__).resolve()
+    # psi4_exe_loc = executable.parent
 
     prefix = Path(r"@CMAKE_INSTALL_PREFIX@".replace("\\", "/"))
     cmake_install_bindir = r"@CMAKE_INSTALL_BINDIR@".replace("\\", "/")
@@ -140,17 +138,33 @@ def main(argv=None):
     full_data = (prefix / cmake_install_datadir / "psi4").resolve()
     full_bin = (prefix / cmake_install_bindir).resolve()
     full_cmake = (prefix / psi4_install_cmakedir).resolve()
-    rel_pymod = os.path.relpath(full_pymod, start=full_bin)
-    rel_data = os.path.relpath(full_data, start=full_bin)
-    rel_cmake = os.path.relpath(full_cmake, start=full_bin)
 
-    data_dir = psi4_exe_loc.joinpath(rel_data).resolve()
-    psi4_module_loc = psi4_exe_loc.joinpath(rel_pymod).resolve()
-    cmake_dir = psi4_exe_loc.joinpath(rel_cmake).resolve()
-    cmake_install_prefix = os.path.commonpath([data_dir, psi4_module_loc, psi4_exe_loc, cmake_dir])
-    lib_dir = str(psi4_module_loc.parent)
-    bin_dir = str(psi4_exe_loc)
-    share_cmake_dir = str(cmake_dir)
+    if "@PSI4_WHEEL@".upper() in ("1", "ON", "YES", "TRUE", "Y"):
+        # pip puts this console script in the environment's scripts directory,
+        # while the prefix-style wheel package is exposed through psi4-lib.pth.
+        psi4_spec = importlib.util.find_spec("psi4")
+        if psi4_spec is None or not psi4_spec.submodule_search_locations:
+            raise ImportError("Unable to locate the installed Psi4 Python package.")
+        psi4_module_loc = Path(next(iter(psi4_spec.submodule_search_locations))).resolve()
+        package_prefix = psi4_module_loc.parents[1]
+        data_dir = (package_prefix / cmake_install_datadir / "psi4").resolve()
+        cmake_dir = (package_prefix / psi4_install_cmakedir).resolve()
+        cmake_install_prefix = str(package_prefix)
+        lib_dir = str(psi4_module_loc.parent)
+        bin_dir = str(psi4_exe_loc)
+        share_cmake_dir = str(cmake_dir)
+    else:
+        rel_pymod = os.path.relpath(full_pymod, start=full_bin)
+        rel_data = os.path.relpath(full_data, start=full_bin)
+        rel_cmake = os.path.relpath(full_cmake, start=full_bin)
+
+        data_dir = psi4_exe_loc.joinpath(rel_data).resolve()
+        psi4_module_loc = psi4_exe_loc.joinpath(rel_pymod).resolve()
+        cmake_dir = psi4_exe_loc.joinpath(rel_cmake).resolve()
+        cmake_install_prefix = os.path.commonpath([data_dir, psi4_module_loc, psi4_exe_loc, cmake_dir])
+        lib_dir = str(psi4_module_loc.parent)
+        bin_dir = str(psi4_exe_loc)
+        share_cmake_dir = str(cmake_dir)
 
     if args["inplace"]:
         # not tested after pathlib adjustments
