@@ -313,6 +313,12 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metadata.py
 
 # <<<  Install  >>>
 
+set(PSI4_PIP OFF)
+set(PSI4_PIP_PYTHON False)
+if(DEFINED SKBUILD_SCRIPTS_DIR)
+    set(PSI4_PIP ON)
+    set(PSI4_PIP_PYTHON True)
+endif()
 configure_file(run_psi4.py psi4 @ONLY)
 if(DEFINED SKBUILD_SCRIPTS_DIR)
     # <<<  install lib/psi4/run_psi4.py  >>>

@@ -31,7 +31,6 @@
 import argparse
 import atexit
 import datetime
-import importlib.util
 import json
 import os
 import re
@@ -125,8 +124,8 @@ def main(argv=None):
     args, unknown = parser.parse_known_args(argv)
     args = args.__dict__  # Namespace object seems silly
 
-    # executable = Path(__file__).resolve()
-    # psi4_exe_loc = executable.parent
+    executable = Path(__file__).absolute()
+    psi4_exe_loc = executable.parent
 
     prefix = Path(r"@CMAKE_INSTALL_PREFIX@".replace("\\", "/"))
     cmake_install_bindir = r"@CMAKE_INSTALL_BINDIR@".replace("\\", "/")
@@ -139,19 +138,18 @@ def main(argv=None):
     full_bin = (prefix / cmake_install_bindir).resolve()
     full_cmake = (prefix / psi4_install_cmakedir).resolve()
 
-    if "@PSI4_WHEEL@".upper() in ("1", "ON", "YES", "TRUE", "Y"):
-        # pip puts this console script in the environment's scripts directory,
-        # while the prefix-style wheel package is exposed through psi4-lib.pth.
-        psi4_spec = importlib.util.find_spec("psi4")
-        if psi4_spec is None or not psi4_spec.submodule_search_locations:
-            raise ImportError("Unable to locate the installed Psi4 Python package.")
-        psi4_module_loc = Path(next(iter(psi4_spec.submodule_search_locations))).resolve()
+    PSI4_PIP = @PSI4_PIP_PYTHON@
+    if PSI4_PIP:
+        # The pip entry point imports this module from the installed package.
+        # Keep paths relative to that package rather than the generated script.
+        psi4_module_loc = Path(__file__).absolute().parent
         package_prefix = psi4_module_loc.parents[1]
         data_dir = (package_prefix / cmake_install_datadir / "psi4").resolve()
         cmake_dir = (package_prefix / psi4_install_cmakedir).resolve()
         cmake_install_prefix = str(package_prefix)
         lib_dir = str(psi4_module_loc.parent)
-        bin_dir = str(psi4_exe_loc)
+        import sysconfig
+        bin_dir = sysconfig.get_path("scripts")
         share_cmake_dir = str(cmake_dir)
     else:
         rel_pymod = os.path.relpath(full_pymod, start=full_bin)
@@ -167,22 +165,21 @@ def main(argv=None):
         share_cmake_dir = str(cmake_dir)
 
     if args["inplace"]:
-        # not tested after pathlib adjustments
-        if "CMAKE_INSTALL_LIBDIR" not in lib_dir:
-            raise ImportError("Cannot run inplace from an installed directory.")
-
         import sysconfig
-        core_location = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + "core" + sysconfig.get_config_var("EXT_SUFFIX")
+        module_dir = Path(__file__).absolute().parent
+        core_location = module_dir / ("core" + sysconfig.get_config_var("EXT_SUFFIX"))
         if not os.path.isfile(core_location):
             raise ImportError("A compiled Psi4 core{} needs to be symlinked to the {} folder".format(
-                sysconfig.get_config_var("EXT_SUFFIX"), os.path.dirname(__file__)))
+                sysconfig.get_config_var("EXT_SUFFIX"), module_dir))
 
-        lib_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if ("PSIDATADIR" not in os.environ.keys()) and (not args["psidatadir"]):
-            data_dir = os.path.sep.join([os.path.abspath(os.path.dirname(__file__)), "share", "psi4"])
-            os.environ["PSIDATADIR"] = data_dir
+        lib_dir = str(module_dir.parent)
+        source_data_dir = module_dir / "share" / "psi4"
+        if source_data_dir.is_dir():
+            data_dir = source_data_dir
+        if ("PSIDATADIR" not in os.environ.keys()) and (not args["psidatadir"]) and source_data_dir.is_dir():
+            os.environ["PSIDATADIR"] = str(data_dir)
 
-    elif "CMAKE_INSTALL_LIBDIR" in lib_dir:
+    elif not PSI4_PIP and "CMAKE_INSTALL_LIBDIR" in lib_dir:
         raise ImportError("Psi4 was not installed correctly!")
 
     # Replace input/output if unknown kwargs

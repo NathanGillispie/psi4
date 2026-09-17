@@ -52,7 +52,8 @@ rel_data = os.path.relpath(full_data, start=full_pymod)
 rel_bin = os.path.relpath(full_bin, start=full_pymod)
 
 executable_exe = None
-if "@PSI4_WHEEL@".upper() in ("1", "ON", "YES", "TRUE", "Y"):
+PSI4_PIP = @PSI4_PIP_PYTHON@
+if PSI4_PIP:
     # pip places console scripts in the environment's scripts directory,
     # outside the prefix-style site-packages/lib tree.
     scripts_dir = Path(sysconfig.get_path("scripts"))
