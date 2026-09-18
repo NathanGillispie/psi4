@@ -53,7 +53,7 @@ if [[ ! -f "${openblas_lib}" ]]; then
     exit 1
 fi
 
-python -m pip wheel . \
+python -m pip wheel -v . \
     --no-deps \
     --no-build-isolation \
     --config-settings="build-dir=${build_dir}" \
