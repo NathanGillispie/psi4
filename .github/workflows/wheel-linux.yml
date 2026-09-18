@@ -64,9 +64,12 @@ jobs:
           fi
           test -n "$compiler"
           echo "C++ compiler: $compiler"
-          actual_sysroot="$(realpath "$("$compiler" -print-sysroot")")"
-          expected_sysroot="$(realpath "$CONDA_PREFIX/x86_64-conda-linux-gnu/sysroot")"
+          compiler_sysroot=$("$compiler" -print-sysroot)
+          actual_sysroot=$(realpath "$compiler_sysroot")
+          expected_sysroot=$(realpath \
+            "$CONDA_PREFIX/x86_64-conda-linux-gnu/sysroot")
           echo "Compiler sysroot: $actual_sysroot"
+          echo "Expected sysroot: $expected_sysroot"
           test "$actual_sysroot" = "$expected_sysroot"
 
       - name: Build and repair wheel
