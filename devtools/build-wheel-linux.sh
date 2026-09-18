@@ -53,12 +53,14 @@ if [[ ! -f "${openblas_lib}" ]]; then
     exit 1
 fi
 
+# Static-link Conda's C++/GCC runtime so auditwheel can certify manylinux_2_28.
 python -m pip wheel -v . \
     --no-deps \
     --no-build-isolation \
     --config-settings="build-dir=${build_dir}" \
     --config-settings="cmake.define.BLAS_LIBRARIES=${openblas_lib}" \
     --config-settings="cmake.define.LAPACK_LIBRARIES=${openblas_lib}" \
+    --config-settings="cmake.define.ENABLE_GENERIC=ON" \
     --wheel-dir="${raw_dir}"
 
 raw_wheel="$(printf '%s\n' "${raw_dir}"/*.whl)"
