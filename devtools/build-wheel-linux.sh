@@ -10,7 +10,7 @@ set -euo pipefail
 #   PSI4_NATIVE_LIB_DIRS="$CONDA_PREFIX/lib" devtools/build-wheel-linux.sh
 #
 # Set PSI4_WHEEL_PLAT when running in a manylinux-compatible build image, for
-# example PSI4_WHEEL_PLAT=manylinux_2_28_x86_64.
+# example PSI4_WHEEL_PLAT=manylinux_2_24_x86_64.
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_dir="${PSI4_WHEEL_BUILD_DIR:-${repo_root}/objdir_wheel_linux_x86_64}"
@@ -53,7 +53,7 @@ if [[ ! -f "${openblas_lib}" ]]; then
     exit 1
 fi
 
-# Static-link Conda's C++/GCC runtime so auditwheel can certify manylinux_2_28.
+# Static-link Conda's C++/GCC runtime so auditwheel can certify manylinux_2_24.
 python -m pip wheel -v . \
     --no-deps \
     --no-build-isolation \

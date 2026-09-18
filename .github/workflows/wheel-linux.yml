@@ -96,7 +96,7 @@ jobs:
       - name: Build and repair wheel
         env:
           CMAKE_ARGS: -DENABLE_XHOST=OFF
-          PSI4_WHEEL_PLAT: manylinux_2_28_x86_64
+          PSI4_WHEEL_PLAT: manylinux_2_24_x86_64
           PSI4_WHEEL_BUILD_DIR: ${{ runner.temp }}/psi4-wheel-build
           PSI4_WHEEL_DIR: ${{ runner.temp }}/psi4-wheelhouse
         run: |
