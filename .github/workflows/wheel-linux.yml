@@ -1,0 +1,91 @@
+name: Linux wheel (temporary)
+
+on:
+  push:
+    branches:
+      - linux-wheel-ci
+  pull_request:
+    branches:
+      - linux-wheel-ci
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-wheel:
+    name: Build Linux x86_64 wheel
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout Psi4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Conda build environment
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          activate-environment: psi4-wheel-glibc228
+          environment-file: devtools/conda-envs/linux-64-buildrun-addons-py313.lock.yaml
+          auto-activate-base: false
+          channels: conda-forge
+          conda-remove-defaults: true
+
+      - name: Add OpenBLAS and wheel tooling
+        run: |
+          conda install --yes \
+            --solver libmamba \
+            --override-channels \
+            -c conda-forge \
+            --no-deps \
+            openblas \
+            libopenblas
+          python -m pip install auditwheel patchelf scikit-build-core
+
+      - name: Verify target toolchain
+        run: |
+          conda list sysroot_linux-64
+          conda list libopenblas
+          test -x "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++"
+          test -f "$CONDA_PREFIX/lib/libopenblas.so"
+          test "$("$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++" -print-sysroot)" = \
+            "$CONDA_PREFIX/x86_64-conda-linux-gnu/sysroot"
+
+      - name: Build and repair wheel
+        env:
+          CMAKE_ARGS: -DENABLE_XHOST=OFF
+          PSI4_WHEEL_PLAT: manylinux_2_28_x86_64
+          PSI4_WHEEL_BUILD_DIR: ${{ runner.temp }}/psi4-wheel-build
+          PSI4_WHEEL_DIR: ${{ runner.temp }}/psi4-wheelhouse
+        run: |
+          export PSI4_MATH_ROOT="$CONDA_PREFIX"
+          export PSI4_OPENBLAS_LIBRARY="$CONDA_PREFIX/lib/libopenblas.so"
+          export PSI4_NATIVE_LIB_DIRS="$CONDA_PREFIX/lib"
+          ./devtools/build-wheel-linux.sh
+
+      - name: Show wheel ABI report
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/wheel-reports"
+          for wheel in "${RUNNER_TEMP}"/psi4-wheelhouse/raw/*.whl; do
+            test -e "$wheel" || continue
+            auditwheel show "$wheel" > \
+              "${RUNNER_TEMP}/wheel-reports/$(basename "$wheel").auditwheel.txt" || true
+          done
+          cat "${RUNNER_TEMP}"/wheel-reports/*.txt 2>/dev/null || true
+
+      - name: Upload wheel artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi4-linux-wheel-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/psi4-wheelhouse/raw/*.whl
+            ${{ runner.temp }}/psi4-wheelhouse/repaired/*.whl
+            ${{ runner.temp }}/wheel-reports/*.txt
