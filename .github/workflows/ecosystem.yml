@@ -1,12 +1,8 @@
 name: Eco
 
 on:
-  push:
-    branches:
-      - master
-      - '1.*.x'
-  pull_request:
-  merge_group:
+  # Temporarily disabled while Linux wheel CI is being validated.
+  workflow_dispatch:
 
 permissions:
   contents: read  #  to fetch code (actions/checkout)
