@@ -1,8 +1,8 @@
 name: Docs
 
 on:
-  pull_request:
-  merge_group:
+  # Temporarily disabled while Linux wheel CI is being validated.
+  workflow_dispatch:
 
 jobs:
 
