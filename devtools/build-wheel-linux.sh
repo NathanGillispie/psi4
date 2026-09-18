@@ -60,6 +60,9 @@ python -m pip wheel -v . \
     --config-settings="build-dir=${build_dir}" \
     --config-settings="cmake.define.BLAS_LIBRARIES=${openblas_lib}" \
     --config-settings="cmake.define.LAPACK_LIBRARIES=${openblas_lib}" \
+    --config-settings="cmake.define.CMAKE_C_FLAGS=-march=x86-64 -mtune=generic" \
+    --config-settings="cmake.define.CMAKE_CXX_FLAGS=-march=x86-64 -mtune=generic" \
+    --config-settings="cmake.define.CMAKE_Fortran_FLAGS=-march=x86-64 -mtune=generic" \
     --config-settings="cmake.define.ENABLE_GENERIC=ON" \
     --wheel-dir="${raw_dir}"
 
