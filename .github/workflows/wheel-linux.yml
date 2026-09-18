@@ -45,13 +45,13 @@ jobs:
           sed -E \
             "s/^  - python$/  - python=${{ matrix.python-version }}/" \
             devtools/conda-envs/linux-64-buildrun-addons.yaml \
-            > "${RUNNER_TEMP}/linux-64-buildrun-addons-${{ matrix.python-tag }}.yaml"
+            > "wheel-env-${{ matrix.python-tag }}.yaml"
 
       - name: Setup Conda build environment
         uses: conda-incubator/setup-miniconda@v4
         with:
           activate-environment: psi4-wheel-py${{ matrix.python-tag }}
-          environment-file: ${{ runner.temp }}/linux-64-buildrun-addons-${{ matrix.python-tag }}.yaml
+          environment-file: wheel-env-${{ matrix.python-tag }}.yaml
           auto-activate-base: false
           channels: conda-forge
           conda-remove-defaults: true
