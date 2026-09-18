@@ -14,8 +14,22 @@ permissions:
 
 jobs:
   build-wheel:
-    name: Build Linux x86_64 wheel
+    name: Build Linux x86_64 wheel (Python ${{ matrix.python-version }})
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            python-tag: cp310
+          - python-version: "3.11"
+            python-tag: cp311
+          - python-version: "3.12"
+            python-tag: cp312
+          - python-version: "3.13"
+            python-tag: cp313
+          - python-version: "3.14"
+            python-tag: cp314
     defaults:
       run:
         shell: bash -el {0}
@@ -26,11 +40,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Pin matrix Python in Conda environment
+        run: |
+          sed -E \
+            "s/^  - python$/  - python=${{ matrix.python-version }}/" \
+            devtools/conda-envs/linux-64-buildrun-addons.yaml \
+            > "${RUNNER_TEMP}/linux-64-buildrun-addons-${{ matrix.python-tag }}.yaml"
+
       - name: Setup Conda build environment
         uses: conda-incubator/setup-miniconda@v4
         with:
-          activate-environment: psi4-wheel-glibc228
-          environment-file: devtools/conda-envs/linux-64-buildrun-addons-py313.lock.yaml
+          activate-environment: psi4-wheel-py${{ matrix.python-tag }}
+          environment-file: ${{ runner.temp }}/linux-64-buildrun-addons-${{ matrix.python-tag }}.yaml
           auto-activate-base: false
           channels: conda-forge
           conda-remove-defaults: true
@@ -96,13 +117,10 @@ jobs:
           cat "${RUNNER_TEMP}"/wheel-reports/*.txt 2>/dev/null || true
 
       - name: Upload wheel artifacts
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: psi4-linux-wheel-${{ github.sha }}
-          if-no-files-found: warn
+          name: psi4-linux-wheel-${{ matrix.python-tag }}-${{ github.sha }}
+          if-no-files-found: error
           retention-days: 14
-          path: |
-            ${{ runner.temp }}/psi4-wheelhouse/raw/*.whl
-            ${{ runner.temp }}/psi4-wheelhouse/repaired/*.whl
-            ${{ runner.temp }}/wheel-reports/*.txt
+          path: ${{ runner.temp }}/psi4-wheelhouse/repaired/*.whl
