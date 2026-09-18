@@ -46,3 +46,8 @@ if = {state = "wheel"}
 BLAS_TYPE = "OPENBLAS"
 LAPACK_TYPE = "OPENBLAS"
 PSI4_WHEEL = "ON"
+
+[tool.scikit-build.overrides.wheel]
+exclude = [
+    "lib/psi4/tests/**/output.ref",
+]
