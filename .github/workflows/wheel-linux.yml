@@ -50,9 +50,21 @@ jobs:
         run: |
           conda list sysroot_linux-64
           conda list libopenblas
-          test -x "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++"
           test -f "$CONDA_PREFIX/lib/libopenblas.so"
-          test "$("$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++" -print-sysroot)" = \
+          compiler="${CXX:-}"
+          if [[ -z "$compiler" ]]; then
+            for candidate in \
+              "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-c++" \
+              "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++"; do
+              if [[ -x "$candidate" ]]; then
+                compiler="$candidate"
+                break
+              fi
+            done
+          fi
+          test -n "$compiler"
+          echo "C++ compiler: $compiler"
+          test "$("$compiler" -print-sysroot)" = \
             "$CONDA_PREFIX/x86_64-conda-linux-gnu/sysroot"
 
       - name: Build and repair wheel
