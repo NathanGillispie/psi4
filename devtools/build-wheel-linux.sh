@@ -63,6 +63,7 @@ python -m pip wheel -v . \
     --config-settings="cmake.define.CMAKE_C_FLAGS=-march=x86-64 -mtune=generic" \
     --config-settings="cmake.define.CMAKE_CXX_FLAGS=-march=x86-64 -mtune=generic" \
     --config-settings="cmake.define.CMAKE_Fortran_FLAGS=-march=x86-64 -mtune=generic" \
+    --config-settings="cmake.define.ENABLE_XHOST=OFF" \
     --config-settings="cmake.define.ENABLE_GENERIC=ON" \
     --wheel-dir="${raw_dir}"
 
