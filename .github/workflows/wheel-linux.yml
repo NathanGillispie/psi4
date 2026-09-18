@@ -43,7 +43,8 @@ jobs:
       - name: Pin matrix Python in Conda environment
         run: |
           sed -E \
-            "s/^  - python$/  - python=${{ matrix.python-version }}/" \
+            -e "s/^  - python$/  - python=${{ matrix.python-version }}/" \
+            -e "/^  - python=/a\\  - sysroot_linux-64=2.28" \
             devtools/conda-envs/linux-64-buildrun-addons.yaml \
             > "wheel-env-${{ matrix.python-tag }}.yaml"
 
@@ -63,14 +64,15 @@ jobs:
             --override-channels \
             -c conda-forge \
             --no-deps \
-            openblas \
-            libopenblas
+            openblas=0.3.34=pthreads_h6ec200e_0 \
+            libopenblas=0.3.34=pthreads_h94d23a6_0
           python -m pip install auditwheel patchelf scikit-build-core
 
       - name: Verify target toolchain
         run: |
           conda list sysroot_linux-64
           conda list libopenblas
+          test "$(conda list sysroot_linux-64 | awk '$1 == "sysroot_linux-64" {print $2}')" = "2.28"
           test -f "$CONDA_PREFIX/lib/libopenblas.so"
           compiler="${CXX:-}"
           if [[ -z "$compiler" ]]; then
