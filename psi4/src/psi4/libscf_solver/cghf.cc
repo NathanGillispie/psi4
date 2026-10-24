@@ -73,6 +73,7 @@ CGHF::~CGHF() {}
 
 void CGHF::common_init() {
     BaseHF::common_init(options_, module_, molecule_, dipole_field_strength_);
+    set_module("scf");
     name_ = "CGHF";
     // Prefer BaseHF::nelectron_ over BaseWavefunction's; copy from ComplexWavefunction.
     nelectron_ = nelec_;

@@ -313,6 +313,12 @@ class HF : public BaseHF, public Wavefunction {
     /// Form the guess (guarantees C, D, and E)
     virtual void guess();
 
+    /// Compute the MO coefficients (C_) using level shift, then assign the occupation.
+    /** Compute the MO coefficients (C_) using level shift, leaving the occupation alone.
+        form_C is this followed by find_occupation. Generally, use form_C, but this can
+        be useful when having already optimized against a particular occupation, one wants
+        the orbitals canonical without having the aufbau rule reassign underneath it. */
+    virtual void diagonalize_orbitals(double shift = 0.0);
     /** Form X'(FDS - SDF)X (for DIIS) **/
     virtual SharedMatrix form_FDSmSDF(SharedMatrix Fso, SharedMatrix Dso);
 

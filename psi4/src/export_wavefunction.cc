@@ -116,6 +116,15 @@ void export_wavefunction(py::module& m) {
              "Sets name of the last/highest level of theory module (internal or external) touching the wavefunction.")
         .def("module", &BaseWavefunction::module, py::return_value_policy::copy,
              "Name of the last/highest level of theory module (internal or external) touching the wavefunction.")
+        .def("set_module_role", &BaseWavefunction::set_module_role, "role"_a, "module"_a,
+             "Records which module (internal or external) filled a named role.")
+        .def("module_role", &BaseWavefunction::module_role, "role"_a, py::return_value_policy::copy,
+             "Module that filled a named role, or an empty string if that role was never filled.")
+        .def("module_roles", &BaseWavefunction::module_roles, py::return_value_policy::copy,
+             "Modules that filled named roles, keyed by role. The ``qc_module`` role is the "
+             "level-of-theory module for the current energy, the same string :py:meth:`module` "
+             "returns; the others record which package did a particular job along the way, "
+             "e.g. ``orbital_optimizer``.")
         .def("nsopi", &BaseWavefunction::nsopi, py::return_value_policy::copy,
              "Returns the number of symmetry orbitals per irrep.")
         .def("nmopi", &BaseWavefunction::nmopi, py::return_value_policy::copy,
@@ -386,8 +395,8 @@ void export_wavefunction(py::module& m) {
         .def(py::init<Options&>());
 #endif
 
-        py::class_<scf::BaseHF, std::shared_ptr<scf::BaseHF>>(m, "BaseHF",
-                                                          "Shared SCF-loop state for real and complex Hartree–Fock.")
+    py::class_<scf::BaseHF, std::shared_ptr<scf::BaseHF>>(m, "BaseHF",
+                                                           "Shared SCF-loop state for real and complex Hartree–Fock.")
         .def("form_C", &scf::BaseHF::form_C, "Forms the Orbital Matrices from the current Fock Matrices.", "shift"_a = 0.0)
         .def("form_initial_C", &scf::BaseHF::form_initial_C,
              "Forms the initial Orbital Matrices from the current Fock Matrices.")
@@ -426,6 +435,10 @@ void export_wavefunction(py::module& m) {
 
     py::class_<scf::HF, scf::BaseHF, Wavefunction, std::shared_ptr<scf::HF>>(m, "HF", py::multiple_inheritance(), "docstring")
         .def("compute_fvpi", &scf::HF::compute_fvpi, "Update number of frozen virtuals")
+        .def("form_C", &scf::HF::form_C, "Forms the Orbital Matrices from the current Fock Matrices.", "shift"_a = 0.0)
+        .def("diagonalize_orbitals", &scf::HF::diagonalize_orbitals,
+             "Forms the orbital matrices from the current Fock matrices but leaves the occupation unchanged.",
+             "shift"_a = 0.0)
         .def("form_FDSmSDF", &scf::HF::form_FDSmSDF, "Forms the residual of SCF theory")
         .def("guess", &scf::HF::guess, "Forms the guess (guarantees C, D, and E)")
         .def("initialize_gtfock_jk", &scf::HF::initialize_gtfock_jk, "Sets up a GTFock JK object")
