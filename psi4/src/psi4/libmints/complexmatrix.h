@@ -36,6 +36,10 @@
 #include <memory>
 #include <tuple>
 
+// std::swap in explicit copy assignment operator. Should be removed as soon
+// as v1.1.7
+#include <utility>
+
 #ifdef USING_OpenOrbitalOptimizer
 #ifdef USING_LAPACK_MKL
 #include <mkl.h>
@@ -148,6 +152,20 @@ class PSI_API ComplexMatrix {
 
     ComplexMatrix() = default;
     ComplexMatrix(const std::string& name) : tensor_() { tensor_.set_name(name); }
+
+    // -- Copy semantics --
+    // This should be forwarded to TiledTensor, but as of einsums v1.1.6, the
+    // explicitly-defined move operator deletes the implicit copy assignment
+    // operator. Einsums v1.1.7 is not released at time of writing, but these
+    // should be deleted after its release.
+
+    ComplexMatrix& operator=(const ComplexMatrix& rhs) {
+        if (this == &rhs) return *this;
+        TiledT clone(rhs); // Copy ctor
+        std::swap(tensor_, clone);
+        return *this;
+    }
+
 
     // -- Static factory methods --
 
