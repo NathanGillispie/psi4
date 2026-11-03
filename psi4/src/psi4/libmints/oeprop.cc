@@ -78,6 +78,24 @@
 
 namespace psi {
 
+// ComplexProp::ComplexProp(std::shared_ptr<ComplexWavefunction> wfn) : wfn_(wfn) {
+//     if (wfn_.get() == nullptr) throw PSIEXCEPTION("Prop: ComplexWavefunction is null");
+//     set_wavefunction(wfn_);
+// }
+// void ComplexProp::set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn) {
+//     wfn_ = wfn;
+//     basisset_ = wfn_->basisset();
+//     integral_ = std::make_shared<IntegralFactory>(basisset_, basisset_, basisset_, basisset_);
+//     auto pet = std::make_shared<PetiteList>(basisset_, integral_);
+//     factory_ = wfn_->matrix_factory();
+//
+//     epsilon_ = wfn_->epsilon();
+//     C_so_ = wfn_->C();
+//     D_so_ = wfn_->D();
+// }
+//
+
+
 Prop::Prop(std::shared_ptr<Wavefunction> wfn) : wfn_(wfn) {
     if (wfn_.get() == nullptr) throw PSIEXCEPTION("Prop: Wavefunction is null");
     set_wavefunction(wfn_);
@@ -265,6 +283,12 @@ void Prop::set_Db_mo(SharedMatrix D) {
         C_DGEMM('N', 'N', nsol, nsor, nmol, 1.0, Clp[0], nmol, temp_ptr, nsor, 0.0, Dsop[0], nsor);
     }
 }
+
+
+void ComplexOEProp::add(const std::string& prop) { tasks_.insert(prop); }
+void ComplexOEProp::add(std::vector<std::string> props) { tasks_.insert(props.begin(), props.end()); }
+void ComplexOEProp::clear() { tasks_.clear(); }
+
 void OEProp::add(const std::string& prop) { tasks_.insert(prop); }
 void OEProp::add(std::vector<std::string> props) { tasks_.insert(props.begin(), props.end()); }
 void OEProp::clear() { tasks_.clear(); }
@@ -790,6 +814,40 @@ template <class T>
 bool from_string(T& t, const std::string& s, std::ios_base& (*f)(std::ios_base&)) {
     std::istringstream iss(s);
     return !(iss >> f >> t).fail();
+}
+
+void ComplexOEProp::compute() {
+    outfile->Printf("\nProperties computed using the %s density matrix\n\n", title_.c_str());
+
+    // Search for multipole strings, which are handled separately
+    std::set<std::string>::const_iterator iter = tasks_.begin();
+    std::regex mpoles("^MULTIPOLE(?:S)?\\s*\\((\\d+)\\)$");
+    std::smatch matches;
+    for (; iter != tasks_.end(); ++iter) {
+        std::string str = *iter;
+        if (std::regex_match(str, matches, mpoles)) {
+            int order;
+            if (!from_string<int>(order, matches[1], std::dec))
+                throw PSIEXCEPTION("Problem determining multipole order!  Specify, e.g., MULTIPOLE(5)");
+            compute_multipoles(order);
+        }
+    }
+    // print_header();  // Not by default, happens too often -CDS
+    if (tasks_.count("ESP_AT_NUCLEI")) compute_esp_at_nuclei();
+    if (tasks_.count("QUADRUPOLE")) compute_multipoles(2, false);
+    else if (tasks_.count("DIPOLE")) compute_multipoles(1, false);
+    if (tasks_.count("TRANSITION_QUADRUPOLE")) compute_multipoles(2, true);
+    else if (tasks_.count("TRANSITION_DIPOLE")) compute_multipoles(1, true);
+    if (tasks_.count("MO_EXTENTS")) compute_mo_extents();
+    if (tasks_.count("MULLIKEN_CHARGES")) compute_mulliken_charges();
+    if ((tasks_.count("LOWDIN_CHARGES")) || (tasks_.count("LOWDIN_SPINS"))) compute_lowdin_charges();
+    if (tasks_.count("MBIS_VOLUME_RATIOS")) compute_mbis_multipoles(true);
+    else if (tasks_.count("MBIS_CHARGES")) compute_mbis_multipoles(false);
+    if (tasks_.count("MAYER_INDICES")) compute_mayer_indices();
+    if (tasks_.count("WIBERG_LOWDIN_INDICES")) compute_wiberg_lowdin_indices();
+    if (tasks_.count("NO_OCCUPATIONS")) compute_no_occupations();
+    if (tasks_.count("GRID_FIELD")) compute_field_over_grid();
+    if (tasks_.count("GRID_ESP")) compute_esp_over_grid();
 }
 
 void OEProp::compute() {

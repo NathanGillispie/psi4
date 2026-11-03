@@ -40,10 +40,211 @@
 
 namespace psi {
 
-class Wavefunction;
+class ComplexWavefunction;
 class IntegralFactory;
 class MatrixFactory;
 class BasisSet;
+
+class PSI_API ComplexOEProp {
+   private:
+    /// Constructor, uses globals and Process::environment::reference wavefunction, Implementation does not exist.
+    ComplexOEProp();
+
+   protected:
+    /// The wavefunction object this Prop is built around
+    std::shared_ptr<ComplexWavefunction> wfn_;
+    /// Print flag
+    int print_;
+    /// ComplexOEProp name, for printout purposes.
+    /// TODO: Standardize density matrix names across Psi so we can remove `title_`.
+    ///   `title_` is redundant. Ideally, we'd print the density matrix names and not bother naming the
+    ///   ComplexOEProp object itself. But if a user sets an MO density matrix and gives it a name asserting
+    ///   it is an MO density matrix, ComplexOEProp would need to recognize that and rename the SO basis matrix
+    ///   it creates. Without a standard naming scheme for densities, ComplexOEProp can't do that. Therefore,
+    ///   until density names are standardized, we need to awkwardly keep `title_` around.
+    std::string title_;
+    /// Variable names, for variable saving purposes. Each should have a single '{}' substring to indicate
+    /// where the variable name goes. The full generality of format strings are needed for excited
+    /// state purposes.
+    std::unordered_set<std::string> names_;
+    /// The set of tasks to complete
+    std::set<std::string> tasks_;
+    /// Common initialization
+    void common_init();
+    /// Print header and information
+    void print_header();
+
+    // Compute routines
+    /// Compute arbitrary-order multipoles up to (and including) l=order
+    void compute_multipoles(int order, bool transition = false) { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute mo extents
+    void compute_mo_extents() { throw PSIEXCEPTION("Not Implemented!"); }
+
+    /// Compute Mulliken Charges
+    void compute_mulliken_charges() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute Lowdin Charges
+    void compute_lowdin_charges() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute MBIS Multipoles (doi:10.1021/acs.jctc.6b00456)
+    void compute_mbis_multipoles(bool free_atom_volumes = false) { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute Mayer Bond Indices (non-orthogoal basis)
+    void compute_mayer_indices() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute Wiberg Bond Indices using Lowdin Orbitals (symmetrically orthogonal basis)
+    void compute_wiberg_lowdin_indices() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute/display natural orbital occupations around the bandgap. Displays max_num above and below the bandgap
+    void compute_no_occupations() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute electric field and electric field gradients, this function is missing, the declaration should be
+    /// removed.
+    void compute_electric_field_and_gradients() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute electrostatic potentials at the nuclei
+    void compute_esp_at_nuclei() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute electrostatic potential at specified grid points
+    void compute_esp_over_grid() { throw PSIEXCEPTION("Not Implemented!"); }
+    /// Compute field at specified grid points
+    void compute_field_over_grid() { throw PSIEXCEPTION("Not Implemented!"); }
+
+    // MultipolePropCalc mpc_;
+    // PopulationAnalysisCalc pac_;
+    // ESPPropCalc epc_;
+
+    // int max_noon_ = 3;
+
+    // retrieves the Origin vector from the environment.
+    Vector3 get_origin_from_environment() const;
+    /// Computes the center for a given property, for the current molecule. Weighted center of geometry function
+    Vector3 compute_center(const double* property) const;
+
+   public:
+    /// Constructor, uses globals
+    ComplexOEProp(std::shared_ptr<ComplexWavefunction> wfn);
+    /// Destructor
+    ~ComplexOEProp();
+
+    /// Add a single task to the queue
+    void add(const std::string& task);
+    /// Add a set of tasks to the queue
+    void add(std::vector<std::string> tasks);
+    /// Clear task queue
+    void clear();
+    /// Set title for use in printout. Set the same title to be the name for printout.
+    /// We do both because in older ComplexOEProp, the same member variable was used for both tasks.
+    void set_title(const std::string& title) { names_ = {title + (title.empty() ? "" : " ") + "{}"}; title_ = title; }
+    /// Set titles for use in saving information
+    void set_names(const std::unordered_set<std::string> names) { names_ = names; }
+    /// Compute and print/save the properties
+    void compute();
+
+    // std::vector<double> const& Vvals() const { return epc_.Vvals(); }
+    // std::vector<double> const& Exvals() const { return epc_.Exvals(); }
+    // std::vector<double> const& Eyvals() const { return epc_.Eyvals(); }
+    // std::vector<double> const& Ezvals() const { return epc_.Ezvals(); }
+
+    // These functions need to be overridden to pass on to the feature classes:
+
+    // Change restricted flag. Resets C/D/epsilon matrices from wfn
+    void set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn);
+    // Set alpha eigenvalues, MO pitzer order basis
+    void set_epsilon(SharedVector epsilon_a);
+    // Set alpha C matrix, SO/MO pitzer order basis.
+    void set_C(SharedComplexMatrix Ca);
+
+    // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
+    // the adding to Dt  <= //
+
+    // TODO Add symmetry is irrep number
+    void set_D_ao(SharedComplexMatrix D, int symmetry = 0);
+    void set_D_so(SharedComplexMatrix D);
+    void set_D_mo(SharedComplexMatrix D);
+};
+
+// class PSI_API ComplexProp {
+//    protected:
+//     /// The wavefunction object this Prop is built around
+//     std::shared_ptr<ComplexWavefunction> wfn_;
+//     /// The basisset for this wavefunction
+//     std::shared_ptr<BasisSet> basisset_;
+//     /// The integral factory for this wavefunction's basisset
+//     std::shared_ptr<IntegralFactory> integral_;
+//     /// The matrix factory for this wavefunction's basisset (SO)
+//     std::shared_ptr<MatrixFactory> factory_;
+//
+//     /**
+//      * Internally, data is held in the SO basis in Pitzer order
+//      */
+//
+//     /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
+//     SharedVector epsilon_;
+//     /// The alpha density matrix in the SO basis
+//     SharedComplexMatrix D_so_;
+//     /// The alpha C matrix in the SO basis
+//     SharedComplexMatrix C_so_;
+//
+//     /// Common initialization
+//     void common_init();
+//
+//    public:
+//     /// Build a Prop object with C, epsilon, and restricted buit from wfn
+//     ComplexProp(std::shared_ptr<ComplexWavefunction> wfn);
+//     /// Virtual destructor
+//     virtual ~ComplexProp();
+//
+//     // => Wavefunction Modifiers (rarely called, C is usually fixed at HF) <= //
+//
+//     // Change restricted flag. Resets C/D/epsilon matrices from wfn
+//     void set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn);
+//     // Set alpha eigenvalues, MO pitzer order basis
+//     void set_epsilon(SharedVector epsilon);
+//     // Set alpha C matrix, SO/MO pitzer order basis.
+//     void set_C(SharedComplexMatrix C);
+//
+//     // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
+//     // the adding to Dt  <= //
+//
+//     // TODO Add symmetry is irrep number
+//     void set_D_ao(SharedComplexMatrix D, int symmetry = 0);
+//     void set_D_so(SharedComplexMatrix D);
+//     void set_D_mo(SharedComplexMatrix D);
+//
+//     // => Get routines (useful to quickly change bases) <= //
+//
+//     /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
+//     SharedVector epsilon() { return std::make_shared<Vector>(epsilon_->clone()); }
+//
+//     /// The alpha C matrix in the SO basis
+//     SharedComplexMatrix C_so();
+//     /// The alpha C matrix in the AO (Spherical Harmonics, C1) basis. Ordered by eigenvalue
+//     SharedComplexMatrix C_ao();
+//
+//     /// The alpha density matrix in the AO (Spherical Harmonics, C1) basis
+//     SharedComplexMatrix D_ao();
+//     /// The alpha density matrix in the SO basis
+//     SharedComplexMatrix D_so();
+//     /// The alpha density matrix in the MO basis
+//     SharedComplexMatrix D_mo();
+//
+//     /// The total/spin density matrix in the ao basis, depending on if true or false
+//     SharedComplexMatrix Dt_so(bool total = true);
+//     /// The total/spin density matrix in the ao basis, depending on if true or false
+//     SharedComplexMatrix Dt_mo(bool total = true);
+//
+//     /// The alpha natural orbital occupations and orbitals in the MO basis
+//     std::pair<SharedComplexMatrix, SharedVector> N_mo();
+//     /// The total natural orbital occupations and orbitals in the MO basis
+//     std::pair<SharedComplexMatrix, SharedVector> Nt_mo();
+//     /// The alpha natural orbital occupations and orbitals in the SO basis
+//     std::pair<SharedComplexMatrix, SharedVector> N_so();
+//     /// The total natural orbital occupations and orbitals in the SO basis
+//     std::pair<SharedComplexMatrix, SharedVector> Nt_so();
+//     /// The alpha natural orbital occupations and orbitals in the AO basis
+//     std::pair<SharedComplexMatrix, SharedVector> N_ao();
+//     /// The total natural orbital occupations and orbitals in the AO basis
+//     std::pair<SharedComplexMatrix, SharedVector> Nt_ao();
+//
+//     /// Density Matrix title, used for fallback naming of OEProp compute jobs
+//     std::string D_name() const;
+//
+//     // => Some integral helpers <= //
+//     SharedComplexMatrix overlap_so();
+// };
 
 /**
  * The Prop object, base class of OEProp and GridProp objects

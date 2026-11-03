@@ -32,6 +32,7 @@
 #include "psi4/libmints/matrix.h"
 #include "psi4/libmints/vector.h"
 #include "psi4/libmints/wavefunction.h"
+#include "psi4/libmints/complexwavefunction.h"
 
 using namespace psi;
 namespace py = pybind11;
@@ -47,6 +48,21 @@ void export_oeprop(py::module &m) {
              "Computes ESP on specified grid Nx3 (as SharedMatrix, in input units)")
         .def("compute_field_over_grid_in_memory", &ESPPropCalc::compute_field_over_grid_in_memory,
              "Computes field on specified grid Nx3 (as SharedMatrix, in input units)");
+
+    py::class_<ComplexOEProp, std::shared_ptr<ComplexOEProp>>(m, "ComplexOEProp", "docstring")
+        .def(py::init<std::shared_ptr<ComplexWavefunction>>())
+        .def("add", py::overload_cast<const std::string&>(&ComplexOEProp::add), "Append the given task to the list of properties to compute.")
+        .def("compute", &ComplexOEProp::compute, "Compute the properties.")
+        .def("clear", &ComplexOEProp::clear, "Clear the list of properties to compute.")
+        .def("set_D_ao", &ComplexOEProp::set_D_ao, "docstring", "D"_a, "symmetry"_a = 0)
+        .def("set_D_so", &ComplexOEProp::set_D_so, "docstring")
+        .def("set_D_mo", &ComplexOEProp::set_D_mo, "docstring")
+        .def("set_title", &ComplexOEProp::set_title,
+             "Title OEProp for print purposes. As a side effect, saves variables as title + propertyname and only that. "
+             "Follow up with side names, if the side effect is undesired,", "title"_a)
+        .def("set_names", &ComplexOEProp::set_names,
+             "Instruct OEProp to save variables under all specified names. The property name will "
+             "be inserted at every occurrence of {}, like Python format strings. Wipes other names-to-save-by.");
 
     py::class_<OEProp, std::shared_ptr<OEProp>>(m, "OEProp", "docstring")
         .def(py::init<std::shared_ptr<Wavefunction> >())
