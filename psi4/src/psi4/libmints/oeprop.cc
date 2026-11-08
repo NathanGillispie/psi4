@@ -44,6 +44,8 @@
 #include "psi4/libmints/vector.h"
 #include "psi4/libmints/vector3.h"
 #include "psi4/libmints/wavefunction.h"
+#include "psi4/libmints/complexwavefunction.h"
+#include "psi4/libmints/complexmatrix.h"
 #include "psi4/libmints/molecule.h"
 #include "psi4/libmints/integral.h"
 #include "psi4/libmints/sointegral_onebody.h"
@@ -78,23 +80,44 @@
 
 namespace psi {
 
-// ComplexProp::ComplexProp(std::shared_ptr<ComplexWavefunction> wfn) : wfn_(wfn) {
-//     if (wfn_.get() == nullptr) throw PSIEXCEPTION("Prop: ComplexWavefunction is null");
-//     set_wavefunction(wfn_);
-// }
-// void ComplexProp::set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn) {
-//     wfn_ = wfn;
-//     basisset_ = wfn_->basisset();
-//     integral_ = std::make_shared<IntegralFactory>(basisset_, basisset_, basisset_, basisset_);
-//     auto pet = std::make_shared<PetiteList>(basisset_, integral_);
-//     factory_ = wfn_->matrix_factory();
-//
-//     epsilon_ = wfn_->epsilon();
-//     C_so_ = wfn_->C();
-//     D_so_ = wfn_->D();
-// }
-//
+ComplexProp::ComplexProp(std::shared_ptr<ComplexWavefunction> wfn) : wfn_(wfn) {
+    if (wfn_.get() == nullptr) throw PSIEXCEPTION("Prop: ComplexWavefunction is null");
+    set_wavefunction(wfn_);
+}
+ComplexProp::~ComplexProp() {}
+void ComplexProp::common_init() { set_wavefunction(wfn_); }
+void ComplexProp::set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn) {
+    if (wfn.get() == nullptr) throw PSIEXCEPTION("Prop: ComplexWavefunction is null");
+    wfn_ = wfn;
+    basisset_ = wfn_->basisset();
+    integral_ = std::make_shared<IntegralFactory>(basisset_, basisset_, basisset_, basisset_);
 
+    epsilon_ = wfn_->epsilon();
+    C_so_ = wfn_->C();
+    D_so_ = wfn_->D();
+}
+void ComplexProp::set_epsilon(SharedVector epsilon) {
+    if (!epsilon) throw PSIEXCEPTION("ComplexProp: orbital energies are null");
+    epsilon_ = epsilon;
+}
+void ComplexProp::set_C(SharedComplexMatrix C) {
+    if (!C) throw PSIEXCEPTION("ComplexProp: MO coefficients are null");
+    C_so_ = C;
+}
+void ComplexProp::set_D_ao(SharedComplexMatrix D, int symmetry) {
+    if (!D) throw PSIEXCEPTION("ComplexProp: density matrix is null");
+    if (symmetry != 0) throw PSIEXCEPTION("ComplexProp: non-totally-symmetric densities are not implemented");
+    D_so_ = D->clone();
+}
+void ComplexProp::set_D_so(SharedComplexMatrix D) {
+    if (!D) throw PSIEXCEPTION("ComplexProp: density matrix is null");
+    D_so_ = D;
+}
+void ComplexProp::set_D_mo(SharedComplexMatrix D) {
+    if (!D) throw PSIEXCEPTION("ComplexProp: density matrix is null");
+    D_so_ = linalg::triplet(C_so_, D, C_so_, false, false, true);
+    D_so_->set_name("D_so");
+}
 
 Prop::Prop(std::shared_ptr<Wavefunction> wfn) : wfn_(wfn) {
     if (wfn_.get() == nullptr) throw PSIEXCEPTION("Prop: Wavefunction is null");
@@ -296,6 +319,86 @@ void OEProp::add(std::vector<std::string> props) { tasks_.insert(props.begin(), 
 void OEProp::clear() { tasks_.clear(); }
 SharedVector Prop::epsilon_a() { return std::make_shared<Vector>(std::move(epsilon_a_->clone())); }
 SharedVector Prop::epsilon_b() { return std::make_shared<Vector>(std::move(epsilon_b_->clone())); }
+SharedVector ComplexProp::epsilon() {
+    if (!epsilon_) throw PSIEXCEPTION("ComplexProp: orbital energies are not set");
+    return std::make_shared<Vector>(std::move(epsilon_->clone()));
+}
+SharedComplexMatrix ComplexProp::C_so() {
+    return C_so_->clone();
+}
+SharedComplexMatrix ComplexProp::C_ao() {
+    return C_so_->clone();
+}
+SharedComplexMatrix ComplexProp::D_ao() {
+    return D_so_->clone();
+}
+SharedComplexMatrix ComplexProp::D_so() {
+    return D_so_->clone();
+}
+SharedComplexMatrix ComplexProp::D_mo() {
+    auto S = overlap_so();
+    auto CdagS = linalg::doublet(C_so_, S, true, false);
+    auto SDC = linalg::doublet(S, C_so_, false, false);
+    auto DSDC = linalg::doublet(D_so_, SDC, false, false);
+    return linalg::doublet(CdagS, DSDC, false, false);
+}
+SharedComplexMatrix ComplexProp::Dt_so(bool total) {
+    auto D = D_so_->clone();
+    if (total) {
+        D->axpy(std::complex<double>{1.0, 0.0}, *D_so_);
+        D->set_name("Dt_so");
+    } else {
+        D->zero();
+        D->set_name("Ds_so");
+    }
+    return D;
+}
+SharedComplexMatrix ComplexProp::Dt_mo(bool total) {
+    auto D = D_mo();
+    if (total) {
+        auto result = D->clone();
+        result->axpy(std::complex<double>{1.0, 0.0}, *D);
+        result->set_name("Dt_mo");
+        return result;
+    }
+    D->zero();
+    D->set_name("Ds_mo");
+    return D;
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::N_mo() {
+    auto D = D_mo();
+    auto result = linalg::diagonalize(*D);
+    return std::make_pair(std::get<1>(result), std::get<0>(result));
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::Nt_mo() {
+    auto D = Dt_mo();
+    auto result = linalg::diagonalize(*D);
+    return std::make_pair(std::get<1>(result), std::get<0>(result));
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::N_so() {
+    auto result = N_mo();
+    return std::make_pair(linalg::doublet(C_so_, result.first, false, false), result.second);
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::Nt_so() {
+    auto result = Nt_mo();
+    return std::make_pair(linalg::doublet(C_so_, result.first, false, false), result.second);
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::N_ao() {
+    return N_so();
+}
+std::pair<SharedComplexMatrix, SharedVector> ComplexProp::Nt_ao() {
+    return Nt_so();
+}
+std::string ComplexProp::D_name() const {
+    if (!D_so_) throw PSIEXCEPTION("ComplexProp: density matrix is not set");
+    return D_so_->name();
+}
+SharedComplexMatrix ComplexProp::overlap_so() {
+    auto S = std::make_shared<Matrix>("S", basisset_->nbf(), basisset_->nbf());
+    std::shared_ptr<OneBodyAOInt> Sint(integral_->ao_overlap());
+    Sint->compute(S);
+    return std::make_shared<ComplexMatrix>(S);
+}
 SharedMatrix Prop::Da_ao() {
     std::vector<double> temp(AO2USO_->max_ncol() * AO2USO_->max_nrow());
     double* temp_ptr = temp.data();

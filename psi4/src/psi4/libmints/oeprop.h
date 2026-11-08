@@ -156,95 +156,93 @@ class PSI_API ComplexOEProp {
     void set_D_mo(SharedComplexMatrix D) { throw PSIEXCEPTION("Not implemented!"); }
 };
 
-// class PSI_API ComplexProp {
-//    protected:
-//     /// The wavefunction object this Prop is built around
-//     std::shared_ptr<ComplexWavefunction> wfn_;
-//     /// The basisset for this wavefunction
-//     std::shared_ptr<BasisSet> basisset_;
-//     /// The integral factory for this wavefunction's basisset
-//     std::shared_ptr<IntegralFactory> integral_;
-//     /// The matrix factory for this wavefunction's basisset (SO)
-//     std::shared_ptr<MatrixFactory> factory_;
-//
-//     /**
-//      * Internally, data is held in the SO basis in Pitzer order
-//      */
-//
-//     /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
-//     SharedVector epsilon_;
-//     /// The alpha density matrix in the SO basis
-//     SharedComplexMatrix D_so_;
-//     /// The alpha C matrix in the SO basis
-//     SharedComplexMatrix C_so_;
-//
-//     /// Common initialization
-//     void common_init();
-//
-//    public:
-//     /// Build a Prop object with C, epsilon, and restricted buit from wfn
-//     ComplexProp(std::shared_ptr<ComplexWavefunction> wfn);
-//     /// Virtual destructor
-//     virtual ~ComplexProp();
-//
-//     // => Wavefunction Modifiers (rarely called, C is usually fixed at HF) <= //
-//
-//     // Change restricted flag. Resets C/D/epsilon matrices from wfn
-//     void set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn);
-//     // Set alpha eigenvalues, MO pitzer order basis
-//     void set_epsilon(SharedVector epsilon);
-//     // Set alpha C matrix, SO/MO pitzer order basis.
-//     void set_C(SharedComplexMatrix C);
-//
-//     // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
-//     // the adding to Dt  <= //
-//
-//     // TODO Add symmetry is irrep number
-//     void set_D_ao(SharedComplexMatrix D, int symmetry = 0);
-//     void set_D_so(SharedComplexMatrix D);
-//     void set_D_mo(SharedComplexMatrix D);
-//
-//     // => Get routines (useful to quickly change bases) <= //
-//
-//     /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
-//     SharedVector epsilon() { return std::make_shared<Vector>(epsilon_->clone()); }
-//
-//     /// The alpha C matrix in the SO basis
-//     SharedComplexMatrix C_so();
-//     /// The alpha C matrix in the AO (Spherical Harmonics, C1) basis. Ordered by eigenvalue
-//     SharedComplexMatrix C_ao();
-//
-//     /// The alpha density matrix in the AO (Spherical Harmonics, C1) basis
-//     SharedComplexMatrix D_ao();
-//     /// The alpha density matrix in the SO basis
-//     SharedComplexMatrix D_so();
-//     /// The alpha density matrix in the MO basis
-//     SharedComplexMatrix D_mo();
-//
-//     /// The total/spin density matrix in the ao basis, depending on if true or false
-//     SharedComplexMatrix Dt_so(bool total = true);
-//     /// The total/spin density matrix in the ao basis, depending on if true or false
-//     SharedComplexMatrix Dt_mo(bool total = true);
-//
-//     /// The alpha natural orbital occupations and orbitals in the MO basis
-//     std::pair<SharedComplexMatrix, SharedVector> N_mo();
-//     /// The total natural orbital occupations and orbitals in the MO basis
-//     std::pair<SharedComplexMatrix, SharedVector> Nt_mo();
-//     /// The alpha natural orbital occupations and orbitals in the SO basis
-//     std::pair<SharedComplexMatrix, SharedVector> N_so();
-//     /// The total natural orbital occupations and orbitals in the SO basis
-//     std::pair<SharedComplexMatrix, SharedVector> Nt_so();
-//     /// The alpha natural orbital occupations and orbitals in the AO basis
-//     std::pair<SharedComplexMatrix, SharedVector> N_ao();
-//     /// The total natural orbital occupations and orbitals in the AO basis
-//     std::pair<SharedComplexMatrix, SharedVector> Nt_ao();
-//
-//     /// Density Matrix title, used for fallback naming of OEProp compute jobs
-//     std::string D_name() const;
-//
-//     // => Some integral helpers <= //
-//     SharedComplexMatrix overlap_so();
-// };
+class PSI_API ComplexProp {
+   protected:
+    /// The wavefunction object this Prop is built around
+    std::shared_ptr<ComplexWavefunction> wfn_;
+    /// The basisset for this wavefunction
+    std::shared_ptr<BasisSet> basisset_;
+    /// The integral factory for this wavefunction's basisset
+    std::shared_ptr<IntegralFactory> integral_;
+
+    /**
+     * Internally, data is held in the SO basis in Pitzer order
+     */
+
+    /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
+    SharedVector epsilon_;
+    /// The alpha density matrix in the SO basis
+    SharedComplexMatrix D_so_;
+    /// The alpha C matrix in the SO basis
+    SharedComplexMatrix C_so_;
+
+    /// Common initialization
+    void common_init();
+
+   public:
+    /// Build a Prop object with C, epsilon, and restricted buit from wfn
+    ComplexProp(std::shared_ptr<ComplexWavefunction> wfn);
+    /// Virtual destructor
+    virtual ~ComplexProp();
+
+    // => Wavefunction Modifiers (rarely called, C is usually fixed at HF) <= //
+
+    // Change restricted flag. Resets C/D/epsilon matrices from wfn
+    void set_wavefunction(std::shared_ptr<ComplexWavefunction> wfn);
+    // Set alpha eigenvalues, MO pitzer order basis
+    void set_epsilon(SharedVector epsilon);
+    // Set alpha C matrix, SO/MO pitzer order basis.
+    void set_C(SharedComplexMatrix C);
+
+    // => Set OPDM/TDM/DDM (often called). These need not be totally symmetric. Note, you are setting Da and/or Db, I do
+    // the adding to Dt  <= //
+
+    // TODO Add symmetry is irrep number
+    void set_D_ao(SharedComplexMatrix D, int symmetry = 0);
+    void set_D_so(SharedComplexMatrix D);
+    void set_D_mo(SharedComplexMatrix D);
+
+    // => Get routines (useful to quickly change bases) <= //
+
+    /// The alpha eigenvalues in the MO basis (used to form Pitzer ordering)
+    SharedVector epsilon();
+
+    /// The alpha C matrix in the SO basis
+    SharedComplexMatrix C_so();
+    /// The alpha C matrix in the AO (Spherical Harmonics, C1) basis. Ordered by eigenvalue
+    SharedComplexMatrix C_ao();
+
+    /// The alpha density matrix in the AO (Spherical Harmonics, C1) basis
+    SharedComplexMatrix D_ao();
+    /// The alpha density matrix in the SO basis
+    SharedComplexMatrix D_so();
+    /// The alpha density matrix in the MO basis
+    SharedComplexMatrix D_mo();
+
+    /// The total/spin density matrix in the ao basis, depending on if true or false
+    SharedComplexMatrix Dt_so(bool total = true);
+    /// The total/spin density matrix in the ao basis, depending on if true or false
+    SharedComplexMatrix Dt_mo(bool total = true);
+
+    /// The alpha natural orbital occupations and orbitals in the MO basis
+    std::pair<SharedComplexMatrix, SharedVector> N_mo();
+    /// The total natural orbital occupations and orbitals in the MO basis
+    std::pair<SharedComplexMatrix, SharedVector> Nt_mo();
+    /// The alpha natural orbital occupations and orbitals in the SO basis
+    std::pair<SharedComplexMatrix, SharedVector> N_so();
+    /// The total natural orbital occupations and orbitals in the SO basis
+    std::pair<SharedComplexMatrix, SharedVector> Nt_so();
+    /// The alpha natural orbital occupations and orbitals in the AO basis
+    std::pair<SharedComplexMatrix, SharedVector> N_ao();
+    /// The total natural orbital occupations and orbitals in the AO basis
+    std::pair<SharedComplexMatrix, SharedVector> Nt_ao();
+
+    /// Density Matrix title, used for fallback naming of OEProp compute jobs
+    std::string D_name() const;
+
+    // => Some integral helpers <= //
+    SharedComplexMatrix overlap_so();
+};
 
 /**
  * The Prop object, base class of OEProp and GridProp objects
