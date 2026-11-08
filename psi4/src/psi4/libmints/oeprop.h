@@ -151,9 +151,9 @@ class PSI_API ComplexOEProp {
     // the adding to Dt  <= //
 
     // TODO Add symmetry is irrep number
-    void set_D_ao(SharedComplexMatrix D, int symmetry = 0);
-    void set_D_so(SharedComplexMatrix D);
-    void set_D_mo(SharedComplexMatrix D);
+    void set_D_ao(SharedComplexMatrix D, int symmetry = 0) { throw PSIEXCEPTION("Not implemented!"); }
+    void set_D_so(SharedComplexMatrix D) { throw PSIEXCEPTION("Not implemented!"); }
+    void set_D_mo(SharedComplexMatrix D) { throw PSIEXCEPTION("Not implemented!"); }
 };
 
 // class PSI_API ComplexProp {

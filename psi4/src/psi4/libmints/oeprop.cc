@@ -284,11 +284,13 @@ void Prop::set_Db_mo(SharedMatrix D) {
     }
 }
 
-
+ComplexOEProp::ComplexOEProp(std::shared_ptr<ComplexWavefunction> wfn) : wfn_(wfn) {
+    if (!wfn_) { throw PSIEXCEPTION("ComplexOEProp: wfn is null!"); }
+}
 void ComplexOEProp::add(const std::string& prop) { tasks_.insert(prop); }
 void ComplexOEProp::add(std::vector<std::string> props) { tasks_.insert(props.begin(), props.end()); }
 void ComplexOEProp::clear() { tasks_.clear(); }
-
+ComplexOEProp::~ComplexOEProp() {}
 void OEProp::add(const std::string& prop) { tasks_.insert(prop); }
 void OEProp::add(std::vector<std::string> props) { tasks_.insert(props.begin(), props.end()); }
 void OEProp::clear() { tasks_.clear(); }
