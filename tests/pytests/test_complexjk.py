@@ -144,6 +144,12 @@ def _h2_sto3g():
     return mol, basis
 
 
+def _n_unique_quartets(nshell):
+    """Number of shell quartets P>=Q, R>=S, PQ>=RS under 8-fold ERI permutational symmetry."""
+    npair = nshell * (nshell + 1) // 2
+    return npair * (npair + 1) // 2
+
+
 def _jk_reference(basis, D):
     """J_pq = sum_rs D_rs (pq|rs), K_pr = sum_qs D_qs (pq|rs) via MintsHelper.ao_eri."""
     mints = psi4.core.MintsHelper(basis)
@@ -391,8 +397,8 @@ def test_complexdirectjk_h2_dimer_screening():
     np.testing.assert_allclose(jk_schwarz.J()[0].to_array(), J_ref, atol=1e-8)
     np.testing.assert_allclose(jk_schwarz.K()[0].to_array(), K_ref, atol=1e-8)
     assert n_schwarz < n_none
-    # Without uniqueness, unscreened count is nshell^4
-    assert n_none == basis.nshell() ** 4
+    # 8-fold ERI symmetry: unscreened, only the unique shell quartets are computed
+    assert n_none == _n_unique_quartets(basis.nshell())
 
 
 def test_complexdirectjk_h2_dimer_density_screening():
@@ -429,8 +435,8 @@ def test_complexdirectjk_h2_dimer_density_screening():
     np.testing.assert_allclose(jk_dens.J()[0].to_array(), J_ref, atol=1e-8)
     np.testing.assert_allclose(jk_dens.K()[0].to_array(), K_ref, atol=1e-8)
     assert n_dens < n_none
-    # Without uniqueness, unscreened count is nshell^4
-    assert n_none == basis.nshell() ** 4
+    # 8-fold ERI symmetry: unscreened, only the unique shell quartets are computed
+    assert n_none == _n_unique_quartets(basis.nshell())
 
 #    --------------------
 #    |   Non-C1 tests   |

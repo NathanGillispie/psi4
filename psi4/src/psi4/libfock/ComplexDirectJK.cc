@@ -36,8 +36,9 @@
 #include "psi4/libmints/basisset.h"
 #include "psi4/libqt/qt.h"
 
+#include <algorithm>
+#include <array>
 #include <complex>
-#include <optional>
 #include <string>
 #include <span>
 #include <utility>
@@ -102,15 +103,25 @@ void ComplexDirectJK::compute_JK() {
         auto& J_out = J_ao_[N]->get(0);
         auto& K_out = K_ao_[N]->get(0);
 
+	// Added in additional flag lr_symmetic_ for case of non-hermitian density analagous to DirectJK.cc
+	// build_JK_matrices templated as <FillJ, FillK, SpinBlocked, Hermitian>
+        const bool hermitian = lr_symmetric_;
+
         if (dim == nbf) {
             // Plain (non spin-blocked) complex density
-            build_JK_matrices<true, true>(ints, D_ref, &J_out, &K_out);
+            if (hermitian)
+                build_JK_matrices<true, true, false, true>(ints, D_ref, &J_out, &K_out);
+            else
+                build_JK_matrices<true, true, false, false>(ints, D_ref, &J_out, &K_out);
         } else if (dim == 2 * nbf) {
             // Generalized (CGHF) spin-blocked density. D and J/K are 2x2 block
             // matrices of nbf x nbf blocks: [[D_aa, D_ab], [D_ba, D_bb]].
             // A single ERI pass contracts all four spin blocks (and the summed
             // Coulomb density) so the integrals are only computed once.
-            build_JK_matrices<true, true, true>(ints, D_ref, &J_out, &K_out);
+            if (hermitian)
+                build_JK_matrices<true, true, true, true>(ints, D_ref, &J_out, &K_out);
+            else
+                build_JK_matrices<true, true, true, false>(ints, D_ref, &J_out, &K_out);
         } else {
             throw PSIEXCEPTION("ComplexDirectJK: density block dimension (" + std::to_string(dim) +
                                ") must equal the number of AO basis functions (" + std::to_string(nbf) +
@@ -124,6 +135,8 @@ void ComplexDirectJK::compute_JK() {
 }
 
 namespace {
+
+using ComplexT = einsums::Tensor<std::complex<double>, 2>;
 
 // Minimal integer range [first, last) used in range-for loops. This replaces
 // std::views::iota, which fails to compile under clang with libstdc++ < 13.
@@ -165,6 +178,201 @@ auto partition_with_idx(std::span<const std::size_t> atom_to_shell) {
     return result;
 }
 
+// Contiguous AO range [first, first + size) of all functions on one center.
+struct CenterBlock {
+    std::size_t first;
+    std::size_t size;
+};
+
+// Basis function indices of a single integral (pq|rs).
+struct QuartetIndex {
+    std::size_t p, q, r, s;
+};
+
+// For populating other triangular half of real J matrix (A <- (A + A^T) / 2)
+void symmetrize(ComplexT& A, std::size_t n) {
+    for (std::size_t i = 0; i < n; i++) {
+        for (std::size_t j = 0; j < i; j++) {
+            const auto avg = 0.5 * (A(i, j) + A(j, i));
+            A(i, j) = avg;
+            A(j, i) = avg;
+        }
+    }
+}
+
+// For populating other triangular half of complex K matrix (A <- (A + A^H) / 2)
+void hermitize(ComplexT& A, std::size_t n) {
+    for (std::size_t i = 0; i < n; i++) {
+        A(i, i) = std::real(A(i, i));
+        for (std::size_t j = 0; j < i; j++) {
+            const auto avg = 0.5 * (A(i, j) + std::conj(A(j, i)));
+            A(i, j) = avg;
+            A(j, i) = std::conj(avg);
+        }
+    }
+}
+
+// Pointer to row i of a block. All scratch data of the J/K build lives in
+// ComplexMatrix objects, whose blocks are Einsums tensors. A row is therefore
+// a contiguous run that the innermost loops walk with a raw pointer.
+// Necessary for the compiler to vectorize (SIMD).
+inline std::complex<double>* row_ptr(ComplexT& T, std::size_t i) { return T.data() + i * T.stride(0); }
+inline const std::complex<double>* row_ptr(const ComplexT& T, std::size_t i) {
+    return T.data() + i * T.stride(0);
+}
+
+// View a run of complex numbers as (re, im) pairs of doubles. std::complex
+// guarantees this layout, and the standard permits the access.
+inline double* as_reals(std::complex<double>* z) { return reinterpret_cast<double*>(z); }
+inline const double* as_reals(const std::complex<double>* z) { return reinterpret_cast<const double*>(z); }
+
+// Zero the leading nrow x ncol block.
+void zero_block(ComplexT& T, std::size_t nrow, std::size_t ncol) {
+    for (std::size_t i = 0; i < nrow; i++) std::fill_n(row_ptr(T, i), ncol, std::complex<double>{});
+}
+
+// Add the leading block of an atom-local accumulator into its (row, col)
+// center block of a global matrix.
+void stripe_block(ComplexT& dst, const ComplexT& src, CenterBlock row, CenterBlock col) {
+    for (std::size_t i = 0; i < row.size; i++) {
+        const std::complex<double>* src_row = row_ptr(src, i);
+        for (std::size_t j = 0; j < col.size; j++) {
+            row_ptr(dst, row.first + i)[col.first + j] += src_row[j];
+        }
+    }
+}
+
+// One exchange stream: a density X and the spin block of K it contributes to.
+// A stream fills four atom-local buffers, one per unique-quartet:
+//
+//    K_pr += D_qs (pq|rs)
+//    K_ps += D_qr (pq|rs)
+//    K_qr += D_ps (pq|rs)
+//    K_qs += D_pr (pq|rs)
+//
+// The other four terms that pop up from the 8-fold symmetry are:
+//
+//    K_rp += D_sq (pq|rs)
+//    K_sp += D_rq (pq|rs)
+//    K_rq += D_sp (pq|rs)
+//    K_sq += D_rp (pq|rs)
+//
+// For a Hermitian D this second set of terms are just the conjugate transposes of
+// the first set. Only the first four unique-quartets are evaluated and the full
+// K contraction is recovered at the end by K <- (K + K^H)/2.
+struct ExchangeStream {
+    /// Position of the density block X inside D, and of its K block inside K
+    std::size_t row_off;
+    std::size_t col_off;
+    /// Contract X^T and accumulate K^T instead
+    bool transposed;
+};
+
+// Atom-local exchange accumulators for NStream exchange streams.
+// Every stream shares the same (real) eri, so the update of all streams
+// is a single short vector operation on those doubles.
+template <std::size_t NStream>
+struct ExchangeBuffers {
+    /// Doubles per matrix element: (re, im) of every stream
+    static constexpr std::size_t width = 2 * NStream;
+
+    std::array<ExchangeStream, NStream> streams;
+    /// Interleaved densities, nbf x (nbf * NStream), global AO indices
+    ComplexMatrix X_matrix;
+    /// Interleaved accumulators, each max_nfuncs x (max_nfuncs * NStream)
+    std::array<ComplexMatrix, 4> KT_matrix;
+    /// The (single) blocks of the matrices above
+    ComplexT* X;
+    std::array<ComplexT*, 4> KT;
+
+    ExchangeBuffers(const ComplexT& D, std::size_t nbf, std::size_t max_nfuncs,
+                    const std::array<ExchangeStream, NStream>& exchange_streams)
+        : streams(exchange_streams) {
+        const std::size_t ncopy = std::max<std::size_t>(NStream, 1);
+        X_matrix = ComplexMatrix("X", static_cast<int>(nbf), static_cast<int>(nbf * ncopy));
+        X = &X_matrix.get(0);
+        for (std::size_t n = 0; n < 4; n++) {
+            KT_matrix[n] = ComplexMatrix("KT", static_cast<int>(max_nfuncs), static_cast<int>(max_nfuncs * ncopy));
+            KT[n] = &KT_matrix[n].get(0);
+        }
+        for (std::size_t h = 0; h < NStream; h++) {
+            const auto& stream = streams[h];
+            for (std::size_t a = 0; a < nbf; a++) {
+                std::complex<double>* X_row = row_ptr(*X, a);
+                for (std::size_t b = 0; b < nbf; b++) {
+                    X_row[b * NStream + h] = stream.transposed ? row_ptr(D, b + stream.row_off)[a + stream.col_off]
+                                                               : row_ptr(D, a + stream.row_off)[b + stream.col_off];
+                }
+            }
+        }
+    }
+
+    ExchangeBuffers(const ExchangeBuffers&) = delete;
+    ExchangeBuffers& operator=(const ExchangeBuffers&) = delete;
+
+    static std::array<std::pair<CenterBlock, CenterBlock>, 4> layout(CenterBlock P, CenterBlock Q, CenterBlock R,
+                                                                    CenterBlock S) {
+        return {{{P, R}, {P, S}, {Q, R}, {Q, S}}};
+    }
+
+    void zero(CenterBlock P, CenterBlock Q, CenterBlock R, CenterBlock S) {
+        const auto blocks = layout(P, Q, R, S);
+        for (std::size_t n = 0; n < 4; n++) zero_block(*KT[n], blocks[n].first.size, blocks[n].second.size * NStream);
+    }
+
+    // The accumulation of all terms that depend on eri (pq|rs) in a vectorized form for efficient SIMD compilation.
+    inline void accumulate_row(const QuartetIndex& lo, const QuartetIndex& ao, std::size_t ns, const double* I,
+                               double scale) {
+        const double* __restrict__ X_qs = as_reals(row_ptr(*X, ao.q) + ao.s * NStream);
+        const double* __restrict__ X_ps = as_reals(row_ptr(*X, ao.p) + ao.s * NStream);
+        const double* __restrict__ X_qr = as_reals(row_ptr(*X, ao.q) + ao.r * NStream);
+        const double* __restrict__ X_pr = as_reals(row_ptr(*X, ao.p) + ao.r * NStream);
+        double* __restrict__ K_ps = as_reals(row_ptr(*KT[1], lo.p) + lo.s * NStream);
+        double* __restrict__ K_qs = as_reals(row_ptr(*KT[3], lo.q) + lo.s * NStream);
+
+        std::array<double, width> K_pr{};
+        std::array<double, width> K_qr{};
+        for (std::size_t s = 0; s < ns; s++) {
+            const double value = scale * I[s];
+#pragma omp simd
+            for (std::size_t c = 0; c < width; c++) {
+                K_pr[c] += X_qs[s * width + c] * value;
+                K_qr[c] += X_ps[s * width + c] * value;
+                K_ps[s * width + c] += X_qr[c] * value;
+                K_qs[s * width + c] += X_pr[c] * value;
+            }
+        }
+
+        double* __restrict__ K_pr_out = as_reals(row_ptr(*KT[0], lo.p) + lo.r * NStream);
+        double* __restrict__ K_qr_out = as_reals(row_ptr(*KT[2], lo.q) + lo.r * NStream);
+        for (std::size_t c = 0; c < width; c++) {
+            K_pr_out[c] += K_pr[c];
+            K_qr_out[c] += K_qr[c];
+        }
+    }
+
+    void stripe(ComplexT& K, CenterBlock P, CenterBlock Q, CenterBlock R, CenterBlock S) const {
+        const auto blocks = layout(P, Q, R, S);
+        for (std::size_t n = 0; n < 4; n++) {
+            const CenterBlock row = blocks[n].first;
+            const CenterBlock col = blocks[n].second;
+            for (std::size_t i = 0; i < row.size; i++) {
+                const std::complex<double>* KT_row = row_ptr(*KT[n], i);
+                for (std::size_t j = 0; j < col.size; j++) {
+                    for (std::size_t h = 0; h < NStream; h++) {
+                        const auto& stream = streams[h];
+                        const std::complex<double> value = KT_row[j * NStream + h];
+                        if (stream.transposed)
+                            row_ptr(K, col.first + j + stream.row_off)[row.first + i + stream.col_off] += value;
+                        else
+                            row_ptr(K, row.first + i + stream.row_off)[col.first + j + stream.col_off] += value;
+                    }
+                }
+            }
+        }
+    }
+};
+
 }
 
 // The template allows us to provide the most optimized method at compile time
@@ -176,31 +384,30 @@ auto partition_with_idx(std::span<const std::size_t> atom_to_shell) {
 // switch: both paths share the atom/shell-blocked skeleton and differ only in
 // how the density is decomposed and how J/K are accumulated and striped back,
 // with no runtime branching inside the hot loops.
-template<bool FillJ, bool FillK, bool SpinBlocked>
+template<bool FillJ, bool FillK, bool SpinBlocked, bool Hermitian>
 void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, const ComplexT& D, ComplexT* J, ComplexT* K) {
     timer_on("build_JK_matrices");
 
-    [[maybe_unused]] const int nbf = primary_->nbf();
+    const size_t nbf = primary_->nbf();
 
-    // Spin-blocked (CGHF) density decomposition. A generalized density is
-    // D = [[D_aa, D_ab], [D_ba, D_bb]]; the Coulomb term only needs the summed
-    // charge density D_aa + D_bb, while exchange needs each block individually.
-    // The blocks are materialized as contiguous nbf x nbf copies because the
-    // corresponding blocks of the 2 nbf x 2 nbf density are strided.
-    [[maybe_unused]] std::optional<ComplexT> D_aa, D_bb, D_ab, D_ba, D_tot;
-    if constexpr (SpinBlocked) {
-        D_aa.emplace("D_aa", nbf, nbf);
-        D_bb.emplace("D_bb", nbf, nbf);
-        D_ab.emplace("D_ab", nbf, nbf);
-        D_ba.emplace("D_ba", nbf, nbf);
-        D_tot.emplace("D_tot", nbf, nbf);
+    // J contraction only depends on D_J = D_c + D_c^T where D_c = D_aa + D_bb.
+    const int nJ = FillJ ? static_cast<int>(nbf) : 1;
+    ComplexMatrix D_J_matrix("D_J", nJ, nJ);
+    ComplexT& D_J = D_J_matrix.get(0);
+    if constexpr (FillJ) {
+        auto D_c = [&](size_t p, size_t q) -> std::complex<double> {
+            if constexpr (SpinBlocked)
+                return D(p, q) + D(p + nbf, q + nbf);
+            else
+                return D(p, q);
+        };
         for (size_t p = 0; p < nbf; p++) {
             for (size_t q = 0; q < nbf; q++) {
-                (*D_aa)(p, q) = D(p, q);
-                (*D_bb)(p, q) = D(p + nbf, q + nbf);
-                (*D_ab)(p, q) = D(p, q + nbf);
-                (*D_ba)(p, q) = D(p + nbf, q);
-                (*D_tot)(p, q) = (*D_aa)(p, q) + (*D_bb)(p, q);
+                const std::complex<double> sym = D_c(p, q) + D_c(q, p);
+                if constexpr (Hermitian)
+                    row_ptr(D_J, p)[q] = std::real(sym);
+                else
+                    row_ptr(D_J, p)[q] = sym;
             }
         }
     }
@@ -249,17 +456,22 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
         return integer_range{atom_to_shell[task], atom_to_shell[task + 1]};
     };
 
+    // Returns the contiguous AO range of all functions on center ``task``.
+    auto functions_on_center = [&atom_to_shell, &shell_to_basis](size_t task) {
+        const size_t first = shell_to_basis[atom_to_shell[task]];
+        return CenterBlock{first, shell_to_basis[atom_to_shell[task + 1]] - first};
+    };
+
     // => Welcome to the jungle <=
 
+    // Total number of shells for all centers
+    const size_t nshell = primary_->nshell();
     {
-        // Total number of shells for all centers
-        const int nshell = primary_->nshell();
-
         int atomic_ind = -1;
 
         size_t total_nfuncs = 0;
         shell_to_basis.push_back(0);
-        for (int P = 0; P < nshell; P++) {
+        for (size_t P = 0; P < nshell; P++) {
             const auto& shell = primary_->shell(P);
 
             total_nfuncs += shell.nfunction();
@@ -284,20 +496,45 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
         max_nfuncs_per_center = std::max(max_nfuncs_per_center, size);
     }
 
-    // Local AO blocks for the current atom quartet: J_PQ and K_PR
-    ComplexT JT("JT", max_nfuncs_per_center, max_nfuncs_per_center);
-    // Exchange accumulators: a plain density contracts into a single block, a
-    // spin-blocked density into one block per spin component (aa/ab/ba/bb).
-    [[maybe_unused]] ComplexT KT("KT", max_nfuncs_per_center, max_nfuncs_per_center);
-    [[maybe_unused]] ComplexT KaaT("KaaT", max_nfuncs_per_center, max_nfuncs_per_center);
-    [[maybe_unused]] ComplexT KabT("KabT", max_nfuncs_per_center, max_nfuncs_per_center);
-    [[maybe_unused]] ComplexT KbaT("KbaT", max_nfuncs_per_center, max_nfuncs_per_center);
-    [[maybe_unused]] ComplexT KbbT("KbbT", max_nfuncs_per_center, max_nfuncs_per_center);
+    // Local AO blocks for the current atom quartet. Only the leading
+    // n_A x n_B block of each is used for a given quartet of centers.
+    // Coulomb accumulators J_PQ = (J)_1^+ and J_RS = (J)_2^+.
+    const int nJT = FillJ ? static_cast<int>(max_nfuncs_per_center) : 1;
+    ComplexMatrix J_PQ_matrix("J_PQ", nJT, nJT);
+    ComplexMatrix J_RS_matrix("J_RS", nJT, nJT);
+    ComplexT& J_PQ = J_PQ_matrix.get(0);
+    ComplexT& J_RS = J_RS_matrix.get(0);
 
-    // Significant atom/task pairs (PQ|-- full, no uniqueness yet)
+    // Exchange streams, per density block (see ExchangeStream):
+    //   plain density:        D                (1 stream if Hermitian, else 2)
+    //   spin-blocked density: D_aa, D_bb       (1 stream each if Hermitian, else 2)
+    //                         D_ab             (2 streams)
+    //                         D_ba             (2 streams, non-Hermitian only)
+    // The blocks of a generalized density D = [[D_aa, D_ab], [D_ba, D_bb]] are
+    // addressed by their offsets; for a Hermitian one, K_ba = K_ab^H.
+    constexpr size_t NStream = !FillK ? 0 : (SpinBlocked ? (Hermitian ? 4 : 8) : (Hermitian ? 1 : 2));
+    const auto exchange_streams = [&]() -> std::array<ExchangeStream, NStream> {
+        if constexpr (!FillK) {
+            return {};
+        } else if constexpr (!SpinBlocked && Hermitian) {
+            return {{{0, 0, false}}};
+        } else if constexpr (!SpinBlocked) {
+            return {{{0, 0, false}, {0, 0, true}}};
+        } else if constexpr (Hermitian) {
+            return {{{0, 0, false}, {nbf, nbf, false}, {0, nbf, false}, {0, nbf, true}}};
+        } else {
+            return {{{0, 0, false}, {0, 0, true}, {nbf, nbf, false}, {nbf, nbf, true},
+                     {0, nbf, false}, {0, nbf, true}, {nbf, 0, false}, {nbf, 0, true}}};
+        }
+    }();
+    [[maybe_unused]] ExchangeBuffers<NStream> exchange(D, FillK ? nbf : 1, FillK ? max_nfuncs_per_center : 1,
+                                                       exchange_streams);
+
+    // Significant atom/task pairs (PQ|-- with Qatom <= Patom
     std::vector<std::pair<size_t, size_t>> significant_pairs;
     for (auto [Patom, Pshells] : partition_with_idx(atom_to_shell)) {
         for (auto [Qatom, Qshells] : partition_with_idx(atom_to_shell)) {
+            if (Qatom > Patom) continue;
             bool found_significant_pair = false;
             for (size_t Ps : Pshells) {
                 for (size_t Qs : Qshells) {
@@ -315,26 +552,24 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
     size_t computed_shells = 0L;
     for (const auto [Patom, Qatom] : significant_pairs) {
         for (const auto [Ratom, Satom] : significant_pairs) {
-            if constexpr(FillJ) JT.zero();
-            if constexpr(FillK) {
-                if constexpr (SpinBlocked) {
-                    KaaT.zero();
-                    KabT.zero();
-                    KbaT.zero();
-                    KbbT.zero();
-                } else {
-                    KT.zero();
-                }
-            }
+            if (Ratom > Patom) continue;
+
+            const CenterBlock Pfuncs = functions_on_center(Patom);
+            const CenterBlock Qfuncs = functions_on_center(Qatom);
+            const CenterBlock Rfuncs = functions_on_center(Ratom);
+            const CenterBlock Sfuncs = functions_on_center(Satom);
 
             bool touched = false;
 
-            // Process the shells
+            // Process the unique shells: P >= Q, R >= S, PQ >= RS
             for (auto Ps : shells_on_center(Patom) ) {
                 for (auto Qs : shells_on_center(Qatom) ) {
+                    if (Qs > Ps) continue;
                     if (!ints->shell_pair_significant(Ps, Qs)) continue;
                     for (auto Rs : shells_on_center(Ratom)) {
                         for (auto Ss : shells_on_center(Satom)) {
+                            if (Ss > Rs) continue;
+                            if (Rs * nshell + Ss > Ps * nshell + Qs) continue;
                             if (!ints->shell_pair_significant(Rs, Ss)) continue;
                             if (!ints->shell_significant(Ps, Qs, Rs, Ss)) continue;
 
@@ -345,6 +580,18 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
                             // Don't forget to like, share, subscribe and compute that shell!
                             computed_shells++;
 
+                            // Zeroing only the blocks this quartet of centers uses
+                            if (!touched) {
+                                if constexpr (FillJ) {
+                                    zero_block(J_PQ, Pfuncs.size, Qfuncs.size);
+                                    zero_block(J_RS, Rfuncs.size, Sfuncs.size);
+                                }
+                                if constexpr (FillK) {
+                                    exchange.zero(Pfuncs, Qfuncs, Rfuncs, Sfuncs);
+                                }
+                                touched = true;
+                            }
+
                             const size_t Psize = nfunctions_in_shell(Ps);
                             const size_t Qsize = nfunctions_in_shell(Qs);
                             const size_t Rsize = nfunctions_in_shell(Rs);
@@ -352,6 +599,7 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
 
                             // Global basis function index. 0 means the first function
                             // of the first shell of the first atom. aka AO index.
+                            const size_t Pao = function_index_of_shell(Ps);
                             const size_t Qao = function_index_of_shell(Qs);
                             const size_t Rao = function_index_of_shell(Rs);
                             const size_t Sao = function_index_of_shell(Ss);
@@ -362,29 +610,43 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
                             const size_t Plo = basis_index_of_shell_from_atom(Ps, Patom);
                             const size_t Qlo = basis_index_of_shell_from_atom(Qs, Qatom);
                             const size_t Rlo = basis_index_of_shell_from_atom(Rs, Ratom);
+                            const size_t Slo = basis_index_of_shell_from_atom(Ss, Satom);
 
-                            touched = true;
+                            // Degeneracy of the unique quartet: 1/2 for each of P == Q,
+                            // R == S and PQ == RS, since such a shell quartet already
+                            // contains its own permutations.
+                            double prefactor = 1.0;
+                            if (Ps == Qs) prefactor *= 0.5;
+                            if (Rs == Ss) prefactor *= 0.5;
+                            if (Ps == Rs && Qs == Ss) prefactor *= 0.5;
+                            // Doubled where the final (J + J^T)/2 or (K + K^H)/2 averages
+                            // in the half that is never accumulated (DirectJK's
+                            // post-hoc scale(2.0), folded into the prefactor).
+                            const double J_prefactor = 2.0 * prefactor;
+                            const double K_prefactor = (Hermitian ? 2.0 : 1.0) * prefactor;
+
+                            // The integrals are stored with s running fastest, so one
+                            // (p, q, r) owns a contiguous row of Ssize of them, and so
+                            // do the density and accumulator rows they are contracted
+                            // with.
                             for (size_t p = 0; p < Psize; p++) {
                                 for (size_t q = 0; q < Qsize; q++) {
-                                    for (size_t r = 0; r < Rsize; r++) {
-                                        for (size_t s = 0; s < Ssize; s++) {
-                                            const double I = *buf++;
-                                            if constexpr(FillJ) {
-                                                if constexpr (SpinBlocked)
-                                                    JT(p + Plo, q + Qlo) += (*D_tot)(r + Rao, s + Sao) * I;
-                                                else
-                                                    JT(p + Plo, q + Qlo) += D(r + Rao, s + Sao) * I;
+                                    for (size_t r = 0; r < Rsize; r++, buf += Ssize) {
+                                        if constexpr(FillJ) {
+                                            const std::complex<double>* __restrict__ D_rs = row_ptr(D_J, r + Rao) + Sao;
+                                            std::complex<double>* __restrict__ J_rs = row_ptr(J_RS, r + Rlo) + Slo;
+                                            const std::complex<double> D_pq = row_ptr(D_J, p + Pao)[q + Qao] * J_prefactor;
+                                            std::complex<double> J_pq{};
+                                            for (size_t s = 0; s < Ssize; s++) {
+                                                J_pq += D_rs[s] * buf[s];
+                                                J_rs[s] += D_pq * buf[s];
                                             }
-                                            if constexpr(FillK) {
-                                                if constexpr (SpinBlocked) {
-                                                    KaaT(p + Plo, r + Rlo) += (*D_aa)(q + Qao, s + Sao) * I;
-                                                    KabT(p + Plo, r + Rlo) += (*D_ab)(q + Qao, s + Sao) * I;
-                                                    KbaT(p + Plo, r + Rlo) += (*D_ba)(q + Qao, s + Sao) * I;
-                                                    KbbT(p + Plo, r + Rlo) += (*D_bb)(q + Qao, s + Sao) * I;
-                                                } else {
-                                                    KT(p + Plo, r + Rlo) += D(q + Qao, s + Sao) * I;
-                                                }
-                                            }
+                                            row_ptr(J_PQ, p + Plo)[q + Qlo] += J_pq * J_prefactor;
+                                        }
+                                        if constexpr(FillK) {
+                                            const QuartetIndex lo{p + Plo, q + Qlo, r + Rlo, Slo};
+                                            const QuartetIndex ao{p + Pao, q + Qao, r + Rao, Sao};
+                                            exchange.accumulate_row(lo, ao, Ssize, buf, K_prefactor);
                                         }
                                     }
                                 }
@@ -396,62 +658,36 @@ void ComplexDirectJK::build_JK_matrices(std::shared_ptr<TwoBodyAOInt> ints, cons
 
             if (!touched) continue;
 
-            // Stripe task-local J_PQ / K_PR into global matrices
+            // Stripe task-local J/K blocks into the global matrices. J lives in the
+            // (aa) block; each exchange block knows its own spin block offset.
             if constexpr(FillJ) {
-                for (auto Ps : shells_on_center(Patom) ) {
-                    for (auto Qs : shells_on_center(Qatom) ) {
-                        const size_t Psize = nfunctions_in_shell(Ps);
-                        const size_t Qsize = nfunctions_in_shell(Qs);
-
-                        const size_t Pao = function_index_of_shell(Ps);
-                        const size_t Qao = function_index_of_shell(Qs);
-
-                        const size_t Plo = basis_index_of_shell_from_atom(Ps, Patom);
-                        const size_t Qlo = basis_index_of_shell_from_atom(Qs, Qatom);
-                        for (int p = 0; p < Psize; p++) {
-                            for (int q = 0; q < Qsize; q++) {
-                                if constexpr (SpinBlocked) {
-                                    // J_aa and J_bb are identical: J only depends
-                                    // on the summed charge density D_aa + D_bb.
-                                    (*J)(p + Pao, q + Qao) += JT(p + Plo, q + Qlo);
-                                    (*J)(p + Pao + nbf, q + Qao + nbf) += JT(p + Plo, q + Qlo);
-                                } else {
-                                    (*J)(p + Pao, q + Qao) += JT(p + Plo, q + Qlo);
-                                }
-                            }
-                        }
-                    }
-                }
+                stripe_block(*J, J_PQ, Pfuncs, Qfuncs);
+                stripe_block(*J, J_RS, Rfuncs, Sfuncs);
             }
 
             if constexpr(FillK) {
-                for (auto Ps : shells_on_center(Patom) ) {
-                    for (auto Rs : shells_on_center(Ratom) ) {
-                        const size_t Psize = nfunctions_in_shell(Ps);
-                        const size_t Rsize = nfunctions_in_shell(Rs);
+                exchange.stripe(*K, Pfuncs, Qfuncs, Rfuncs, Sfuncs);
+            }
+        }
+    }
 
-                        const size_t Pao = function_index_of_shell(Ps);
-                        const size_t Rao = function_index_of_shell(Rs);
+    // => Recover the halves that were never accumulated <= //
 
-                        const size_t Plo = basis_index_of_shell_from_atom(Ps, Patom);
-                        const size_t Rlo = basis_index_of_shell_from_atom(Rs, Ratom);
-                        for (int p = 0; p < Psize; p++) {
-                            for (int r = 0; r < Rsize; r++) {
-                                if constexpr (SpinBlocked) {
-                                    (*K)(p + Pao, r + Rao) += KaaT(p + Plo, r + Rlo);
-                                    (*K)(p + Pao, r + Rao + nbf) += KabT(p + Plo, r + Rlo);
-                                    (*K)(p + Pao + nbf, r + Rao) += KbaT(p + Plo, r + Rlo);
-                                    (*K)(p + Pao + nbf, r + Rao + nbf) += KbbT(p + Plo, r + Rlo);
-                                } else {
-                                    (*K)(p + Pao, r + Rao) += KT(p + Plo, r + Rlo);
-                                }
-                            }
-                        }
-                    }
+    if constexpr(FillJ) {
+        symmetrize(*J, nbf);
+        if constexpr (SpinBlocked) {
+            // J_aa and J_bb are identical: J only depends on the summed charge
+            // density D_aa + D_bb.
+            for (size_t p = 0; p < nbf; p++) {
+                for (size_t q = 0; q < nbf; q++) {
+                    (*J)(p + nbf, q + nbf) = (*J)(p, q);
                 }
             }
         }
     }
+
+    // K is Hermitian for a Hermitian density. This also fills K_ba = K_ab^H.
+    if constexpr(FillK && Hermitian) hermitize(*K, K->dim(0));
 
     num_computed_shells_ += computed_shells;
     timer_off("build_JK_matrices");
